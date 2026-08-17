@@ -1,0 +1,24 @@
+/**
+ * The shared component kit.
+ *
+ * Barrel export so consumers import from one place (`@/components/ui`) regardless of how the
+ * files are split. This replaced the single 798-line `flight-ui.tsx`.
+ */
+export { BusyRow } from './busy-row';
+export { Button, type ButtonVariant } from './button';
+export { Card } from './card';
+export { Chip, type ChipTone } from './chip';
+export { Disclaimer } from './disclaimer';
+export { Hairline } from './hairline';
+export { LinkButton } from './link-button';
+export { ListRow } from './list-row';
+export { LoadingScreen } from './loading-screen';
+export { Notice } from './notice';
+export { PulseDot } from './pulse-dot';
+export { Screen } from './screen';
+export { SectionLabel } from './section-label';
+export { StateLabel } from './state-label';
+export { StatusPill } from './status-pill';
+export { toneColor } from './tone';
+export { TopBar } from './top-bar';
+export { UnsupportedScreen } from './unsupported-screen';

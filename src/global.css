@@ -66,4 +66,51 @@
   --radius-control: 12px;
   --radius-control-large: 16px;
   --radius-pill: 999px;
+
+  /*
+   * The warm-paper palette. Mirrors `paper` in src/ui/theme.ts one-for-one, kebab-cased, with
+   * a single deliberate exception: `paper.text` is `--color-body`, because `text-text` would be
+   * an absurd utility name. src/ui/__tests__/theme-css.test.ts enforces the mapping, so editing
+   * one side alone fails the suite.
+   *
+   * theme.ts stays the source of truth for the handful of runtime JS reads (the navigator's
+   * contentStyle, ActivityIndicator colours, Animated interpolations) that cannot be classes.
+   */
+  --color-background: #f4efe6;
+  --color-card: #fffcf6;
+  --color-card-alt: #f1e8d8;
+  --color-border: #e2d9c8;
+  --color-hairline: #efe7d6;
+  --color-ink: #16130f;
+  --color-body: #5b534a;
+  --color-muted: #8b8177;
+  --color-faint: #c9bfae;
+  --color-ghost: #a79a82;
+  --color-placeholder: #b8ad9c;
+  --color-thermal: #d9591f;
+  --color-thermal-pressed: #b4471a;
+  --color-thermal-soft: #f7e7dc;
+  --color-thermal-ink: #8a3f14;
+  --color-altitude: #1f5f6b;
+  --color-altitude-soft: #e2edef;
+  --color-good: #3e7a52;
+  --color-good-soft: #e7f0e7;
+  --color-good-border: #cfe1cf;
+  --color-good-body: #3e5e45;
+  --color-warn: #c98a20;
+  --color-warn-ink: #9a6a12;
+  --color-warn-soft: #f6ebd3;
+  --color-warn-border: #e5d3ac;
+  --color-warn-body: #7a5a1a;
+  --color-danger: #b4320e;
+  --color-danger-soft: #fff1ec;
+  --color-danger-border: #efc6b6;
+  --color-danger-body: #7a3a24;
+  --color-attention-soft: #fff3ea;
+  --color-attention-border: #e0b79e;
+  --color-attention-ink: #7a4a2c;
+  --color-on-dark: #fffcf6;
+  --color-on-dark-muted: rgba(255, 252, 246, 0.6);
+  --color-on-dark-faint: rgba(255, 252, 246, 0.45);
+  --color-on-dark-hairline: rgba(255, 252, 246, 0.14);
 }

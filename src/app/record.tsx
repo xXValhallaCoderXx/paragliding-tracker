@@ -1,21 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Linking, Platform } from 'react-native';
 import * as ExpoLinking from 'expo-linking';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import { LoadingScreen, UnsupportedScreen } from '@/components/flight-ui';
-import { InstrumentView } from '@/components/recorder/instrument';
-import { InterruptedView } from '@/components/recorder/interrupted';
-import { PreflightView } from '@/components/recorder/preflight';
-import { useRecorderLifecycle } from '@/components/recorder-lifecycle';
+import { LoadingScreen, UnsupportedScreen } from '@/components/ui';
+import { InstrumentView } from '@/features/record/components/instrument';
+import { InterruptedView } from '@/features/record/components/interrupted';
+import { PreflightView } from '@/features/record/components/preflight';
+import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import { recorderService } from '@/recorder/recorder-service';
 import type { RecorderSnapshot } from '@/recorder/types';
-import { capturePresentation } from '@/ui/capture-health';
-import { inFlightNotices, type ReadinessAction } from '@/ui/recorder-presentation';
+import { capturePresentation } from '@/features/record/capture-health';
+import { inFlightNotices, type ReadinessAction } from '@/features/record/recorder-presentation';
 
 type RecorderIntent = 'resume' | 'finalize';
 
-const NIGHT_STATES: RecorderSnapshot['state'][] = ['arming', 'recording', 'stopping'];
+/** States that render the in-flight instrument view rather than pre-flight or interrupted. */
+const IN_FLIGHT_STATES: RecorderSnapshot['state'][] = ['arming', 'recording', 'stopping'];
 const SAVING_FLIGHT_LABEL = 'Saving flight…';
 const SAVING_PARTIAL_LABEL = 'Saving partial flight…';
 
@@ -175,7 +176,10 @@ export default function RecordFlightScreen() {
   const savingStopped = busy === SAVING_FLIGHT_LABEL && snapshot.state === 'completed';
   const savingPartial = busy === SAVING_PARTIAL_LABEL && snapshot.state === 'completed';
   const showInterrupted = snapshot.state === 'interrupted' || savingPartial;
-  const scheme = !showInterrupted && (NIGHT_STATES.includes(snapshot.state) || savingStopped) ? 'night' : 'paper';
+  // Which of the three recorder views to show. This used to double as the paper/night scheme
+  // selector; the instrument mode is now paper like every other screen, so it only picks a view.
+  const showInstrument =
+    !showInterrupted && (IN_FLIGHT_STATES.includes(snapshot.state) || savingStopped);
   const actionsDisabled = Boolean(busy) || recorderLifecycle.recovering;
   const capture = savingStopped
     ? {
@@ -205,7 +209,7 @@ export default function RecordFlightScreen() {
         }}
       />
     );
-  } else if (scheme === 'night') {
+  } else if (showInstrument) {
     content = (
       <InstrumentView
         snapshot={snapshot}
@@ -240,12 +244,7 @@ export default function RecordFlightScreen() {
     );
   }
 
-  return (
-    <>
-      <Stack.Screen options={{ statusBarStyle: scheme === 'night' ? 'light' : 'dark' }} />
-      {content}
-    </>
-  );
+  return content;
 }
 
 async function openSystemScreen(action: ReadinessAction): Promise<void> {

@@ -8,9 +8,16 @@ Recorder, database, headless-task, repository, and root recovery code are unchan
 - Claude Design project "MVP app UI design", file `XC Tracker UI.dc.html` (with `support.js`
   and `uploads/xc-tracker-mvp-screens.md`):
   <https://claude.ai/design/p/1b347570-d36c-443c-86a4-421df6e66287?file=XC+Tracker+UI.dc.html>
-- Direction: warm paper "sofa" screens, a near-black instrument mode in flight, Archivo +
-  IBM Plex Mono, thermal `#D9591F`, altitude `#1F5F6B`, paper `#F4EFE6`, night `#0A0D12`.
-- Tokens live in `src/ui/theme.ts`; the shared kit is `src/components/flight-ui.tsx`.
+- Direction: warm paper screens throughout, Archivo + IBM Plex Mono, thermal `#D9591F`,
+  altitude `#1F5F6B`, paper `#F4EFE6`.
+- The design originally paired these with a near-black instrument mode for the in-flight
+  recorder. That was removed on 2026-08-18 in favour of one consistent theme; `StatusPill` and
+  `HoldToStop`, which had no paper styling at all, were repainted onto the same soft/border
+  pairs `Chip` and `Notice` use.
+- Colour tokens are `@theme` variables in `src/global.css`, mirrored in `src/ui/theme.ts` for
+  the few runtime JS reads. `src/ui/__tests__/theme-css.test.ts` fails if the two drift.
+- The shared kit is `src/components/ui/` (one file per component, barrel `index.ts`), styled
+  with NativeWind `className`. It replaced the single 798-line `src/components/flight-ui.tsx`.
 
 Fonts load at runtime with `expo-font` (`useFonts`) from `@expo-google-fonts/archivo` and
 `@expo-google-fonts/ibm-plex-mono` in `src/app/_layout.tsx`. Only the seven used weights are
@@ -21,9 +28,9 @@ weight in their name; styles never combine `fontFamily` with `fontWeight`.
 
 | Design | Route | What it became |
 | --- | --- | --- |
-| S1 Logbook | `/` (`src/app/index.tsx`) | Season card derived from local finished flights, month-grouped cards, pinned card for the single unfinished flight (recording: neutral; interrupted: attention with Resume / Save partial), empty state, loading, error/retry, Record FAB, disclaimer. |
+| S1 Logbook | `/` (`src/app/(tabs)/index.tsx`) | Season card derived from local finished flights, month-grouped cards, pinned card for the single unfinished flight (recording: neutral; interrupted: attention with Resume / Save partial), empty state, loading, error/retry, Record FAB, disclaimer. |
 | S2 Pre-flight | `/record` idle/completed | Readiness rows from `RecorderSnapshot.capabilities` and power state (location, permissions, barometer, battery/optimization) with plain-language consequences; blocked states link to Android settings; manual-start note; Start (or "Start anyway" / "Ask for permission again"). |
-| S3 Recording | `/record` arming/recording/stopping | Night instrument view: state pill (only "REC" pulses, and only while capture is verifiably healthy), phone-sensors/battery badge, airtime, GPS altitude, ground speed, capture evidence line, degraded cards (stale, recovering, not running, low battery, recorder errors), hold-to-stop, saving and retry-save states. |
+| S3 Recording | `/record` arming/recording/stopping | Instrument view: state pill (only "REC" pulses, and only while capture is verifiably healthy), phone-sensors/battery badge, airtime, GPS altitude, ground speed, capture evidence line, degraded cards (stale, recovering, not running, low battery, recorder errors), hold-to-stop, saving and retry-save states. |
 | S4 Save flight | `/flights/[id]?saved=stopped\|partial` | The recorder navigates to the flight detail after a save; the hero shows the fresh-save (or partial-save) banner and the optional title/site/notes fields sit directly below. |
 | S5 Flight detail | `/flights/[id]` | Story-order hero (distance when a track exists, else airtime), one honest logbook insight, date/time in the recorded timezone, stat rows, metadata form, collapsed "How this was recorded" evidence block with diagnostics export, unsigned IGC share, permanent delete. |
 | Recovery states | `/record` interrupted | Attention screen with recorded airtime, fixes, last fix time and altitude; Resume and Save Partial both retained; explains the 20-second recovery deadline. |
@@ -64,3 +71,28 @@ open flight (in progress / needs attention), unsaved-changes guard, export busy,
   react-native-web and headless Chromium at 392 px width. It was not checked on the phone: the
   installed artifact is the release APK, the device was locked, and no emulator is available.
   Verify on the physical Samsung through the development client before standalone acceptance.
+
+## Structure (2026-08-18)
+
+```
+src/
+  app/                    routes only — (tabs)/index = logbook, record, flights/[id], preview
+  components/ui/          shared kit, one file per component + barrel index.ts
+  features/               one slice per route segment
+    logbook/{components,logbook.ts,__tests__}
+    record/{components,recorder-presentation.ts,capture-health.ts,recorder-lifecycle.tsx}
+    flights/{components,flight-detail.ts}
+  lib/                    cross-cutting helpers (format/, use-stable-animated-value)
+  recorder/               domain layer — sqlite, service, igc, metrics (no React)
+  ui/theme.ts             TS mirror of the palette for runtime JS reads
+global.css                @theme token source of truth
+```
+
+Rule: **feature folder name == route segment**, so a future `/settings` route gets
+`src/features/settings/`.
+
+`src/app/preview.tsx` is the visual-QA fixture route. It is deliberately **committed** — the
+previous version was deleted after use and had to be rewritten from scratch, and it is the only
+way to see components on this machine (no Android emulator; the product routes short-circuit to
+`UnsupportedScreen` on web). Serve with `expo start --port 8091` and shoot with
+`dist/visual/shot.sh <name> 392x1600 <set>`; sets are `kit`, `instrument`, `instrument-degraded`.

@@ -15,7 +15,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
-import { RecorderLifecycleProvider } from '@/components/recorder-lifecycle';
+import { RecorderLifecycleProvider } from '@/features/record/recorder-lifecycle';
 import { paper } from '@/ui/theme';
 
 // Keep the native splash up until the design fonts are ready (or fail), so the
@@ -47,8 +47,7 @@ export default function RootLayout() {
             animation: 'slide_from_right',
             contentStyle: { backgroundColor: paper.background },
             headerShown: false,
-            // Status bar icons follow each screen: paper screens are dark-on-light;
-            // the recorder switches this to `light` for its night instrument mode.
+            // Every screen is warm paper, so the status bar is dark-on-light throughout.
             statusBarStyle: 'dark',
           }}
         />

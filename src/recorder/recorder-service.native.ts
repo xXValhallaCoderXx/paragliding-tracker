@@ -32,6 +32,7 @@ import {
 import { buildDiagnosticJson } from './diagnostics';
 import { finalizeFlightForSession } from './flight-repository.native';
 import { buildUnsignedIgc, selectExportEligibleFixes } from './igc';
+import { locationTaskOptionsMatch } from './location-task-options';
 import { LifecycleCoordinator } from './operation-queue';
 import {
   deriveCaptureHealth,
@@ -168,25 +169,16 @@ interface LocationTaskState {
   configurationMatches: boolean;
 }
 
-function locationTaskOptionsMatch(options: unknown): boolean {
-  if (!options) return false;
-  const locationOptions = options as Partial<Location.LocationTaskOptions>;
-  return (
-    locationOptions.accuracy === Location.Accuracy.BestForNavigation &&
-    locationOptions.timeInterval === RECORDER_CONFIG.androidTimeIntervalMs &&
-    locationOptions.distanceInterval === RECORDER_CONFIG.distanceIntervalMetres &&
-    locationOptions.deferredUpdatesDistance === RECORDER_CONFIG.deferredUpdatesDistanceMetres &&
-    locationOptions.deferredUpdatesInterval === RECORDER_CONFIG.deferredUpdatesIntervalMs
-  );
-}
-
 async function getLocationTaskState(): Promise<LocationTaskState> {
   const started = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME).catch(
     () => false,
   );
   if (!started) return { started: false, configurationMatches: false };
   const options = await TaskManager.getTaskOptionsAsync(LOCATION_TASK_NAME).catch(() => null);
-  return { started: true, configurationMatches: locationTaskOptionsMatch(options) };
+  return {
+    started: true,
+    configurationMatches: locationTaskOptionsMatch(options, Location.Accuracy.BestForNavigation),
+  };
 }
 
 class NativeRecorderService implements RecorderService {
@@ -1220,8 +1212,27 @@ class NativeRecorderService implements RecorderService {
     return Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, content);
   }
 
+  /**
+   * Publish a partial change to the snapshot.
+   *
+   * The 1 Hz poll calls refreshSnapshot with allowWhileLifecycleBusy = false, so every tick is
+   * discarded for the whole duration of a lifecycle operation (see LifecycleCoordinator.
+   * beginSnapshot). A partial publish during that window used to carry the previous
+   * `capturedAt` and `durationMs` straight through, so the status could change — "Restarting GPS
+   * capture" — while the airtime readout and the "last fix N s ago" evidence line stood still.
+   *
+   * Airtime is wall-clock, so it can be recomputed here from the session bounds the snapshot
+   * already carries. An explicit value in `changes` always wins.
+   */
   private updateSnapshot(changes: Partial<RecorderSnapshot>) {
-    this.snapshot = { ...this.snapshot, ...changes };
+    const next = { ...this.snapshot, ...changes };
+    if (changes.capturedAt === undefined) {
+      next.capturedAt = Date.now();
+    }
+    if (changes.durationMs === undefined && next.startedAt !== null) {
+      next.durationMs = Math.max(0, (next.endedAt ?? next.capturedAt) - next.startedAt);
+    }
+    this.snapshot = next;
     this.publish();
   }
 

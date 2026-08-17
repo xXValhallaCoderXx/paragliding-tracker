@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 
-import { EvidenceBlock } from '@/components/flight-detail/evidence';
-import { FlightHero, type DetailStatus, type SavedContext } from '@/components/flight-detail/hero';
-import { MetadataForm, type MetadataFormValues } from '@/components/flight-detail/metadata-form';
+import { EvidenceBlock } from '@/features/flights/components/evidence';
+import { FlightHero, type DetailStatus, type SavedContext } from '@/features/flights/components/hero';
+import { MetadataForm, type MetadataFormValues } from '@/features/flights/components/metadata-form';
 import {
   BusyRow,
   Button,
@@ -24,7 +24,7 @@ import {
   SectionLabel,
   TopBar,
   UnsupportedScreen,
-} from '@/components/flight-ui';
+} from '@/components/ui';
 import { flightRepository } from '@/recorder/flight-repository';
 import { recorderService } from '@/recorder/recorder-service';
 import type { ExportArtifact, FlightDetail, FlightMetadataPatch } from '@/recorder/types';
@@ -34,8 +34,8 @@ import {
   formatGroundSpeed,
   formatMetres,
   formatThousands,
-} from '@/ui/flight-format';
-import { flightInsight, flightInsightText } from '@/ui/logbook';
+} from '@/lib/format/flight-format';
+import { flightInsight, flightInsightText } from '@/features/logbook/logbook';
 import { fonts, paper } from '@/ui/theme';
 
 export default function FlightDetailScreen() {
@@ -255,7 +255,7 @@ export default function FlightDetailScreen() {
             </View>
           ) : null}
 
-          <Card style={styles.statsCard}>
+          <Card className="mx-[16px] mt-[14px] px-[16px]">
             {heroIsDistance ? (
               <ListRow label="Airtime" value={durationMs === null ? '—' : formatAirtime(durationMs)} />
             ) : (
@@ -267,7 +267,7 @@ export default function FlightDetailScreen() {
             <ListRow label="GPS fixes" value={metrics ? formatThousands(metrics.fixCount) : '—'} last />
           </Card>
 
-          <SectionLabel style={styles.sectionLabel}>About this flight</SectionLabel>
+          <SectionLabel className="px-[18px] pt-[20px] pb-[8px]">About this flight</SectionLabel>
           <MetadataForm
             values={form}
             onChange={setForm}
@@ -277,7 +277,7 @@ export default function FlightDetailScreen() {
             onSave={() => void runAction('Saving details…', saveDetails)}
           />
 
-          <SectionLabel style={styles.sectionLabel}>Recording integrity</SectionLabel>
+          <SectionLabel className="px-[18px] pt-[20px] pb-[8px]">Recording integrity</SectionLabel>
           <EvidenceBlock
             flight={flight}
             open={evidenceOpen}
@@ -359,8 +359,6 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 40 },
   missing: { padding: 16, gap: 12 },
   notices: { marginHorizontal: 16, marginTop: 10, gap: 8 },
-  statsCard: { marginHorizontal: 16, marginTop: 14, paddingHorizontal: 16 },
-  sectionLabel: { paddingHorizontal: 18, paddingTop: 20, paddingBottom: 8 },
   actions: { marginHorizontal: 16, marginTop: 20, gap: 10 },
   actionsNote: {
     fontFamily: fonts.sans,
