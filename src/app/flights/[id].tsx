@@ -3,58 +3,51 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EvidenceBlock } from '@/components/flight-detail/evidence';
+import { FlightHero, type DetailStatus, type SavedContext } from '@/components/flight-detail/hero';
+import { MetadataForm, type MetadataFormValues } from '@/components/flight-detail/metadata-form';
 import {
-  ActionButton,
-  BackButton,
   BusyRow,
+  Button,
   Card,
+  ListRow,
   LoadingScreen,
-  MetricTile,
   Notice,
-  ScreenHeader,
-  StatusChip,
+  Screen,
+  SectionLabel,
+  TopBar,
   UnsupportedScreen,
-  palette,
 } from '@/components/flight-ui';
 import { flightRepository } from '@/recorder/flight-repository';
 import { recorderService } from '@/recorder/recorder-service';
-import type {
-  ExportArtifact,
-  FlightDetail,
-  FlightMetadataPatch,
-} from '@/recorder/types';
+import type { ExportArtifact, FlightDetail, FlightMetadataPatch } from '@/recorder/types';
 import {
-  flightDisplayName,
-  formatAltitude,
+  formatAirtime,
   formatDistance,
-  formatDuration,
-  formatFlightDate,
-  formatGap,
   formatGroundSpeed,
-  qualityLabel,
+  formatMetres,
+  formatThousands,
 } from '@/ui/flight-format';
+import { flightInsight, flightInsightText } from '@/ui/logbook';
+import { fonts, paper } from '@/ui/theme';
 
 export default function FlightDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, saved } = useLocalSearchParams<{ id: string; saved?: string }>();
   const router = useRouter();
   const [flight, setFlight] = useState<FlightDetail | null>(null);
-  const [title, setTitle] = useState('');
-  const [site, setSite] = useState('');
-  const [notes, setNotes] = useState('');
+  const [form, setForm] = useState<MetadataFormValues>({ title: '', site: '', notes: '' });
+  const [insight, setInsight] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ text: string; tone: 'info' | 'error' } | null>(null);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [message, setMessage] = useState<{ text: string; tone: 'good' | 'danger' } | null>(null);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
 
   const loadFlight = useCallback(async () => {
     if (Platform.OS === 'web' || !id) return;
@@ -64,15 +57,24 @@ export default function FlightDetailScreen() {
       const nextFlight = await flightRepository.getFlight(id);
       if (!nextFlight) {
         setFlight(null);
-        setMessage({ text: 'This flight no longer exists on this phone.', tone: 'error' });
+        setMessage({ text: 'This flight no longer exists on this phone.', tone: 'danger' });
         return;
       }
       setFlight(nextFlight);
-      setTitle(nextFlight.title ?? '');
-      setSite(nextFlight.site ?? '');
-      setNotes(nextFlight.notes ?? '');
+      setForm({
+        title: nextFlight.title ?? '',
+        site: nextFlight.site ?? '',
+        notes: nextFlight.notes ?? '',
+      });
+      try {
+        const all = await flightRepository.listFlights();
+        const found = flightInsight(nextFlight, all);
+        setInsight(found ? flightInsightText(found) : null);
+      } catch {
+        setInsight(null);
+      }
     } catch (error) {
-      setMessage({ text: messageFrom(error), tone: 'error' });
+      setMessage({ text: messageFrom(error), tone: 'danger' });
     } finally {
       setLoading(false);
     }
@@ -85,8 +87,12 @@ export default function FlightDetailScreen() {
   );
 
   const patch = useMemo<FlightMetadataPatch>(
-    () => ({ title: optionalText(title), site: optionalText(site), notes: optionalText(notes) }),
-    [notes, site, title],
+    () => ({
+      title: optionalText(form.title),
+      site: optionalText(form.site),
+      notes: optionalText(form.notes),
+    }),
+    [form],
   );
   const dirty = Boolean(
     flight &&
@@ -102,7 +108,7 @@ export default function FlightDetailScreen() {
       leave();
       return;
     }
-    Alert.alert('Discard unsaved changes?', 'Your recorded track will not be affected.', [
+    Alert.alert('Discard unsaved details?', 'Your recorded track is not affected.', [
       { text: 'Keep editing', style: 'cancel' },
       { text: 'Discard', style: 'destructive', onPress: leave },
     ]);
@@ -114,7 +120,7 @@ export default function FlightDetailScreen() {
     try {
       await action();
     } catch (error) {
-      setMessage({ text: messageFrom(error), tone: 'error' });
+      setMessage({ text: messageFrom(error), tone: 'danger' });
     } finally {
       setBusy(null);
     }
@@ -124,7 +130,7 @@ export default function FlightDetailScreen() {
     if (!flight) return;
     await flightRepository.updateFlight(flight.id, patch);
     await loadFlight();
-    setMessage({ text: 'Flight details saved.', tone: 'info' });
+    setMessage({ text: 'Flight details saved.', tone: 'good' });
   }
 
   async function exportAndShare(kind: ExportArtifact['kind']) {
@@ -135,8 +141,11 @@ export default function FlightDetailScreen() {
         : await recorderService.exportDiagnostics(flight.recordingSessionId);
     await recorderService.shareArtifact(artifact);
     setMessage({
-      text: kind === 'igc' ? 'IGC export opened in the share sheet.' : 'Diagnostics opened in the share sheet.',
-      tone: 'info',
+      text:
+        kind === 'igc'
+          ? 'Unsigned IGC opened in the share sheet.'
+          : 'Diagnostics JSON opened in the share sheet.',
+      tone: 'good',
     });
   }
 
@@ -144,7 +153,7 @@ export default function FlightDetailScreen() {
     if (!flight) return;
     Alert.alert(
       'Delete this flight permanently?',
-      'The recorded track, notes, stats, and generated export files will be removed from this phone. This cannot be undone.',
+      'The recorded track, stats, notes, and generated files are removed from this phone. There is no cloud copy, so this cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -165,226 +174,175 @@ export default function FlightDetailScreen() {
 
   if (!flight) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.missingContent}>
-          <BackButton onPress={leaveDetail} />
-          <Notice tone="error">{message?.text ?? 'Flight not found.'}</Notice>
-          <ActionButton label="Back to flights" tone="primary" onPress={() => router.replace('/')} />
+      <Screen>
+        <TopBar onBack={leaveDetail} backLabel="Back to logbook" title="Flight" />
+        <View style={styles.missing}>
+          <Notice tone="danger" title="Flight not found">
+            {message?.text ?? 'This flight is not in the logbook any more.'}
+          </Notice>
+          <Button label="Back to logbook" variant="dark" onPress={() => router.replace('/')} />
         </View>
-      </SafeAreaView>
+      </Screen>
     );
   }
 
   const metrics = flight.metrics;
-  const duration =
+  const durationMs =
     metrics?.durationMs ??
-    (flight.endedAt === null ? 0 : Math.max(0, flight.endedAt - flight.startedAt));
-  const canDelete = flight.status === 'completed' || flight.status === 'partial';
-  const canExportIgc = Boolean(metrics && metrics.fixCount > 0 && canDelete);
-  const canExportDiagnostics = canDelete;
+    (flight.endedAt === null ? null : Math.max(0, flight.endedAt - flight.startedAt));
+  const isOpen = flight.sessionStatus === 'recording' || flight.sessionStatus === 'interrupted';
+  const isProcessing = !isOpen && (flight.status === 'processing' || !metrics);
+  const isFinished = flight.status === 'completed' || flight.status === 'partial';
+  const hasTrack = Boolean(metrics && metrics.fixCount > 0 && metrics.quality !== 'no_track');
+  const canExportIgc = isFinished && hasTrack;
+  const canExportDiagnostics = isFinished;
+  const canDelete = isFinished;
   const status = detailStatus(flight);
+  const savedContext: SavedContext =
+    saved === 'stopped' || saved === 'partial' ? (saved as SavedContext) : null;
+  const heroIsDistance = Boolean(metrics && metrics.trackDistanceMetres > 0);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <Screen>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardView}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled">
-          <BackButton onPress={leaveDetail} />
-          <ScreenHeader
-            eyebrow="FLIGHT LOG"
-            title={flightDisplayName(flight.title, flight.site)}
-            body={formatFlightDate(flight.startedAt, flight.timezoneOffsetMinutes)}
-            action={<StatusChip label={status.label} tone={status.tone} />}
+        style={styles.flex}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <TopBar onBack={leaveDetail} backLabel="Back to logbook" />
+
+          <FlightHero flight={flight} status={status} saved={savedContext} insight={insight} />
+
+          {isOpen || isProcessing || metrics?.quality !== 'healthy' || message ? (
+            <View style={styles.notices}>
+              {isOpen ? (
+                <Notice tone={flight.sessionStatus === 'interrupted' ? 'danger' : 'info'} title="This flight is still open">
+                  {flight.sessionStatus === 'interrupted'
+                    ? 'Recording was interrupted. Open the recorder to resume it or save it as a partial flight.'
+                    : 'Recording is in progress. Open the recorder to check GPS health or to stop and save.'}
+                </Notice>
+              ) : null}
+              {isOpen ? (
+                <Button label="Open recorder" variant="dark" onPress={() => router.push('/record')} />
+              ) : null}
+              {isProcessing ? (
+                <Notice tone="info" title="Finishing the stats">
+                  The flight is saved. Its summary stats are still being calculated — pull the
+                  logbook to refresh, or come back in a moment.
+                </Notice>
+              ) : null}
+              {!isOpen &&
+              savedContext !== 'partial' &&
+              (flight.status === 'partial' || metrics?.quality === 'partial') ? (
+                <Notice tone="warning" title="Partial flight">
+                  Recording was interrupted before you stopped it. Stats cover the recorded part
+                  only.
+                </Notice>
+              ) : null}
+              {metrics?.quality === 'gaps' ? (
+                <Notice tone="warning" title="Track has timing gaps">
+                  Distance and maximum values may be incomplete. The gaps are listed under “How this
+                  was recorded”.
+                </Notice>
+              ) : null}
+              {metrics?.quality === 'no_track' ? (
+                <Notice tone="danger" title="No usable GPS track">
+                  No valid fixes were recorded, so there is nothing to export for this flight.
+                </Notice>
+              ) : null}
+              {message ? (
+                <Notice tone={message.tone}>{message.text}</Notice>
+              ) : null}
+            </View>
+          ) : null}
+
+          <Card style={styles.statsCard}>
+            {heroIsDistance ? (
+              <ListRow label="Airtime" value={durationMs === null ? '—' : formatAirtime(durationMs)} />
+            ) : (
+              <ListRow label="Track distance" value={formatDistance(metrics?.trackDistanceMetres ?? null)} />
+            )}
+            <ListRow label="Max altitude" value={formatMetres(metrics?.maxGpsAltitude ?? null)} />
+            <ListRow label="Min altitude" value={formatMetres(metrics?.minGpsAltitude ?? null)} />
+            <ListRow label="Max ground speed" value={formatGroundSpeed(metrics?.maxGroundSpeed ?? null)} />
+            <ListRow label="GPS fixes" value={metrics ? formatThousands(metrics.fixCount) : '—'} last />
+          </Card>
+
+          <SectionLabel style={styles.sectionLabel}>About this flight</SectionLabel>
+          <MetadataForm
+            values={form}
+            onChange={setForm}
+            dirty={dirty}
+            saving={busy === 'Saving details…'}
+            disabled={Boolean(busy) && busy !== 'Saving details…'}
+            onSave={() => void runAction('Saving details…', saveDetails)}
           />
 
-          {flight.status === 'processing' || !metrics ? (
-            <Notice>Flight saved. Its summary stats are still being calculated.</Notice>
-          ) : null}
-          {flight.status === 'partial' || metrics?.quality === 'partial' ? (
-            <Notice tone="warning">
-              This is a partial flight. The stats below use only the track points that were saved.
-            </Notice>
-          ) : null}
-          {metrics?.quality === 'gaps' ? (
-            <Notice tone="warning">
-              This track has timing gaps. Distance and maximum values may be incomplete.
-            </Notice>
-          ) : null}
-          {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
+          <SectionLabel style={styles.sectionLabel}>Recording integrity</SectionLabel>
+          <EvidenceBlock
+            flight={flight}
+            open={evidenceOpen}
+            onToggle={() => setEvidenceOpen((open) => !open)}
+            exportDisabled={!canExportDiagnostics || Boolean(busy)}
+            onExportDiagnostics={() =>
+              void runAction('Preparing diagnostics…', () => exportAndShare('diagnostics'))
+            }
+          />
 
-          <View style={styles.statsGrid}>
-            <MetricTile label="Flight time" value={formatDuration(duration)} />
-            <MetricTile label="Track distance" value={formatDistance(metrics?.trackDistanceMetres ?? null)} />
-            <MetricTile label="Max altitude" value={formatAltitude(metrics?.maxGpsAltitude ?? null)} />
-            <MetricTile label="Max ground speed" value={formatGroundSpeed(metrics?.maxGroundSpeed ?? null)} />
-            <MetricTile label="Min altitude" value={formatAltitude(metrics?.minGpsAltitude ?? null)} />
-            <MetricTile label="GPS fixes" value={metrics ? String(metrics.fixCount) : '—'} />
-          </View>
-
-          <Card>
-            <Text style={styles.sectionTitle}>About this flight</Text>
-            <Text style={styles.sectionBody}>
-              These details are optional. Add whatever will help you remember the flight later.
-            </Text>
-            <View style={styles.form}>
-              <Field
-                label="Title"
-                value={title}
-                placeholder="Evening ridge flight"
-                maxLength={80}
-                onChangeText={setTitle}
-              />
-              <Field
-                label="Site"
-                value={site}
-                placeholder="Launch or flying site"
-                maxLength={120}
-                onChangeText={setSite}
-              />
-              <Field
-                label="Notes"
-                value={notes}
-                placeholder="Conditions, wing, company, or anything memorable"
-                maxLength={2_000}
-                multiline
-                onChangeText={setNotes}
-              />
-            </View>
-            <ActionButton
-              label={dirty ? 'Save flight details' : 'Details saved'}
-              tone="primary"
-              disabled={!dirty || Boolean(busy)}
-              onPress={() => void runAction('Saving details…', saveDetails)}
-            />
-          </Card>
-
-          <Card>
-            <Text style={styles.sectionTitle}>Flight file</Text>
-            <Text style={styles.sectionBody}>
-              Export the recorded track as an unsigned IGC file for your own archive or another
-              compatible app.
-            </Text>
-            <ActionButton
-              label={canExportIgc ? 'Export and share IGC' : 'No GPS track to export'}
+          <View style={styles.actions}>
+            <Button
+              label={
+                busy === 'Preparing IGC…'
+                  ? 'Preparing IGC…'
+                  : canExportIgc
+                    ? 'Share unsigned IGC file'
+                    : isProcessing
+                      ? 'IGC available once stats are done'
+                      : 'No GPS track to export'
+              }
+              variant="primary"
+              size="lg"
+              busy={busy === 'Preparing IGC…'}
               disabled={!canExportIgc || Boolean(busy)}
               onPress={() => void runAction('Preparing IGC…', () => exportAndShare('igc'))}
+              accessibilityHint="Opens the Android share sheet with the unsigned IGC file"
             />
-          </Card>
-
-          <View style={styles.advancedSection}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ expanded: advancedOpen }}
-              onPress={() => setAdvancedOpen((open) => !open)}
-              style={({ pressed }) => [styles.advancedToggle, pressed && styles.pressed]}>
-              <Text style={styles.advancedTitle}>Advanced diagnostics</Text>
-              <Text style={styles.advancedChevron}>{advancedOpen ? '−' : '+'}</Text>
-            </Pressable>
-            {advancedOpen ? (
-              <Card style={styles.advancedCard}>
-                <DiagnosticRow label="Track assessment" value={metrics ? qualityLabel(metrics.quality) : 'Pending'} />
-                <DiagnosticRow label="Median GPS gap" value={formatGap(metrics?.medianSourceGapMs ?? null)} />
-                <DiagnosticRow label="95th percentile gap" value={formatGap(metrics?.p95SourceGapMs ?? null)} />
-                <DiagnosticRow label="Longest GPS gap" value={formatGap(metrics?.maxSourceGapMs ?? null)} />
-                <DiagnosticRow label="Metrics algorithm" value={metrics ? `v${metrics.algorithmVersion}` : '—'} />
-                <DiagnosticRow label="Recorder status" value={flight.session.status} />
-                <DiagnosticRow label="Session" value={flight.recordingSessionId} mono />
-                <ActionButton
-                  label="Export diagnostics JSON"
-                  tone="quiet"
-                  disabled={!canExportDiagnostics || Boolean(busy)}
-                  onPress={() =>
-                    void runAction('Preparing diagnostics…', () => exportAndShare('diagnostics'))
-                  }
-                />
-              </Card>
-            ) : null}
+            <Text style={styles.actionsNote}>
+              Unsigned IGC — fine for your own archive or another app, not valid for competition
+              scoring.
+            </Text>
           </View>
+
+          {busy && busy !== 'Saving details…' && busy !== 'Preparing IGC…' ? (
+            <BusyRow label={busy} />
+          ) : null}
 
           <View style={styles.dangerZone}>
             <Text style={styles.dangerTitle}>Delete flight</Text>
             <Text style={styles.dangerBody}>
-              This permanently removes the local recording. There is no cloud copy to recover.
+              Permanently removes the local recording from this phone. There is no cloud copy to
+              recover it from.
             </Text>
-            <ActionButton
-              label={canDelete ? 'Delete flight permanently' : 'Flight cannot be deleted while processing'}
-              tone="danger"
+            <Button
+              label={canDelete ? 'Delete flight permanently' : isOpen ? 'Cannot delete an open flight' : 'Cannot delete while processing'}
+              variant="danger"
               disabled={!canDelete || Boolean(busy)}
               onPress={confirmDelete}
             />
           </View>
-
-          {busy ? <BusyRow label={busy} /> : null}
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
-function Field({
-  label,
-  value,
-  placeholder,
-  maxLength,
-  multiline = false,
-  onChangeText,
-}: {
-  label: string;
-  value: string;
-  placeholder: string;
-  maxLength: number;
-  multiline?: boolean;
-  onChangeText: (value: string) => void;
-}) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        autoCapitalize="sentences"
-        maxLength={maxLength}
-        multiline={multiline}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#64748b"
-        selectionColor={palette.amber}
-        style={[styles.input, multiline && styles.notesInput]}
-        textAlignVertical={multiline ? 'top' : 'center'}
-        value={value}
-      />
-    </View>
-  );
-}
-
-function DiagnosticRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <View style={styles.diagnosticRow}>
-      <Text style={styles.diagnosticLabel}>{label}</Text>
-      <Text style={[styles.diagnosticValue, mono && styles.mono]} selectable={mono}>
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-function detailStatus(flight: FlightDetail): {
-  label: string;
-  tone: 'neutral' | 'good' | 'warning' | 'danger';
-} {
-  if (flight.sessionStatus === 'interrupted') {
-    return { label: 'NEEDS ATTENTION', tone: 'danger' };
-  }
-  if (flight.sessionStatus === 'recording') {
-    return { label: 'IN PROGRESS', tone: 'neutral' };
-  }
-  if (flight.status === 'partial') return { label: 'PARTIAL', tone: 'warning' };
-  if (flight.status === 'processing') return { label: 'PROCESSING', tone: 'neutral' };
-  if (flight.metrics?.quality === 'no_track') return { label: 'NO TRACK', tone: 'danger' };
-  if (flight.metrics?.quality === 'gaps') return { label: 'TRACK GAPS', tone: 'warning' };
-  return { label: 'SAVED', tone: 'good' };
+function detailStatus(flight: FlightDetail): DetailStatus {
+  if (flight.sessionStatus === 'interrupted') return { label: 'Needs attention', tone: 'danger' };
+  if (flight.sessionStatus === 'recording') return { label: 'In progress', tone: 'muted' };
+  if (flight.status === 'partial') return { label: 'Partial', tone: 'warning' };
+  if (flight.status === 'processing' || !flight.metrics) return { label: 'Processing', tone: 'muted' };
+  if (flight.metrics.quality === 'no_track') return { label: 'No track', tone: 'danger' };
+  if (flight.metrics.quality === 'gaps') return { label: 'Track gaps', tone: 'warning' };
+  return { label: 'Good track', tone: 'good' };
 }
 
 function optionalText(value: string): string | null {
@@ -397,58 +355,29 @@ function messageFrom(error: unknown): string {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: palette.background },
-  keyboardView: { flex: 1 },
-  content: { padding: 20, paddingBottom: 56, gap: 15 },
-  missingContent: { flex: 1, padding: 20, gap: 16 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  sectionTitle: { color: palette.text, fontSize: 18, fontWeight: '800' },
-  sectionBody: { color: palette.textMuted, fontSize: 13, lineHeight: 19, marginTop: 7, marginBottom: 16 },
-  form: { gap: 14, marginBottom: 17 },
-  field: { gap: 7 },
-  fieldLabel: { color: '#cbd5e1', fontSize: 12, fontWeight: '800' },
-  input: {
-    minHeight: 48,
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: palette.borderStrong,
-    backgroundColor: palette.surfaceQuiet,
-    color: palette.text,
-    fontSize: 15,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
+  flex: { flex: 1 },
+  content: { paddingBottom: 40 },
+  missing: { padding: 16, gap: 12 },
+  notices: { marginHorizontal: 16, marginTop: 10, gap: 8 },
+  statsCard: { marginHorizontal: 16, marginTop: 14, paddingHorizontal: 16 },
+  sectionLabel: { paddingHorizontal: 18, paddingTop: 20, paddingBottom: 8 },
+  actions: { marginHorizontal: 16, marginTop: 20, gap: 10 },
+  actionsNote: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
+    lineHeight: 16,
+    color: paper.muted,
+    textAlign: 'center',
+    paddingHorizontal: 12,
   },
-  notesInput: { minHeight: 116, lineHeight: 21 },
-  advancedSection: { gap: 9 },
-  advancedToggle: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 2,
-  },
-  advancedTitle: { color: '#cbd5e1', fontSize: 14, fontWeight: '800' },
-  advancedChevron: { color: palette.amber, fontSize: 24, fontWeight: '400' },
-  advancedCard: { gap: 0 },
-  diagnosticRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 18,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: palette.border,
-    paddingVertical: 11,
-  },
-  diagnosticLabel: { flex: 1, color: palette.textMuted, fontSize: 12 },
-  diagnosticValue: { flex: 1.2, color: palette.text, fontSize: 12, fontWeight: '700', textAlign: 'right' },
-  mono: { fontFamily: Platform.select({ android: 'monospace', ios: 'Menlo', default: 'monospace' }) },
   dangerZone: {
-    borderTopWidth: 1,
-    borderTopColor: palette.errorBorder,
+    marginHorizontal: 16,
+    marginTop: 28,
     paddingTop: 18,
-    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: paper.dangerBorder,
+    gap: 8,
   },
-  dangerTitle: { color: '#fecdd3', fontSize: 16, fontWeight: '800' },
-  dangerBody: { color: palette.textMuted, fontSize: 13, lineHeight: 19, marginTop: 7, marginBottom: 14 },
-  pressed: { opacity: 0.72 },
+  dangerTitle: { fontFamily: fonts.sansSemi, fontSize: 14, color: paper.danger },
+  dangerBody: { fontFamily: fonts.sans, fontSize: 12.5, lineHeight: 18, color: paper.text, marginBottom: 6 },
 });

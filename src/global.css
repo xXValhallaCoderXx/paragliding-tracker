@@ -1,0 +1,69 @@
+/*
+ * Tailwind entry point. Compiled to a native stylesheet by react-native-css via Metro, and to
+ * real CSS for react-native-web.
+ *
+ * The modular @import form (rather than `@tailwind` directives) is what NativeWind v5
+ * recommends for react-native-web compatibility, which this project depends on for visual QA.
+ *
+ * `tailwindcss/preflight.css` is deliberately NOT imported: it is a DOM reset, react-native-web
+ * already normalises, and adding it would shift every existing baseline in dist/visual/. If it
+ * is ever wanted, add it in a dedicated commit alongside a screenshot re-baseline.
+ */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css";
+
+@import "nativewind/theme";
+
+/* Scan only app source. @source is resolved relative to this file. */
+@source "./";
+
+/*
+ * rem base. The compiler looks for `:root { font-size: Npx }` to decide the rem multiplier and
+ * falls back to 14 if it finds none — which would silently shrink every rem-based utility by
+ * 12.5% relative to the design.
+ */
+:root {
+  font-size: 16px;
+}
+
+@theme {
+  /*
+   * Remove Tailwind's font-weight utilities entirely.
+   *
+   * The design's font families carry their weight in the family name (Archivo_700Bold), and
+   * combining fontFamily with fontWeight makes Android synthesise a fake bold — see the header
+   * comment in src/ui/theme.ts. Clearing this namespace makes font-bold / font-semibold /
+   * font-medium generate nothing at all, so weight can only be chosen via a family utility.
+   *
+   * A weight utility that slips in fails *silently* (no rule is emitted and nothing applies),
+   * so this is backed by a test rather than by review.
+   */
+  --font-weight-*: initial;
+
+  /*
+   * The seven loaded families, one utility each.
+   *
+   * Deliberately NOT named sans/serif/mono: `nativewind/theme` redefines --font-sans,
+   * --font-serif and --font-mono in a :root block per platform (on Android they become
+   * SystemAndroid / sans-serif / monospace), which would silently override these at runtime on
+   * device while still looking correct on web.
+   */
+  --font-body: Archivo_400Regular;
+  --font-body-medium: Archivo_500Medium;
+  --font-body-semi: Archivo_600SemiBold;
+  --font-body-bold: Archivo_700Bold;
+  --font-data: IBMPlexMono_400Regular;
+  --font-data-medium: IBMPlexMono_500Medium;
+  --font-data-semi: IBMPlexMono_600SemiBold;
+
+  /*
+   * The five semantic radii from src/ui/theme.ts. Every other radius in the design is a
+   * one-off (14 distinct values, including 3.5) and is written as an arbitrary value at the
+   * call site instead.
+   */
+  --radius-card: 14px;
+  --radius-card-large: 16px;
+  --radius-control: 12px;
+  --radius-control-large: 16px;
+  --radius-pill: 999px;
+}

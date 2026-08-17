@@ -8,7 +8,9 @@ recorder carried on a flight.
 
 ## What is implemented
 
-- Flight history, manual recording, and flight-detail screens using stable Stack navigation.
+- Flight history (logbook), manual recording, and flight-detail screens using stable Stack
+  navigation, restyled after the "field notebook" design; see
+  [`docs/ui-design-implementation.md`](./docs/ui-design-implementation.md).
 - Precise foreground and background location with an Android foreground service.
 - A globally defined TaskManager location callback that writes directly to SQLite.
 - A custom root entry point that registers the location task before Expo Router or any screen code.
@@ -25,7 +27,11 @@ recorder carried on a flight.
 The personal alpha is intentionally narrow: it lists flights recorded on this device, derives a
 small set of trustworthy track statistics, allows optional title/site/notes, and shows no map.
 There are no imported or manually created flights, accounts, or cloud sync. Deletion is permanent
-after confirmation.
+after confirmation. The logbook's season card and the detail screen's one-line insight are
+computed only from flights stored on this phone.
+
+The UI fonts (Archivo, IBM Plex Mono) load at runtime through `expo-font`, so design changes do
+not require a native rebuild.
 
 Physical reliability is not established by the code or bundle checks. Follow
 [`docs/iteration-1-feasibility.md`](./docs/iteration-1-feasibility.md) and record real-device
@@ -132,3 +138,4 @@ pnpm exec expo export --platform web --output-dir dist/web
 - [Expo TaskManager 57](https://docs.expo.dev/versions/v57.0.0/sdk/task-manager/)
 - [Expo SQLite 57](https://docs.expo.dev/versions/v57.0.0/sdk/sqlite/)
 - [Iteration 1 evidence protocol](./docs/iteration-1-feasibility.md)
+- [UI design implementation notes](./docs/ui-design-implementation.md)

@@ -1,5 +1,14 @@
 allowBuilds:
   unrs-resolver: true
+overrides:
+  # react-native-css loads lightningcss by resolving it from @expo/metro-config's directory
+  # (see its compiler/lightningcss-loader.js), NOT from its own node_modules. Expo ships
+  # 1.33.0, whose native visitor ABI react-native-css@3.0.7 does not match — every .css file
+  # then fails with "failed to deserialize; expected an object-like struct named Specifier".
+  # 1.30.1 is what react-native-css is built against, and it satisfies @expo/metro-config's
+  # own `^1.30.1` range. Scoped so @tailwindcss/node keeps its hard-pinned 1.32.0.
+  # NB: react-native-css hard-errors on 1.30.2, which has a known compilation bug.
+  '@expo/metro-config>lightningcss': 1.30.1
 minimumReleaseAgeExclude:
   - '@expo/cli@57.0.15 || 57.0.16'
   - '@expo/config-plugins@57.0.8'

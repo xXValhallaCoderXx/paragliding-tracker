@@ -1,47 +1,33 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { useRouter, type Href } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Linking, Platform } from 'react-native';
+import * as ExpoLinking from 'expo-linking';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
-import {
-  ActionButton,
-  BackButton,
-  BusyRow,
-  Card,
-  LoadingScreen,
-  MetricTile,
-  Notice,
-  ScreenHeader,
-  StatusChip,
-  UnsupportedScreen,
-  palette,
-} from '@/components/flight-ui';
+import { LoadingScreen, UnsupportedScreen } from '@/components/flight-ui';
+import { InstrumentView } from '@/components/recorder/instrument';
+import { InterruptedView } from '@/components/recorder/interrupted';
+import { PreflightView } from '@/components/recorder/preflight';
 import { useRecorderLifecycle } from '@/components/recorder-lifecycle';
-import { TEST_BUILD_WARNING } from '@/recorder/config';
 import { recorderService } from '@/recorder/recorder-service';
 import type { RecorderSnapshot } from '@/recorder/types';
-import { captureAgeLabel, capturePresentation } from '@/ui/capture-health';
-import {
-  formatAccuracy,
-  formatAltitude,
-  formatDuration,
-  formatGroundSpeed,
-} from '@/ui/flight-format';
+import { capturePresentation } from '@/ui/capture-health';
+import { inFlightNotices, type ReadinessAction } from '@/ui/recorder-presentation';
+
+type RecorderIntent = 'resume' | 'finalize';
+
+const NIGHT_STATES: RecorderSnapshot['state'][] = ['arming', 'recording', 'stopping'];
+const SAVING_FLIGHT_LABEL = 'Saving flight…';
+const SAVING_PARTIAL_LABEL = 'Saving partial flight…';
 
 export default function RecordFlightScreen() {
+  const { intent } = useLocalSearchParams<{ intent?: string }>();
   const router = useRouter();
   const recorderLifecycle = useRecorderLifecycle();
   const [snapshot, setSnapshot] = useState<RecorderSnapshot | null>(null);
   const [activeFlightId, setActiveFlightId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const intentHandled = useRef(false);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
@@ -57,60 +43,12 @@ export default function RecordFlightScreen() {
     };
   }, []);
 
-  const notices = useMemo(() => {
-    if (!snapshot) return [];
-    const next: { message: string; tone: 'warning' | 'error' }[] = [];
-    if (!snapshot.capabilities.taskManagerAvailable) {
-      next.push({
-        tone: 'error',
-        message: 'Background recording is unavailable. Open the installed development build, not Expo Go.',
-      });
-    }
-    if (!snapshot.capabilities.locationServicesEnabled) {
-      next.push({ tone: 'error', message: 'Turn on Location in Android settings before starting.' });
-    }
-    if (snapshot.capabilities.foregroundPermission === 'denied') {
-      next.push({ tone: 'error', message: 'Precise location permission is required to record.' });
-    }
-    if (snapshot.capabilities.backgroundPermission === 'denied') {
-      next.push({
-        tone: 'error',
-        message: 'Allow location all the time so recording can continue with the screen locked.',
-      });
-    }
-    if (snapshot.batteryOptimizationEnabled) {
-      next.push({
-        tone: 'warning',
-        message: 'Android battery optimization may interrupt a long or locked-screen flight.',
-      });
-    }
-    if (snapshot.lastError) {
-      next.push({ tone: 'error', message: snapshot.lastError.message });
-    }
-    return next;
-  }, [snapshot]);
-
   const goBack = useCallback(() => {
     if (router.canGoBack()) router.back();
     else router.replace('/');
   }, [router]);
 
-  function handleBack() {
-    if (snapshot?.state !== 'recording') {
-      goBack();
-      return;
-    }
-    Alert.alert(
-      'Recording will continue',
-      'You can return to the flight list without stopping. Come back here when you are ready to stop and save.',
-      [
-        { text: 'Stay here', style: 'cancel' },
-        { text: 'Back to flights', onPress: goBack },
-      ],
-    );
-  }
-
-  async function runAction(label: string, action: () => Promise<void>) {
+  const runAction = useCallback(async (label: string, action: () => Promise<void>) => {
     setBusy(label);
     setActionError(null);
     try {
@@ -120,247 +58,216 @@ export default function RecordFlightScreen() {
     } finally {
       setBusy(null);
     }
-  }
+  }, []);
 
-  async function startRecording() {
-    const result = await recorderService.arm();
-    setActiveFlightId(result.flightId);
-  }
+  const openFlight = useCallback(
+    (flightId: string | null, saved: 'stopped' | 'partial') => {
+      if (!flightId) {
+        throw new Error('The flight was saved, but its logbook entry could not be opened.');
+      }
+      router.replace({ pathname: '/flights/[id]', params: { id: flightId, saved } });
+    },
+    [router],
+  );
 
-  async function finishRecording() {
-    const knownFlightId = snapshot?.flightId ?? activeFlightId;
-    await recorderService.stop();
-    openFlight(knownFlightId);
-  }
+  const startRecording = useCallback(
+    () =>
+      runAction('Starting recorder…', async () => {
+        const result = await recorderService.arm();
+        setActiveFlightId(result.flightId);
+      }),
+    [runAction],
+  );
 
-  async function finalizePartial() {
-    if (!snapshot?.sessionId) return;
-    const knownFlightId = snapshot.flightId ?? activeFlightId;
-    await recorderService.finalizeInterrupted(snapshot.sessionId);
-    openFlight(knownFlightId);
-  }
+  const finishRecording = useCallback(
+    () =>
+      runAction(SAVING_FLIGHT_LABEL, async () => {
+        const knownFlightId = snapshot?.flightId ?? activeFlightId;
+        await recorderService.stop();
+        openFlight(knownFlightId, 'stopped');
+      }),
+    [activeFlightId, openFlight, runAction, snapshot?.flightId],
+  );
 
-  function openFlight(flightId: string | null) {
-    if (!flightId) throw new Error('The flight was saved, but its logbook entry could not be opened.');
-    router.replace(`/flights/${flightId}` as Href);
-  }
+  const resumeRecording = useCallback(
+    (sessionId: string) =>
+      runAction('Resuming recorder…', () => recorderService.resume(sessionId)),
+    [runAction],
+  );
+
+  const finalizePartial = useCallback(
+    (sessionId: string) =>
+      runAction(SAVING_PARTIAL_LABEL, async () => {
+        const knownFlightId = snapshot?.flightId ?? activeFlightId;
+        await recorderService.finalizeInterrupted(sessionId);
+        openFlight(knownFlightId, 'partial');
+      }),
+    [activeFlightId, openFlight, runAction, snapshot?.flightId],
+  );
+
+  const confirmFinalize = useCallback(
+    (sessionId: string) => {
+      Alert.alert(
+        'Save as a partial flight?',
+        'Only what was recorded before the interruption is kept. You cannot resume this flight afterwards.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Save partial', onPress: () => void finalizePartial(sessionId) },
+        ],
+      );
+    },
+    [finalizePartial],
+  );
+
+  // A pinned logbook card can hand over an explicit intent. Act on it exactly
+  // once, and only while the recorder is genuinely interrupted.
+  useEffect(() => {
+    if (!snapshot || !recorderLifecycle.ready || recorderLifecycle.recovering) return;
+    if (intentHandled.current) return;
+    const requested = intent as RecorderIntent | undefined;
+    const sessionId = snapshot.state === 'interrupted' ? snapshot.sessionId : null;
+    // Deferred so the action runs after this render commits, never inside it.
+    const timer = setTimeout(() => {
+      if (intentHandled.current) return;
+      intentHandled.current = true;
+      if (!sessionId) return;
+      if (requested === 'resume') void resumeRecording(sessionId);
+      else if (requested === 'finalize') confirmFinalize(sessionId);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [
+    confirmFinalize,
+    intent,
+    recorderLifecycle.ready,
+    recorderLifecycle.recovering,
+    resumeRecording,
+    snapshot,
+  ]);
+
+  const handleBack = useCallback(() => {
+    if (snapshot?.state !== 'recording' && snapshot?.state !== 'arming') {
+      goBack();
+      return;
+    }
+    Alert.alert(
+      'Recording continues',
+      'You can go back to the logbook without stopping. Come back here when you have landed to stop and save.',
+      [
+        { text: 'Stay here', style: 'cancel' },
+        { text: 'Back to logbook', onPress: goBack },
+      ],
+    );
+  }, [goBack, snapshot?.state]);
+
+  const handleReadinessAction = useCallback((action: ReadinessAction) => {
+    void openSystemScreen(action).catch(() => undefined);
+  }, []);
+
+  const notices = useMemo(() => (snapshot ? inFlightNotices(snapshot) : []), [snapshot]);
 
   if (Platform.OS === 'web') return <UnsupportedScreen />;
   if (!snapshot || !recorderLifecycle.ready) {
     return <LoadingScreen label="Opening recorder…" />;
   }
 
-  const isRecording = snapshot.state === 'recording';
-  const isInterrupted = snapshot.state === 'interrupted';
-  const isStopping = snapshot.state === 'stopping';
-  const canStart = snapshot.state === 'idle' || snapshot.state === 'completed';
-  const capture = capturePresentation(snapshot);
+  // Keep the current view on screen while a save is in flight, so the brief
+  // "completed" snapshot before navigation never flashes the pre-flight screen.
+  const savingStopped = busy === SAVING_FLIGHT_LABEL && snapshot.state === 'completed';
+  const savingPartial = busy === SAVING_PARTIAL_LABEL && snapshot.state === 'completed';
+  const showInterrupted = snapshot.state === 'interrupted' || savingPartial;
+  const scheme = !showInterrupted && (NIGHT_STATES.includes(snapshot.state) || savingStopped) ? 'night' : 'paper';
   const actionsDisabled = Boolean(busy) || recorderLifecycle.recovering;
+  const capture = savingStopped
+    ? {
+        label: 'SAVING',
+        tone: 'neutral' as const,
+        title: 'Saving your flight',
+        description: 'The recorder is finishing the local track and flight stats.',
+      }
+    : capturePresentation(snapshot);
+
+  let content;
+  if (showInterrupted) {
+    content = (
+      <InterruptedView
+        snapshot={snapshot}
+        busyLabel={busy}
+        actionsDisabled={actionsDisabled}
+        recovering={recorderLifecycle.recovering}
+        errorMessage={actionError}
+        recoveryError={recorderLifecycle.recoveryError}
+        onBack={handleBack}
+        onResume={() => {
+          if (snapshot.sessionId) void resumeRecording(snapshot.sessionId);
+        }}
+        onFinalize={() => {
+          if (snapshot.sessionId) confirmFinalize(snapshot.sessionId);
+        }}
+      />
+    );
+  } else if (scheme === 'night') {
+    content = (
+      <InstrumentView
+        snapshot={snapshot}
+        capture={capture}
+        notices={notices}
+        busyLabel={busy}
+        actionsDisabled={actionsDisabled}
+        errorMessage={actionError}
+        recoveryError={recorderLifecycle.recoveryError}
+        onBack={handleBack}
+        onStop={() => void finishRecording()}
+        onRetrySave={() => void finishRecording()}
+      />
+    );
+  } else {
+    content = (
+      <PreflightView
+        snapshot={snapshot}
+        busyLabel={busy}
+        actionsDisabled={actionsDisabled}
+        recovering={recorderLifecycle.recovering}
+        errorMessage={actionError}
+        recoveryError={recorderLifecycle.recoveryError}
+        lastFlightId={snapshot.state === 'completed' ? (snapshot.flightId ?? activeFlightId) : null}
+        onBack={handleBack}
+        onStart={() => void startRecording()}
+        onOpenLastFlight={(flightId) =>
+          router.push({ pathname: '/flights/[id]', params: { id: flightId } })
+        }
+        onReadinessAction={handleReadinessAction}
+      />
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <BackButton onPress={handleBack} />
-        <ScreenHeader
-          eyebrow="FLIGHT RECORDER"
-          title={capture.title}
-          body={capture.description}
-          action={
-            <StatusChip
-              label={capture.label}
-              tone={capture.tone}
-            />
-          }
-        />
-
-        <Notice tone="warning">{TEST_BUILD_WARNING}</Notice>
-
-        <Card style={styles.liveCard}>
-          <Text style={styles.elapsedLabel}>Elapsed time</Text>
-          <Text style={styles.elapsed}>{formatDuration(snapshot.durationMs)}</Text>
-          <View style={styles.metricsGrid}>
-            <MetricTile label="GPS fixes" value={String(snapshot.fixCount)} />
-            <MetricTile label="Altitude" value={formatAltitude(snapshot.gpsAltitude)} />
-            <MetricTile label="Ground speed" value={formatGroundSpeed(snapshot.speed)} />
-            <MetricTile label="GPS accuracy" value={formatAccuracy(snapshot.horizontalAccuracy)} />
-          </View>
-          {isRecording || isInterrupted ? (
-            <View style={styles.captureEvidence}>
-              <EvidenceRow
-                label="Location callback"
-                value={captureAgeLabel(snapshot.lastLocationCallbackAt, snapshot.capturedAt)}
-              />
-              <EvidenceRow
-                label="Valid fix received"
-                value={captureAgeLabel(snapshot.lastFixReceivedAt, snapshot.capturedAt)}
-              />
-            </View>
-          ) : (
-            <Text style={styles.fixStatus}>GPS starts when you begin recording.</Text>
-          )}
-        </Card>
-
-        {isRecording && capture.tone !== 'good' && capture.tone !== 'neutral' ? (
-          <Notice tone={capture.tone === 'danger' ? 'error' : 'warning'}>
-            {capture.description}
-          </Notice>
-        ) : null}
-        {isInterrupted ? (
-          <Notice tone="warning">
-            Resume if you are still flying. If you have landed, save the fixes already recorded as
-            a partial flight.
-          </Notice>
-        ) : null}
-        {notices.map((notice, index) => (
-          <Notice key={`${notice.message}-${index}`} tone={notice.tone}>
-            {notice.message}
-          </Notice>
-        ))}
-        {actionError ? <Notice tone="error">{actionError}</Notice> : null}
-        {recorderLifecycle.recoveryError ? (
-          <Notice tone="error">
-            Recorder recovery failed: {recorderLifecycle.recoveryError}
-          </Notice>
-        ) : null}
-
-        <View style={styles.actions}>
-          {canStart ? (
-            <ActionButton
-              label="Start recording"
-              tone="primary"
-              disabled={actionsDisabled}
-              onPress={() => void runAction('Starting recorder…', startRecording)}
-            />
-          ) : null}
-          {isRecording ? (
-            <ActionButton
-              label="Stop and save flight"
-              tone="danger"
-              disabled={actionsDisabled}
-              onPress={() =>
-                Alert.alert('Stop recording?', 'Use this after you have landed.', [
-                  { text: 'Keep recording', style: 'cancel' },
-                  {
-                    text: 'Stop and save',
-                    style: 'destructive',
-                    onPress: () => void runAction('Saving flight…', finishRecording),
-                  },
-                ])
-              }
-            />
-          ) : null}
-          {isStopping && !busy ? (
-            <ActionButton
-              label="Retry saving stopped flight"
-              tone="primary"
-              disabled={actionsDisabled}
-              onPress={() => void runAction('Retrying save…', finishRecording)}
-            />
-          ) : null}
-          {isInterrupted && snapshot.sessionId ? (
-            <>
-              <ActionButton
-                label="Resume recording"
-                tone="primary"
-                disabled={actionsDisabled}
-                onPress={() =>
-                  void runAction('Resuming recorder…', () =>
-                    recorderService.resume(snapshot.sessionId!),
-                  )
-                }
-              />
-              <ActionButton
-                label="Save as partial flight"
-                tone="danger"
-                disabled={actionsDisabled}
-                onPress={() =>
-                  Alert.alert(
-                    'Save partial flight?',
-                    'The fixes already recorded will be kept. You cannot resume after finalizing.',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Save partial',
-                        onPress: () => void runAction('Saving partial flight…', finalizePartial),
-                      },
-                    ],
-                  )
-                }
-              />
-            </>
-          ) : null}
-        </View>
-
-        {busy ? <BusyRow label={busy} /> : null}
-        {!busy && recorderLifecycle.recovering ? (
-          <BusyRow label="Checking recorder health…" />
-        ) : null}
-
-        <Text style={styles.footer}>
-          This alpha records GPS automatically after you press Start. It does not detect takeoff or
-          landing, and it is not yet a replacement for a certified or proven flight instrument.
-        </Text>
-      </ScrollView>
-    </SafeAreaView>
+    <>
+      <Stack.Screen options={{ statusBarStyle: scheme === 'night' ? 'light' : 'dark' }} />
+      {content}
+    </>
   );
 }
 
-function EvidenceRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.evidenceRow}>
-      <Text style={styles.evidenceLabel}>{label}</Text>
-      <Text style={styles.evidenceValue}>{value}</Text>
-    </View>
-  );
+async function openSystemScreen(action: ReadinessAction): Promise<void> {
+  if (action === 'open_app_settings') {
+    await ExpoLinking.openSettings();
+    return;
+  }
+  if (Platform.OS !== 'android') {
+    await ExpoLinking.openSettings();
+    return;
+  }
+  const intentAction =
+    action === 'open_location_settings'
+      ? 'android.settings.LOCATION_SOURCE_SETTINGS'
+      : 'android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS';
+  try {
+    await Linking.sendIntent(intentAction);
+  } catch {
+    await ExpoLinking.openSettings();
+  }
 }
 
 function messageFrom(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
-
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: palette.background },
-  content: { padding: 20, paddingBottom: 48, gap: 14 },
-  liveCard: { alignItems: 'stretch' },
-  elapsedLabel: {
-    color: '#7890ad',
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    textAlign: 'center',
-  },
-  elapsed: {
-    color: palette.text,
-    fontSize: 48,
-    fontWeight: '300',
-    letterSpacing: 1,
-    textAlign: 'center',
-    fontVariant: ['tabular-nums'],
-    marginTop: 6,
-  },
-  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 19 },
-  fixStatus: { color: palette.textMuted, fontSize: 12, textAlign: 'center', marginTop: 14 },
-  captureEvidence: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: palette.border,
-    marginTop: 15,
-    paddingTop: 9,
-  },
-  evidenceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-    paddingVertical: 5,
-  },
-  evidenceLabel: { color: palette.textMuted, fontSize: 12 },
-  evidenceValue: {
-    color: palette.text,
-    fontSize: 12,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-  },
-  actions: { gap: 10, marginTop: 2 },
-  footer: { color: palette.textQuiet, fontSize: 11, lineHeight: 17, marginTop: 6 },
-});
