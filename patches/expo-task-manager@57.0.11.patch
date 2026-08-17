@@ -1,0 +1,45 @@
+diff --git a/build/TaskManager.js b/build/TaskManager.js
+index 8c25150d68337d0cf0fa6f1f7c6360e457dd65a4..e15ebfe3afc8b0956bd3a889ef8aea8725b5f412 100644
+--- a/build/TaskManager.js
++++ b/build/TaskManager.js
+@@ -1,11 +1,12 @@
+ import { LegacyEventEmitter, Platform, UnavailabilityError } from 'expo-modules-core';
+ import { AppRegistry } from 'react-native';
+ import ExpoTaskManager from './ExpoTaskManager';
+-// Register a no-op headless task so that HeadlessJsTaskContext.startTask()
+-// doesn't log a warning. On Android, TaskService registers a headless task
+-// in native code to keep JS timers alive during background task execution.
++// Register a pending no-op headless task so that HeadlessJsTaskContext.startTask()
++// keeps JS timers alive during background task execution. React Native automatically
++// finishes a headless task when this promise settles; TaskService owns this lifecycle
++// and explicitly finishes it after the last Expo task event completes.
+ if (Platform.OS === 'android') {
+-    AppRegistry.registerHeadlessTask('expo-task-manager', () => async () => { });
++    AppRegistry.registerHeadlessTask('expo-task-manager', () => () => new Promise(() => { }));
+ }
+ const tasks = new Map();
+ function _validate(taskName) {
+diff --git a/src/TaskManager.ts b/src/TaskManager.ts
+index 7e77c18439bfd740304595cbd3d182b4afb23dfb..e7a619497e9349d607af686bd4cbbb51d2bd4755 100644
+--- a/src/TaskManager.ts
++++ b/src/TaskManager.ts
+@@ -3,11 +3,15 @@ import { AppRegistry } from 'react-native';
+ 
+ import ExpoTaskManager from './ExpoTaskManager';
+ 
+-// Register a no-op headless task so that HeadlessJsTaskContext.startTask()
+-// doesn't log a warning. On Android, TaskService registers a headless task
+-// in native code to keep JS timers alive during background task execution.
++// Register a pending no-op headless task so that HeadlessJsTaskContext.startTask()
++// keeps JS timers alive during background task execution. React Native automatically
++// finishes a headless task when this promise settles; TaskService owns this lifecycle
++// and explicitly finishes it after the last Expo task event completes.
+ if (Platform.OS === 'android') {
+-  AppRegistry.registerHeadlessTask('expo-task-manager', () => async () => {});
++  AppRegistry.registerHeadlessTask(
++    'expo-task-manager',
++    () => () => new Promise<void>(() => {}),
++  );
+ }
+ 
+ // @needsAudit @docsMissing

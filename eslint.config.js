@@ -8,7 +8,7 @@ module.exports = defineConfig([
     rules: {
       'import/no-unresolved': [
         'error',
-        { ignore: ['^@/recorder/(location-task|recorder-service)$'] },
+        { ignore: ['^@/recorder/(flight-repository|location-task|recorder-service)$'] },
       ],
     },
   },

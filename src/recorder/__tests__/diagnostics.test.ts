@@ -10,6 +10,8 @@ const data: SessionExportData = {
     endedAt: 4000,
     updatedAt: 4000,
     lastFixAt: 3000,
+    lastLocationCallbackAt: null,
+    manualStopAt: null,
     lastPressureAt: 3000,
     locationSequence: 3,
     pressureSequence: 2,
@@ -70,6 +72,7 @@ const data: SessionExportData = {
 describe('diagnostic export', () => {
   it('calculates cadence and reconciles callback, row, and IGC counts', () => {
     const content = buildDiagnosticJson(data, {
+      available: true,
       sha256: 'abc123',
       byteCount: 99,
       bRecordCount: 3,
@@ -95,8 +98,59 @@ describe('diagnostic export', () => {
       callbackAccountingBalanced: true,
       igcCountBalanced: true,
     });
-    expect(buildDiagnosticJson(data, { sha256: 'abc123', byteCount: 99, bRecordCount: 3 })).toBe(
-      content,
+    expect(
+      buildDiagnosticJson(data, {
+        available: true,
+        sha256: 'abc123',
+        byteCount: 99,
+        bRecordCount: 3,
+      }),
+    ).toBe(content);
+  });
+
+  it('excludes a late callback outside the manual stop window from export reconciliation', () => {
+    const lateFix = {
+      ...data.locations[2]!,
+      sequence: 4,
+      callbackId: 'callback-late',
+      sourceTimestamp: 5000,
+      receiptTimestamp: 5020,
+    };
+    const content = buildDiagnosticJson(
+      { ...data, locations: [...data.locations, lateFix] },
+      { available: true, sha256: 'abc123', byteCount: 99, bRecordCount: 3 },
     );
+    const parsed = JSON.parse(content);
+
+    expect(parsed.statistics.locationCadence.sampleCount).toBe(3);
+    expect(parsed.statistics.reconciliation).toMatchObject({
+      persistedLocationRows: 4,
+      exportEligibleSeconds: 3,
+      igcBRecords: 3,
+      igcCountBalanced: true,
+    });
+  });
+
+  it('can preserve diagnostics when no IGC track is available', () => {
+    const noTrack = { ...data, locations: [] };
+    const content = buildDiagnosticJson(noTrack, {
+      available: false,
+      sha256: null,
+      byteCount: 0,
+      bRecordCount: 0,
+    });
+    const parsed = JSON.parse(content);
+
+    expect(parsed.artifacts.igc).toEqual({
+      available: false,
+      sha256: null,
+      byteCount: 0,
+      bRecordCount: 0,
+    });
+    expect(parsed.statistics.reconciliation).toMatchObject({
+      exportEligibleSeconds: 0,
+      igcBRecords: 0,
+      igcCountBalanced: true,
+    });
   });
 });

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "XC Recorder Lab",
+    "name": "Flight Log Alpha",
     "slug": "xc-mvp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,6 +11,9 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -37,8 +40,8 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow XC Recorder Lab to record precise flight-test locations, including while the screen is locked.",
-          "locationWhenInUsePermission": "Allow XC Recorder Lab to record precise flight-test locations.",
+          "locationAlwaysAndWhenInUsePermission": "Allow Flight Log Alpha to record precise flight locations, including while the screen is locked.",
+          "locationWhenInUsePermission": "Allow Flight Log Alpha to record precise flight locations.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true

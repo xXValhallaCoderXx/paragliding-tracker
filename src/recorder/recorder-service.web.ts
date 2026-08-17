@@ -1,5 +1,7 @@
 import {
   RecorderError,
+  type ArtifactService,
+  type CaptureService,
   type ExportArtifact,
   type RecorderCapabilities,
   type RecorderService,
@@ -23,10 +25,14 @@ const capabilities: RecorderCapabilities = {
 const snapshot: RecorderSnapshot = {
   capturedAt: 0,
   state: 'idle',
+  flightId: null,
   sessionId: null,
   startedAt: null,
   endedAt: null,
   lastFixAt: null,
+  lastFixReceivedAt: null,
+  lastLocationCallbackAt: null,
+  captureHealth: 'inactive',
   durationMs: 0,
   fixCount: 0,
   pressureCount: 0,
@@ -45,7 +51,7 @@ const snapshot: RecorderSnapshot = {
 function unsupported(): never {
   throw new RecorderError(
     'unsupported_platform',
-    'XC Recorder Lab recording is only supported on Android and iOS development builds.',
+    'Flight recording is only supported on Android and iOS development builds.',
   );
 }
 
@@ -64,3 +70,6 @@ export const recorderService: RecorderService = {
     return () => undefined;
   },
 };
+
+export const captureService: CaptureService = recorderService;
+export const artifactService: ArtifactService = recorderService;

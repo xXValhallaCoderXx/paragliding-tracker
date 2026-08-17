@@ -8,9 +8,23 @@ export type RecorderState =
 
 export type RecorderPermission = 'unknown' | 'granted' | 'denied';
 
+export type CaptureHealth =
+  | 'inactive'
+  | 'starting'
+  | 'healthy'
+  | 'stale'
+  | 'recovering'
+  | 'failed';
+
 export type CompletionReason = 'stopped' | 'interrupted_finalized';
 
+export type SessionRecoveryKind = 'automatic' | 'manual';
+
 export type ExportKind = 'igc' | 'diagnostics';
+
+export type FlightStatus = 'recording' | 'processing' | 'completed' | 'partial';
+
+export type TrackQuality = 'healthy' | 'gaps' | 'partial' | 'no_track';
 
 export interface PowerReading {
   batteryLevel: number | null;
@@ -37,10 +51,14 @@ export interface RecorderCapabilities {
 export interface RecorderSnapshot {
   capturedAt: number;
   state: RecorderState;
+  flightId: string | null;
   sessionId: string | null;
   startedAt: number | null;
   endedAt: number | null;
   lastFixAt: number | null;
+  lastFixReceivedAt: number | null;
+  lastLocationCallbackAt: number | null;
+  captureHealth: CaptureHealth;
   durationMs: number;
   fixCount: number;
   pressureCount: number;
@@ -94,18 +112,23 @@ export interface ExportArtifact {
   eligibleFixCount: number;
 }
 
-export interface RecorderService {
+export interface CaptureService {
   getCapabilities(): Promise<RecorderCapabilities>;
-  arm(): Promise<{ sessionId: string }>;
+  arm(): Promise<{ flightId: string; sessionId: string }>;
   stop(): Promise<void>;
   recover(): Promise<RecorderSnapshot>;
   resume(sessionId: string): Promise<void>;
   finalizeInterrupted(sessionId: string): Promise<void>;
+  subscribe(listener: (snapshot: RecorderSnapshot) => void): () => void;
+}
+
+export interface ArtifactService {
   exportIgc(sessionId: string): Promise<ExportArtifact>;
   exportDiagnostics(sessionId: string): Promise<ExportArtifact>;
   shareArtifact(artifact: ExportArtifact): Promise<void>;
-  subscribe(listener: (snapshot: RecorderSnapshot) => void): () => void;
 }
+
+export interface RecorderService extends CaptureService, ArtifactService {}
 
 export interface SessionRecord {
   id: string;
@@ -115,6 +138,8 @@ export interface SessionRecord {
   endedAt: number | null;
   updatedAt: number;
   lastFixAt: number | null;
+  lastLocationCallbackAt: number | null;
+  manualStopAt: number | null;
   lastPressureAt: number | null;
   locationSequence: number;
   pressureSequence: number;
@@ -123,6 +148,91 @@ export interface SessionRecord {
   appMetadata: Record<string, unknown>;
   startPower: PowerReading;
   endPower: PowerReading | null;
+}
+
+export interface PendingSessionStop {
+  sessionId: string;
+  stoppedAt: number;
+}
+
+export interface BeginSessionRecoveryAttemptInput {
+  attemptId: string;
+  sessionId: string;
+  kind: SessionRecoveryKind;
+  attemptStartedAt: number;
+  deadlineAt: number;
+  maximumCachedFixAgeMs: number;
+}
+
+export interface SessionRecoveryAttempt extends BeginSessionRecoveryAttemptInput {
+  baselineLocationSequence: number;
+}
+
+export interface RecoveryProvingFix {
+  sequence: number;
+  sourceTimestamp: number;
+  receiptTimestamp: number;
+}
+
+export interface PendingSessionRecoveryAttempt extends SessionRecoveryAttempt {
+  provingFix: RecoveryProvingFix | null;
+}
+
+export interface SessionRecoveryProof extends SessionRecoveryAttempt {
+  provingFix: RecoveryProvingFix;
+  confirmedAt: number;
+}
+
+export interface FlightRecord {
+  id: string;
+  recordingSessionId: string;
+  status: FlightStatus;
+  startedAt: number;
+  endedAt: number | null;
+  timezoneOffsetMinutes: number | null;
+  title: string | null;
+  site: string | null;
+  notes: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface FlightMetricsRecord {
+  flightId: string;
+  algorithmVersion: number;
+  durationMs: number;
+  trackDistanceMetres: number;
+  minGpsAltitude: number | null;
+  maxGpsAltitude: number | null;
+  maxGroundSpeed: number | null;
+  fixCount: number;
+  medianSourceGapMs: number | null;
+  p95SourceGapMs: number | null;
+  maxSourceGapMs: number | null;
+  quality: TrackQuality;
+  computedAt: number;
+}
+
+export interface FlightSummary extends FlightRecord {
+  sessionStatus: SessionRecord['status'];
+  metrics: FlightMetricsRecord | null;
+}
+
+export interface FlightDetail extends FlightSummary {
+  session: SessionRecord;
+}
+
+export interface FlightMetadataPatch {
+  title?: string | null;
+  site?: string | null;
+  notes?: string | null;
+}
+
+export interface FlightRepository {
+  listFlights(): Promise<FlightSummary[]>;
+  getFlight(flightId: string): Promise<FlightDetail | null>;
+  updateFlight(flightId: string, patch: FlightMetadataPatch): Promise<FlightDetail>;
+  deleteFlight(flightId: string): Promise<void>;
 }
 
 export interface LocationFixRecord {

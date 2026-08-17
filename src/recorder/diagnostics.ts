@@ -4,7 +4,8 @@ import { calculateAccuracyStatistics, calculateGapStatistics } from './statistic
 import type { SessionExportData } from './types';
 
 export interface IgcArtifactSummary {
-  sha256: string;
+  available: boolean;
+  sha256: string | null;
   byteCount: number;
   bRecordCount: number;
 }
@@ -30,7 +31,7 @@ export function buildDiagnosticJson(
   data: SessionExportData,
   igc: IgcArtifactSummary,
 ): string {
-  const eligibleFixes = selectExportEligibleFixes(data.locations);
+  const eligibleFixes = selectExportEligibleFixes(data.locations, data.session);
   const callbacks = callbackTotals(data);
   const lastDataTimestamp = Math.max(
     data.session.updatedAt,

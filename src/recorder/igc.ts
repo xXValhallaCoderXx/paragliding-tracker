@@ -26,9 +26,16 @@ export function isExportEligibleFix(fix: LocationFixRecord): boolean {
 
 export function selectExportEligibleFixes(
   fixes: LocationFixRecord[],
+  window?: Pick<SessionRecord, 'startedAt' | 'endedAt'>,
 ): LocationFixRecord[] {
   const ordered = fixes
-    .filter(isExportEligibleFix)
+    .filter(
+      (fix) =>
+        isExportEligibleFix(fix) &&
+        (!window ||
+          (fix.sourceTimestamp >= window.startedAt &&
+            (window.endedAt === null || fix.sourceTimestamp <= window.endedAt))),
+    )
     .sort(
       (left, right) =>
         left.sourceTimestamp - right.sourceTimestamp || left.sequence - right.sequence,
@@ -98,10 +105,10 @@ function sessionIdentifier(sessionId: string): string {
 }
 
 export function buildUnsignedIgc(
-  session: Pick<SessionRecord, 'id'>,
+  session: Pick<SessionRecord, 'id' | 'startedAt' | 'endedAt'>,
   fixes: LocationFixRecord[],
 ): IgcBuildResult {
-  const eligibleFixes = selectExportEligibleFixes(fixes);
+  const eligibleFixes = selectExportEligibleFixes(fixes, session);
   if (eligibleFixes.length === 0) {
     throw new Error('No export-eligible GPS fixes are available for this session.');
   }
@@ -118,7 +125,7 @@ export function buildUnsignedIgc(
     'HFDTM100GPSDATUM:WGS-84',
     'HFRFWFIRMWAREVERSION:1.0.0',
     'HFRHWHARDWAREVERSION:CONSUMER DEVICE',
-    'HFFTYFRTYPE:XC RECORDER LAB,DIAGNOSTIC UNSIGNED',
+    'HFFTYFRTYPE:FLIGHT LOG ALPHA,DIAGNOSTIC UNSIGNED',
     'HFGPS:DEVICE GNSS,INTERNAL,0,18000',
     'HFPRSPRESSALTSENSOR:NIL',
     'HFALPNIL',

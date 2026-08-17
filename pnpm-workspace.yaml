@@ -1,20 +1,33 @@
 allowBuilds:
   unrs-resolver: true
 minimumReleaseAgeExclude:
-  - '@expo/cli@57.0.15'
+  - '@expo/cli@57.0.15 || 57.0.16'
   - '@expo/config-plugins@57.0.8'
-  - '@expo/metro-runtime@57.0.10'
+  - '@expo/metro-runtime@57.0.10 || 57.0.11'
   - '@expo/prebuild-config@57.0.12'
   - '@expo/router-server@57.0.6'
   - '@expo/ui@57.0.11'
   - babel-preset-expo@57.0.7
-  - expo-asset@57.0.11
-  - expo-constants@57.0.11
+  - expo-asset@57.0.11 || 57.0.12
+  - expo-constants@57.0.11 || 57.0.12
   - expo-file-system@57.0.3
   - expo-image@57.0.3
   - expo-linking@57.0.6
   - expo-modules-autolinking@57.0.10
   - expo-modules-core@57.0.11
-  - expo-router@57.0.13
+  - expo-router@57.0.13 || 57.0.14
   - expo-server@57.0.3
-  - expo@57.0.13
+  - expo@57.0.13 || 57.0.14
+  - '@expo/config@57.0.8'
+  - '@expo/fingerprint@0.20.8'
+  - '@expo/inline-modules@0.1.6'
+  - '@expo/log-box@57.0.3'
+  - expo-dev-client@57.0.13
+  - expo-dev-launcher@57.0.13
+  - expo-dev-menu@57.0.13
+  - expo-location@57.0.11
+  - expo-sharing@57.0.13
+  - expo-splash-screen@57.0.7
+  - expo-task-manager@57.0.11
+patchedDependencies:
+  expo-task-manager@57.0.11: patches/expo-task-manager@57.0.11.patch

@@ -1,18 +1,67 @@
 import * as SQLite from 'expo-sqlite';
 
-import { persistLocationBatchTransaction, type LocationBatchInput } from './repository-core';
+import {
+  EXPECTED_V1_TABLE_COLUMNS,
+  EXPECTED_V2_TABLE_COLUMNS,
+  EXPECTED_V3_INDEX_NAMES,
+  EXPECTED_V3_TABLE_COLUMNS,
+  EXPECTED_V4_INDEX_NAMES,
+  EXPECTED_V4_TABLE_COLUMNS,
+  LATEST_DATABASE_VERSION,
+  flightStatusForSession,
+  getSchemaMigrationSteps,
+  normalizeFlightMetadataPatch,
+} from './flight-repository-core';
+import {
+  PENDING_SESSION_RECOVERY_ATTEMPT_SQL,
+  SESSION_RECOVERY_ATTEMPT_BY_ID_SQL,
+  beginSessionRecoveryAttemptTransaction,
+  confirmSessionRecoveryAttemptTransaction,
+  mapPendingSessionRecoveryAttemptRow,
+  persistLocationBatchTransaction,
+  requestSessionStopTransaction,
+  resolveInterruptedPartialEndAt,
+  resolveSessionCompletionTimestamp,
+  type LocationBatchInput,
+  type SessionRecoveryAttemptProofRow,
+} from './repository-core';
 import type {
+  BeginSessionRecoveryAttemptInput,
   CompletionReason,
   ExportArtifact,
+  FlightDetail,
+  FlightMetadataPatch,
+  FlightMetricsRecord,
+  FlightRecord,
+  FlightStatus,
+  FlightSummary,
   LocationFixRecord,
+  PendingSessionRecoveryAttempt,
+  PendingSessionStop,
   PowerReading,
   PressureSampleRecord,
   RecorderEventRecord,
+  SessionRecoveryAttempt,
+  SessionRecoveryProof,
   SessionExportData,
   SessionRecord,
 } from './types';
 
 const DATABASE_NAME = 'xc-recorder.db';
+
+export const PENDING_SESSION_STOP_SQL = `SELECT
+  id AS session_id,
+  manual_stop_at AS stopped_at,
+  started_at
+FROM sessions
+WHERE status = 'interrupted' AND manual_stop_at IS NOT NULL
+ORDER BY started_at DESC
+LIMIT 1`;
+
+export const COMPLETE_SESSION_SQL = `UPDATE sessions
+SET status = 'completed', completion_reason = ?, ended_at = ?, updated_at = ?,
+    end_power_json = ?
+WHERE id = ?`;
 
 let databasePromise: Promise<SQLite.SQLiteDatabase> | null = null;
 let writeQueue: Promise<unknown> = Promise.resolve();
@@ -26,98 +75,205 @@ function enqueueWrite<T>(operation: () => Promise<T>): Promise<T> {
   return result;
 }
 
+interface SchemaExecutor {
+  execAsync(source: string): Promise<void>;
+  getAllAsync<T>(source: string, ...params: unknown[]): Promise<T[]>;
+  getFirstAsync<T>(source: string, ...params: unknown[]): Promise<T | null>;
+}
+
+type ExpectedColumns = Readonly<Record<string, readonly string[]>>;
+
+async function validateExpectedSchema(
+  database: SchemaExecutor,
+  expected: ExpectedColumns,
+): Promise<void> {
+  for (const [table, expectedColumns] of Object.entries(expected)) {
+    const exists = await database.getFirstAsync<{ name: string }>(
+      `SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`,
+      table,
+    );
+    if (!exists) throw new Error(`Recorder database is missing the expected ${table} table.`);
+
+    const columns = await database.getAllAsync<{ name: string }>(`PRAGMA table_info("${table}")`);
+    const actual = new Set(columns.map((column) => column.name));
+    const missing = expectedColumns.filter((column) => !actual.has(column));
+    if (missing.length > 0) {
+      throw new Error(`Recorder database table ${table} is missing columns: ${missing.join(', ')}.`);
+    }
+  }
+}
+
+async function validateExpectedIndexes(
+  database: SchemaExecutor,
+  expectedNames: readonly string[],
+): Promise<void> {
+  for (const name of expectedNames) {
+    const exists = await database.getFirstAsync<{ name: string }>(
+      `SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?`,
+      name,
+    );
+    if (!exists) throw new Error(`Recorder database is missing the expected ${name} index.`);
+  }
+}
+
+async function assertDatabaseIntegrity(database: SchemaExecutor): Promise<void> {
+  const quickCheck = await database.getAllAsync<Record<string, unknown>>('PRAGMA quick_check');
+  const quickCheckValues = quickCheck.map((row) => String(Object.values(row)[0] ?? ''));
+  if (quickCheckValues.length !== 1 || quickCheckValues[0] !== 'ok') {
+    throw new Error(`Recorder database quick_check failed: ${quickCheckValues.join('; ')}`);
+  }
+
+  const foreignKeyViolations = await database.getAllAsync<Record<string, unknown>>(
+    'PRAGMA foreign_key_check',
+  );
+  if (foreignKeyViolations.length > 0) {
+    throw new Error(
+      `Recorder database foreign_key_check found ${foreignKeyViolations.length} violation(s).`,
+    );
+  }
+}
+
+async function getRawRowCounts(database: SchemaExecutor): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  for (const table of Object.keys(EXPECTED_V1_TABLE_COLUMNS)) {
+    const row = await database.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM "${table}"`,
+    );
+    counts[table] = row?.count ?? 0;
+  }
+  return counts;
+}
+
+async function assertRawRowCounts(
+  database: SchemaExecutor,
+  expected: Record<string, number>,
+): Promise<void> {
+  const actual = await getRawRowCounts(database);
+  for (const [table, count] of Object.entries(expected)) {
+    if (actual[table] !== count) {
+      throw new Error(
+        `Recorder database migration changed ${table} row count from ${count} to ${actual[table]}.`,
+      );
+    }
+  }
+}
+
+async function createMigrationBackup(
+  database: SQLite.SQLiteDatabase,
+  fromVersion: number,
+): Promise<string> {
+  const backupName = `xc-recorder-migration-v${fromVersion}-to-v${LATEST_DATABASE_VERSION}-${Date.now()}.db`;
+  const backup = await SQLite.openDatabaseAsync(backupName, { useNewConnection: true });
+  try {
+    await SQLite.backupDatabaseAsync({ sourceDatabase: database, destDatabase: backup });
+  } catch (error) {
+    await backup.closeAsync().catch(() => undefined);
+    await SQLite.deleteDatabaseAsync(backupName).catch(() => undefined);
+    throw error;
+  }
+  await backup.closeAsync();
+  return backupName;
+}
+
+export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<void> {
+  const versionRow = await database.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+  let currentVersion = versionRow?.user_version ?? 0;
+  if (currentVersion > LATEST_DATABASE_VERSION) {
+    throw new Error(
+      `Recorder database version ${currentVersion} is newer than supported version ${LATEST_DATABASE_VERSION}.`,
+    );
+  }
+
+  const applicationTables = await database.getAllAsync<{ name: string }>(
+    `SELECT name FROM sqlite_master
+     WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`,
+  );
+  const isNewDatabase = currentVersion === 0 && applicationTables.length === 0;
+
+  if (currentVersion === 0 && !isNewDatabase) {
+    await validateExpectedSchema(database, EXPECTED_V1_TABLE_COLUMNS);
+    currentVersion = 1;
+  } else if (currentVersion >= 1) {
+    await validateExpectedSchema(database, EXPECTED_V1_TABLE_COLUMNS);
+  }
+
+  if (currentVersion >= 2) {
+    await validateExpectedSchema(database, EXPECTED_V2_TABLE_COLUMNS);
+  }
+
+  if (currentVersion >= 3) {
+    await validateExpectedSchema(database, EXPECTED_V3_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V3_INDEX_NAMES);
+  }
+
+  if (currentVersion === LATEST_DATABASE_VERSION) {
+    await validateExpectedSchema(database, EXPECTED_V4_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V4_INDEX_NAMES);
+    await assertDatabaseIntegrity(database);
+    return;
+  }
+
+  const originalCounts = isNewDatabase ? null : await getRawRowCounts(database);
+  const backupName = isNewDatabase ? null : await createMigrationBackup(database, currentVersion);
+
+  try {
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      for (const step of getSchemaMigrationSteps(currentVersion, isNewDatabase)) {
+        for (const statement of step.statements) {
+          await transaction.execAsync(statement);
+        }
+      }
+      await transaction.execAsync(`PRAGMA user_version = ${LATEST_DATABASE_VERSION}`);
+
+      if (originalCounts) await assertRawRowCounts(transaction, originalCounts);
+      const missingFlights = await transaction.getFirstAsync<{ count: number }>(
+        `SELECT COUNT(*) AS count
+         FROM sessions s
+         LEFT JOIN flights f ON f.recording_session_id = s.id
+         WHERE f.id IS NULL`,
+      );
+      if ((missingFlights?.count ?? 0) !== 0) {
+        throw new Error('Recorder database migration did not backfill every session.');
+      }
+      await assertDatabaseIntegrity(transaction);
+    });
+
+    await validateExpectedSchema(database, EXPECTED_V1_TABLE_COLUMNS);
+    await validateExpectedSchema(database, EXPECTED_V2_TABLE_COLUMNS);
+    await validateExpectedSchema(database, EXPECTED_V3_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V3_INDEX_NAMES);
+    await validateExpectedSchema(database, EXPECTED_V4_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V4_INDEX_NAMES);
+    await assertDatabaseIntegrity(database);
+    if (backupName) await SQLite.deleteDatabaseAsync(backupName);
+  } catch (error) {
+    const backupMessage = backupName ? ` Migration backup retained as ${backupName}.` : '';
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${message}${backupMessage}`, { cause: error });
+  }
+}
+
+async function initializeDatabase(): Promise<SQLite.SQLiteDatabase> {
+  const database = await SQLite.openDatabaseAsync(DATABASE_NAME);
+  try {
+    await database.execAsync(`
+      PRAGMA journal_mode = WAL;
+      PRAGMA foreign_keys = ON;
+      PRAGMA busy_timeout = 10000;
+    `);
+    await migrateDatabase(database);
+    return database;
+  } catch (error) {
+    await database.closeAsync().catch(() => undefined);
+    throw error;
+  }
+}
+
 async function openDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (!databasePromise) {
-    databasePromise = SQLite.openDatabaseAsync(DATABASE_NAME).then(async (database) => {
-      await database.execAsync(`
-        PRAGMA journal_mode = WAL;
-        PRAGMA foreign_keys = ON;
-        PRAGMA busy_timeout = 10000;
-
-        CREATE TABLE IF NOT EXISTS sessions (
-          id TEXT PRIMARY KEY NOT NULL,
-          status TEXT NOT NULL CHECK (status IN ('recording', 'interrupted', 'completed')),
-          completion_reason TEXT,
-          started_at INTEGER NOT NULL,
-          ended_at INTEGER,
-          updated_at INTEGER NOT NULL,
-          last_fix_at INTEGER,
-          last_pressure_at INTEGER,
-          location_sequence INTEGER NOT NULL DEFAULT 0,
-          pressure_sequence INTEGER NOT NULL DEFAULT 0,
-          platform TEXT NOT NULL,
-          device_metadata_json TEXT NOT NULL,
-          app_metadata_json TEXT NOT NULL,
-          start_power_json TEXT NOT NULL,
-          end_power_json TEXT
-        );
-
-        CREATE UNIQUE INDEX IF NOT EXISTS one_unfinished_session
-          ON sessions ((1))
-          WHERE status IN ('recording', 'interrupted');
-
-        CREATE TABLE IF NOT EXISTS location_fixes (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE RESTRICT,
-          sequence INTEGER NOT NULL,
-          callback_id TEXT NOT NULL,
-          batch_index INTEGER NOT NULL,
-          source_timestamp INTEGER NOT NULL,
-          receipt_timestamp INTEGER NOT NULL,
-          latitude REAL NOT NULL,
-          longitude REAL NOT NULL,
-          gps_altitude REAL,
-          vertical_accuracy REAL,
-          horizontal_accuracy REAL,
-          speed REAL,
-          heading REAL,
-          mocked INTEGER NOT NULL DEFAULT 0,
-          UNIQUE (session_id, sequence),
-          UNIQUE (session_id, callback_id, batch_index),
-          UNIQUE (session_id, source_timestamp, latitude, longitude)
-        );
-
-        CREATE INDEX IF NOT EXISTS location_fixes_source_order
-          ON location_fixes (session_id, source_timestamp, sequence);
-
-        CREATE TABLE IF NOT EXISTS pressure_samples (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE RESTRICT,
-          sequence INTEGER NOT NULL,
-          native_timestamp REAL NOT NULL,
-          receipt_timestamp INTEGER NOT NULL,
-          pressure REAL NOT NULL,
-          relative_altitude REAL,
-          UNIQUE (session_id, sequence),
-          UNIQUE (session_id, native_timestamp, pressure)
-        );
-
-        CREATE TABLE IF NOT EXISTS events (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE RESTRICT,
-          event_type TEXT NOT NULL,
-          occurred_at INTEGER NOT NULL,
-          dedupe_key TEXT UNIQUE,
-          payload_json TEXT NOT NULL
-        );
-
-        CREATE INDEX IF NOT EXISTS events_session_order
-          ON events (session_id, occurred_at, id);
-
-        CREATE TABLE IF NOT EXISTS exports (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE RESTRICT,
-          kind TEXT NOT NULL CHECK (kind IN ('igc', 'diagnostics')),
-          artifact_version INTEGER NOT NULL,
-          path TEXT NOT NULL,
-          sha256 TEXT NOT NULL,
-          byte_count INTEGER NOT NULL,
-          eligible_fix_count INTEGER NOT NULL,
-          created_at INTEGER NOT NULL,
-          UNIQUE (session_id, kind, artifact_version, sha256)
-        );
-      `);
-      return database;
+    databasePromise = initializeDatabase().catch((error: unknown) => {
+      databasePromise = null;
+      throw error;
     });
   }
   return databasePromise;
@@ -142,6 +298,8 @@ interface SessionRow {
   ended_at: number | null;
   updated_at: number;
   last_fix_at: number | null;
+  last_location_callback_at: number | null;
+  manual_stop_at: number | null;
   last_pressure_at: number | null;
   location_sequence: number;
   pressure_sequence: number;
@@ -161,6 +319,8 @@ function mapSession(row: SessionRow): SessionRecord {
     endedAt: row.ended_at,
     updatedAt: row.updated_at,
     lastFixAt: row.last_fix_at,
+    lastLocationCallbackAt: row.last_location_callback_at,
+    manualStopAt: row.manual_stop_at,
     lastPressureAt: row.last_pressure_at,
     locationSequence: row.location_sequence,
     pressureSequence: row.pressure_sequence,
@@ -174,9 +334,79 @@ function mapSession(row: SessionRow): SessionRecord {
   };
 }
 
+interface FlightRow {
+  id: string;
+  recording_session_id: string;
+  status: FlightStatus;
+  started_at: number;
+  ended_at: number | null;
+  timezone_offset_minutes: number | null;
+  title: string | null;
+  site: string | null;
+  notes: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+interface FlightSummaryRow extends FlightRow {
+  session_status: SessionRecord['status'];
+}
+
+interface FlightMetricsRow {
+  flight_id: string;
+  algorithm_version: number;
+  duration_ms: number;
+  track_distance_metres: number;
+  min_gps_altitude: number | null;
+  max_gps_altitude: number | null;
+  max_ground_speed: number | null;
+  fix_count: number;
+  median_source_gap_ms: number | null;
+  p95_source_gap_ms: number | null;
+  max_source_gap_ms: number | null;
+  quality: FlightMetricsRecord['quality'];
+  computed_at: number;
+}
+
+function mapFlight(row: FlightRow): FlightRecord {
+  return {
+    id: row.id,
+    recordingSessionId: row.recording_session_id,
+    status: row.status,
+    startedAt: row.started_at,
+    endedAt: row.ended_at,
+    timezoneOffsetMinutes: row.timezone_offset_minutes,
+    title: row.title,
+    site: row.site,
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapFlightMetrics(row: FlightMetricsRow): FlightMetricsRecord {
+  return {
+    flightId: row.flight_id,
+    algorithmVersion: row.algorithm_version,
+    durationMs: row.duration_ms,
+    trackDistanceMetres: row.track_distance_metres,
+    minGpsAltitude: row.min_gps_altitude,
+    maxGpsAltitude: row.max_gps_altitude,
+    maxGroundSpeed: row.max_ground_speed,
+    fixCount: row.fix_count,
+    medianSourceGapMs: row.median_source_gap_ms,
+    p95SourceGapMs: row.p95_source_gap_ms,
+    maxSourceGapMs: row.max_source_gap_ms,
+    quality: row.quality,
+    computedAt: row.computed_at,
+  };
+}
+
 export async function createSession(input: {
   id: string;
+  flightId?: string;
   startedAt: number;
+  timezoneOffsetMinutes?: number | null;
   platform: string;
   deviceMetadata: Record<string, unknown>;
   appMetadata: Record<string, unknown>;
@@ -205,6 +435,18 @@ export async function createSession(input: {
         JSON.stringify(input.startPower),
       );
       await transaction.runAsync(
+        `INSERT INTO flights (
+          id, recording_session_id, status, started_at, ended_at,
+          timezone_offset_minutes, title, site, notes, created_at, updated_at
+        ) VALUES (?, ?, 'recording', ?, NULL, ?, NULL, NULL, NULL, ?, ?)`,
+        input.flightId ?? input.id,
+        input.id,
+        input.startedAt,
+        input.timezoneOffsetMinutes ?? null,
+        input.startedAt,
+        input.startedAt,
+      );
+      await transaction.runAsync(
         `INSERT INTO events (session_id, event_type, occurred_at, dedupe_key, payload_json)
          VALUES (?, 'session_armed', ?, ?, ?)`,
         input.id,
@@ -213,6 +455,58 @@ export async function createSession(input: {
         JSON.stringify({ startPower: input.startPower }),
       );
     });
+  });
+}
+
+export async function createFlightForSession(input: {
+  recordingSessionId: string;
+  flightId?: string;
+  timezoneOffsetMinutes?: number | null;
+}): Promise<FlightRecord> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      const session = await transaction.getFirstAsync<SessionRow>(
+        'SELECT * FROM sessions WHERE id = ?',
+        input.recordingSessionId,
+      );
+      if (!session) throw new Error(`Session ${input.recordingSessionId} was not found.`);
+
+      const existing = await transaction.getFirstAsync<FlightRow>(
+        'SELECT * FROM flights WHERE recording_session_id = ?',
+        input.recordingSessionId,
+      );
+      if (existing) {
+        if (input.flightId && existing.id !== input.flightId) {
+          throw new Error(
+            `Session ${input.recordingSessionId} already belongs to flight ${existing.id}.`,
+          );
+        }
+        return;
+      }
+
+      await transaction.runAsync(
+        `INSERT INTO flights (
+          id, recording_session_id, status, started_at, ended_at,
+          timezone_offset_minutes, title, site, notes, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?)`,
+        input.flightId ?? input.recordingSessionId,
+        input.recordingSessionId,
+        flightStatusForSession(session.status, session.completion_reason),
+        session.started_at,
+        session.ended_at,
+        input.timezoneOffsetMinutes ?? null,
+        session.started_at,
+        session.updated_at,
+      );
+    });
+
+    const row = await database.getFirstAsync<FlightRow>(
+      'SELECT * FROM flights WHERE recording_session_id = ?',
+      input.recordingSessionId,
+    );
+    if (!row) throw new Error(`Flight for session ${input.recordingSessionId} was not created.`);
+    return mapFlight(row);
   });
 }
 
@@ -293,16 +587,53 @@ export async function recordEvent(
 ): Promise<void> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
-    await database.runAsync(
-      `INSERT OR IGNORE INTO events (
-        session_id, event_type, occurred_at, dedupe_key, payload_json
-      ) VALUES (?, ?, ?, ?, ?)`,
-      sessionId,
-      type,
-      occurredAt,
-      dedupeKey,
-      JSON.stringify(payload),
-    );
+    const insertEvent = async (executor: Pick<SQLite.SQLiteDatabase, 'runAsync'>) => {
+      await executor.runAsync(
+        `INSERT OR IGNORE INTO events (
+          session_id, event_type, occurred_at, dedupe_key, payload_json
+        ) VALUES (?, ?, ?, ?, ?)`,
+        sessionId,
+        type,
+        occurredAt,
+        dedupeKey,
+        JSON.stringify(payload),
+      );
+    };
+
+    if (type !== 'location_task_error') {
+      await insertEvent(database);
+      return;
+    }
+
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      await transaction.runAsync(
+        `UPDATE sessions
+         SET last_location_callback_at = CASE
+               WHEN last_location_callback_at IS NULL OR ? > last_location_callback_at THEN ?
+               ELSE last_location_callback_at
+             END,
+             updated_at = CASE WHEN ? > updated_at THEN ? ELSE updated_at END
+         WHERE id = ? AND status = 'recording'`,
+        occurredAt,
+        occurredAt,
+        occurredAt,
+        occurredAt,
+        sessionId,
+      );
+      await insertEvent(transaction);
+    });
+  });
+}
+
+export async function requestSessionStop(sessionId: string, stoppedAt: number): Promise<number> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    let storedBoundary: number | null = null;
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      storedBoundary = await requestSessionStopTransaction(transaction, sessionId, stoppedAt);
+    });
+    if (storedBoundary === null) throw new Error('The manual stop boundary was not persisted.');
+    return storedBoundary;
   });
 }
 
@@ -310,17 +641,88 @@ export async function markSessionInterrupted(
   sessionId: string,
   occurredAt: number,
   reason: string,
+  details: Record<string, unknown> = {},
 ): Promise<void> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
     await database.withExclusiveTransactionAsync(async (transaction) => {
+      const session = await transaction.getFirstAsync<{
+        started_at: number;
+        manual_stop_at: number | null;
+        latest_eligible_fix_source_at: number | null;
+      }>(
+        `SELECT
+           s.started_at,
+           s.manual_stop_at,
+           (
+             SELECT source_timestamp
+             FROM location_fixes
+             WHERE session_id = s.id
+               AND mocked = 0
+               AND source_timestamp >= s.started_at
+               AND source_timestamp <= ?
+             ORDER BY source_timestamp DESC, sequence DESC
+             LIMIT 1
+           ) AS latest_eligible_fix_source_at
+         FROM sessions s
+         WHERE s.id = ?`,
+        occurredAt,
+        sessionId,
+      );
+      if (!session) throw new Error(`Session ${sessionId} was not found.`);
+      const pendingRecoveryAttempt = await transaction.getFirstAsync<{ id: string }>(
+        `SELECT id
+         FROM session_recovery_attempts
+         WHERE session_id = ? AND completed_at IS NULL
+         LIMIT 1`,
+        sessionId,
+      );
+
+      const partialEndAt = resolveInterruptedPartialEndAt(
+        session.started_at,
+        occurredAt,
+        session.latest_eligible_fix_source_at,
+      );
+      const suppliedManualStopAt = details.manualStopAt;
+      const validSuppliedManualStopAt =
+        typeof suppliedManualStopAt === 'number' &&
+        Number.isFinite(suppliedManualStopAt) &&
+        suppliedManualStopAt >= session.started_at &&
+        suppliedManualStopAt <= occurredAt
+          ? suppliedManualStopAt
+          : null;
+      if (
+        session.manual_stop_at !== null &&
+        (!Number.isFinite(session.manual_stop_at) ||
+          session.manual_stop_at < session.started_at ||
+          session.manual_stop_at > occurredAt)
+      ) {
+        throw new Error('The stored manual stop boundary is invalid.');
+      }
+      const manualStopAt = session.manual_stop_at ?? validSuppliedManualStopAt;
       const result = await transaction.runAsync(
-        `UPDATE sessions SET status = 'interrupted', updated_at = ?
+        `UPDATE sessions
+         SET status = 'interrupted',
+             manual_stop_at = COALESCE(manual_stop_at, ?),
+             updated_at = CASE WHEN ? > updated_at THEN ? ELSE updated_at END
          WHERE id = ? AND status = 'recording'`,
+        manualStopAt,
+        occurredAt,
         occurredAt,
         sessionId,
       );
       if (result.changes === 1) {
+        if (pendingRecoveryAttempt) {
+          await transaction.runAsync(
+            `UPDATE session_recovery_attempts
+             SET completed_at = ?, outcome = 'failed'
+             WHERE id = ? AND completed_at IS NULL`,
+            occurredAt,
+            pendingRecoveryAttempt.id,
+          );
+        }
+        const payloadDetails = { ...details };
+        delete payloadDetails.manualStopAt;
         await transaction.runAsync(
           `INSERT OR IGNORE INTO events (
             session_id, event_type, occurred_at, dedupe_key, payload_json
@@ -328,36 +730,47 @@ export async function markSessionInterrupted(
           sessionId,
           occurredAt,
           null,
-          JSON.stringify({ reason }),
+          JSON.stringify({
+            ...payloadDetails,
+            ...(pendingRecoveryAttempt === null
+              ? {}
+              : { recoveryAttemptId: pendingRecoveryAttempt.id }),
+            ...(manualStopAt === null ? {} : { manualStopAt }),
+            partialEndAt,
+            reason,
+          }),
         );
       }
     });
   });
 }
 
-export async function markSessionResumed(sessionId: string, occurredAt: number): Promise<void> {
+export async function beginSessionRecoveryAttempt(
+  input: BeginSessionRecoveryAttemptInput,
+): Promise<SessionRecoveryAttempt> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
+    let attempt: SessionRecoveryAttempt | null = null;
     await database.withExclusiveTransactionAsync(async (transaction) => {
-      const session = await transaction.getFirstAsync<{ status: SessionRecord['status'] }>(
-        'SELECT status FROM sessions WHERE id = ?',
-        sessionId,
-      );
-      if (!session) throw new Error(`Session ${sessionId} was not found.`);
-      if (session.status === 'recording') return;
-      if (session.status === 'completed') throw new Error('A completed session cannot be resumed.');
-      await transaction.runAsync(
-        `UPDATE sessions SET status = 'recording', updated_at = ? WHERE id = ?`,
-        occurredAt,
-        sessionId,
-      );
-      await transaction.runAsync(
-        `INSERT INTO events (session_id, event_type, occurred_at, dedupe_key, payload_json)
-         VALUES (?, 'session_resumed', ?, NULL, '{}')`,
-        sessionId,
-        occurredAt,
-      );
+      attempt = await beginSessionRecoveryAttemptTransaction(transaction, input);
     });
+    if (!attempt) throw new Error('The recovery attempt was not persisted.');
+    return attempt;
+  });
+}
+
+export async function confirmSessionRecoveryAttempt(
+  attemptId: string,
+  occurredAt: number,
+): Promise<SessionRecoveryProof> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    let proof: SessionRecoveryProof | null = null;
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      proof = await confirmSessionRecoveryAttemptTransaction(transaction, attemptId, occurredAt);
+    });
+    if (!proof) throw new Error('The recovery proof was not persisted.');
+    return proof;
   });
 }
 
@@ -370,21 +783,44 @@ export async function completeSession(
   return enqueueWrite(async () => {
     const database = await openDatabase();
     await database.withExclusiveTransactionAsync(async (transaction) => {
-      const session = await transaction.getFirstAsync<{ status: SessionRecord['status'] }>(
-        'SELECT status FROM sessions WHERE id = ?',
+      const session = await transaction.getFirstAsync<{
+        status: SessionRecord['status'];
+        started_at: number;
+        manual_stop_at: number | null;
+      }>(
+        'SELECT status, started_at, manual_stop_at FROM sessions WHERE id = ?',
         sessionId,
       );
       if (!session) throw new Error(`Session ${sessionId} was not found.`);
       if (session.status === 'completed') return;
-      await transaction.runAsync(
-        `UPDATE sessions
-         SET status = 'completed', completion_reason = ?, ended_at = ?, updated_at = ?,
-             end_power_json = ?
-         WHERE id = ?`,
+      const completedAt = resolveSessionCompletionTimestamp(
+        session.started_at,
+        endedAt,
+        session.manual_stop_at,
         reason,
-        endedAt,
-        endedAt,
+      );
+      await transaction.runAsync(
+        `UPDATE session_recovery_attempts
+         SET completed_at = ?, outcome = ?
+         WHERE session_id = ? AND completed_at IS NULL`,
+        completedAt,
+        reason === 'stopped' ? 'stopped' : 'failed',
+        sessionId,
+      );
+      await transaction.runAsync(
+        COMPLETE_SESSION_SQL,
+        reason,
+        completedAt,
+        completedAt,
         JSON.stringify(endPower),
+        sessionId,
+      );
+      await transaction.runAsync(
+        `UPDATE flights
+         SET status = 'processing', ended_at = ?, updated_at = ?
+         WHERE recording_session_id = ?`,
+        completedAt,
+        completedAt,
         sessionId,
       );
       await transaction.runAsync(
@@ -392,9 +828,13 @@ export async function completeSession(
           session_id, event_type, occurred_at, dedupe_key, payload_json
         ) VALUES (?, 'session_completed', ?, ?, ?)`,
         sessionId,
-        endedAt,
+        completedAt,
         `session-completed:${sessionId}`,
-        JSON.stringify({ reason, endPower }),
+        JSON.stringify({
+          reason,
+          endPower,
+          ...(session.manual_stop_at === null ? {} : { manualStopAt: session.manual_stop_at }),
+        }),
       );
     });
   });
@@ -419,12 +859,314 @@ export async function getUnfinishedSession(): Promise<SessionRecord | null> {
   return row ? mapSession(row) : null;
 }
 
+export async function getPendingSessionStop(): Promise<PendingSessionStop | null> {
+  const database = await openDatabase();
+  const row = await database.getFirstAsync<{
+    session_id: string;
+    stopped_at: number;
+    started_at: number;
+  }>(
+    PENDING_SESSION_STOP_SQL,
+  );
+  if (!row) return null;
+  if (!Number.isFinite(row.stopped_at) || row.stopped_at < row.started_at) {
+    throw new Error(`Session ${row.session_id} has an invalid manual stop boundary.`);
+  }
+  return { sessionId: row.session_id, stoppedAt: row.stopped_at };
+}
+
+export async function getPendingSessionRecoveryAttempt(
+  sessionId: string,
+): Promise<PendingSessionRecoveryAttempt | null> {
+  const database = await openDatabase();
+  const row = await database.getFirstAsync<SessionRecoveryAttemptProofRow>(
+    PENDING_SESSION_RECOVERY_ATTEMPT_SQL,
+    sessionId,
+  );
+  return mapPendingSessionRecoveryAttemptRow(row);
+}
+
+export async function getFinalSessionRecoveryAttempt(
+  attemptId: string,
+): Promise<PendingSessionRecoveryAttempt | null> {
+  // A deadline check must observe every callback write already accepted by the
+  // recorder queue before deciding that no in-window proving fix exists.
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    const row = await database.getFirstAsync<SessionRecoveryAttemptProofRow>(
+      SESSION_RECOVERY_ATTEMPT_BY_ID_SQL,
+      attemptId,
+    );
+    return mapPendingSessionRecoveryAttemptRow(row);
+  });
+}
+
 export async function getLatestSession(): Promise<SessionRecord | null> {
   const database = await openDatabase();
   const row = await database.getFirstAsync<SessionRow>(
     'SELECT * FROM sessions ORDER BY started_at DESC LIMIT 1',
   );
   return row ? mapSession(row) : null;
+}
+
+export async function getFlight(flightId: string): Promise<FlightRecord | null> {
+  const database = await openDatabase();
+  const row = await database.getFirstAsync<FlightRow>('SELECT * FROM flights WHERE id = ?', flightId);
+  return row ? mapFlight(row) : null;
+}
+
+export async function getFlightBySessionId(sessionId: string): Promise<FlightRecord | null> {
+  const database = await openDatabase();
+  const row = await database.getFirstAsync<FlightRow>(
+    'SELECT * FROM flights WHERE recording_session_id = ?',
+    sessionId,
+  );
+  return row ? mapFlight(row) : null;
+}
+
+export async function getFlightMetrics(
+  flightId: string,
+): Promise<FlightMetricsRecord | null> {
+  const database = await openDatabase();
+  const row = await database.getFirstAsync<FlightMetricsRow>(
+    'SELECT * FROM flight_metrics WHERE flight_id = ?',
+    flightId,
+  );
+  return row ? mapFlightMetrics(row) : null;
+}
+
+export async function listFlights(): Promise<FlightSummary[]> {
+  const database = await openDatabase();
+  const [flightRows, metricRows] = await Promise.all([
+    database.getAllAsync<FlightSummaryRow>(
+      `SELECT f.*, s.status AS session_status
+       FROM flights f
+       JOIN sessions s ON s.id = f.recording_session_id
+       ORDER BY f.started_at DESC, f.id DESC`,
+    ),
+    database.getAllAsync<FlightMetricsRow>('SELECT * FROM flight_metrics'),
+  ]);
+  const metrics = new Map(
+    metricRows.map((row) => {
+      const mapped = mapFlightMetrics(row);
+      return [mapped.flightId, mapped] as const;
+    }),
+  );
+  return flightRows.map((row) => {
+    const flight = mapFlight(row);
+    return {
+      ...flight,
+      sessionStatus: row.session_status,
+      metrics: metrics.get(flight.id) ?? null,
+    };
+  });
+}
+
+export async function getFlightDetail(flightId: string): Promise<FlightDetail | null> {
+  const database = await openDatabase();
+  const flightRow = await database.getFirstAsync<FlightRow>(
+    'SELECT * FROM flights WHERE id = ?',
+    flightId,
+  );
+  if (!flightRow) return null;
+
+  const [metricRow, sessionRow] = await Promise.all([
+    database.getFirstAsync<FlightMetricsRow>(
+      'SELECT * FROM flight_metrics WHERE flight_id = ?',
+      flightId,
+    ),
+    database.getFirstAsync<SessionRow>(
+      'SELECT * FROM sessions WHERE id = ?',
+      flightRow.recording_session_id,
+    ),
+  ]);
+  if (!sessionRow) {
+    throw new Error(`Session ${flightRow.recording_session_id} for flight ${flightId} was not found.`);
+  }
+  return {
+    ...mapFlight(flightRow),
+    sessionStatus: sessionRow.status,
+    metrics: metricRow ? mapFlightMetrics(metricRow) : null,
+    session: mapSession(sessionRow),
+  };
+}
+
+export async function updateFlightMetadata(
+  flightId: string,
+  patch: FlightMetadataPatch,
+  updatedAt = Date.now(),
+): Promise<FlightRecord> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    const normalized = normalizeFlightMetadataPatch(patch);
+    const assignments: string[] = [];
+    const params: (string | number | null)[] = [];
+    for (const field of ['title', 'site', 'notes'] as const) {
+      if (!Object.prototype.hasOwnProperty.call(normalized, field)) continue;
+      assignments.push(`${field} = ?`);
+      params.push(normalized[field] ?? null);
+    }
+
+    if (assignments.length > 0) {
+      const result = await database.runAsync(
+        `UPDATE flights SET ${assignments.join(', ')}, updated_at = ? WHERE id = ?`,
+        ...params,
+        updatedAt,
+        flightId,
+      );
+      if (result.changes !== 1) throw new Error(`Flight ${flightId} was not found.`);
+    }
+
+    const row = await database.getFirstAsync<FlightRow>('SELECT * FROM flights WHERE id = ?', flightId);
+    if (!row) throw new Error(`Flight ${flightId} was not found.`);
+    return mapFlight(row);
+  });
+}
+
+export async function upsertFlightMetrics(metrics: FlightMetricsRecord): Promise<void> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.runAsync(
+      `INSERT INTO flight_metrics (
+        flight_id, algorithm_version, duration_ms, track_distance_metres,
+        min_gps_altitude, max_gps_altitude, max_ground_speed, fix_count,
+        median_source_gap_ms, p95_source_gap_ms, max_source_gap_ms, quality, computed_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(flight_id) DO UPDATE SET
+        algorithm_version = excluded.algorithm_version,
+        duration_ms = excluded.duration_ms,
+        track_distance_metres = excluded.track_distance_metres,
+        min_gps_altitude = excluded.min_gps_altitude,
+        max_gps_altitude = excluded.max_gps_altitude,
+        max_ground_speed = excluded.max_ground_speed,
+        fix_count = excluded.fix_count,
+        median_source_gap_ms = excluded.median_source_gap_ms,
+        p95_source_gap_ms = excluded.p95_source_gap_ms,
+        max_source_gap_ms = excluded.max_source_gap_ms,
+        quality = excluded.quality,
+        computed_at = excluded.computed_at`,
+      metrics.flightId,
+      metrics.algorithmVersion,
+      metrics.durationMs,
+      metrics.trackDistanceMetres,
+      metrics.minGpsAltitude,
+      metrics.maxGpsAltitude,
+      metrics.maxGroundSpeed,
+      metrics.fixCount,
+      metrics.medianSourceGapMs,
+      metrics.p95SourceGapMs,
+      metrics.maxSourceGapMs,
+      metrics.quality,
+      metrics.computedAt,
+    );
+  });
+}
+
+export async function setFlightStatus(input: {
+  flightId: string;
+  status: FlightStatus;
+  updatedAt: number;
+  endedAt?: number | null;
+}): Promise<FlightRecord> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    const shouldUpdateEndedAt = Object.prototype.hasOwnProperty.call(input, 'endedAt');
+    const result = shouldUpdateEndedAt
+      ? await database.runAsync(
+          'UPDATE flights SET status = ?, ended_at = ?, updated_at = ? WHERE id = ?',
+          input.status,
+          input.endedAt ?? null,
+          input.updatedAt,
+          input.flightId,
+        )
+      : await database.runAsync(
+          'UPDATE flights SET status = ?, updated_at = ? WHERE id = ?',
+          input.status,
+          input.updatedAt,
+          input.flightId,
+        );
+    if (result.changes !== 1) throw new Error(`Flight ${input.flightId} was not found.`);
+
+    const row = await database.getFirstAsync<FlightRow>(
+      'SELECT * FROM flights WHERE id = ?',
+      input.flightId,
+    );
+    if (!row) throw new Error(`Flight ${input.flightId} was not found.`);
+    return mapFlight(row);
+  });
+}
+
+export async function deleteCompletedFlight(
+  flightId: string,
+  deletedAt = Date.now(),
+): Promise<void> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      const row = await transaction.getFirstAsync<{
+        recording_session_id: string;
+        flight_status: FlightStatus;
+        session_status: SessionRecord['status'];
+      }>(
+        `SELECT
+           f.recording_session_id,
+           f.status AS flight_status,
+           s.status AS session_status
+         FROM flights f
+         JOIN sessions s ON s.id = f.recording_session_id
+         WHERE f.id = ?`,
+        flightId,
+      );
+      if (!row) throw new Error(`Flight ${flightId} was not found.`);
+      if (
+        !['completed', 'partial'].includes(row.flight_status) ||
+        row.session_status !== 'completed'
+      ) {
+        throw new Error(`Flight ${flightId} is active or unfinished and cannot be deleted.`);
+      }
+
+      await transaction.runAsync(
+        `INSERT OR IGNORE INTO pending_file_deletions (path, created_at)
+         SELECT path, ? FROM exports WHERE session_id = ?`,
+        deletedAt,
+        row.recording_session_id,
+      );
+      await transaction.runAsync('DELETE FROM exports WHERE session_id = ?', row.recording_session_id);
+      await transaction.runAsync('DELETE FROM events WHERE session_id = ?', row.recording_session_id);
+      await transaction.runAsync(
+        'DELETE FROM pressure_samples WHERE session_id = ?',
+        row.recording_session_id,
+      );
+      // Recovery attempts can reference their exact proving location fix, so they
+      // must be removed before the raw fixes under the RESTRICT foreign keys.
+      await transaction.runAsync(
+        'DELETE FROM session_recovery_attempts WHERE session_id = ?',
+        row.recording_session_id,
+      );
+      await transaction.runAsync(
+        'DELETE FROM location_fixes WHERE session_id = ?',
+        row.recording_session_id,
+      );
+      await transaction.runAsync('DELETE FROM flight_metrics WHERE flight_id = ?', flightId);
+      await transaction.runAsync('DELETE FROM flights WHERE id = ?', flightId);
+      await transaction.runAsync('DELETE FROM sessions WHERE id = ?', row.recording_session_id);
+    });
+  });
+}
+
+export async function listPendingFileDeletions(): Promise<string[]> {
+  const database = await openDatabase();
+  const rows = await database.getAllAsync<{ path: string }>(
+    'SELECT path FROM pending_file_deletions ORDER BY created_at, path',
+  );
+  return rows.map((row) => row.path);
+}
+
+export async function completePendingFileDeletion(path: string): Promise<void> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.runAsync('DELETE FROM pending_file_deletions WHERE path = ?', path);
+  });
 }
 
 export interface SessionSnapshotMetrics {
@@ -436,9 +1178,12 @@ export interface SessionSnapshotMetrics {
   pressure: number | null;
   taskErrorMessage: string | null;
   taskErrorAt: number | null;
+  lastLocationCallbackAt: number | null;
+  latestEligibleFixSourceAt: number | null;
+  latestEligibleFixReceiptAt: number | null;
 }
 
-interface SnapshotMetricsRow {
+export interface SnapshotMetricsRow {
   fix_count: number;
   pressure_count: number;
   gps_altitude: number | null;
@@ -447,25 +1192,38 @@ interface SnapshotMetricsRow {
   pressure: number | null;
   task_error_json: string | null;
   task_error_at: number | null;
+  last_location_callback_at: number | null;
+  latest_eligible_fix_source_at: number | null;
+  latest_eligible_fix_receipt_at: number | null;
 }
 
-export async function getSessionSnapshotMetrics(
-  sessionId: string,
-): Promise<SessionSnapshotMetrics> {
-  const database = await openDatabase();
-  const row = await database.getFirstAsync<SnapshotMetricsRow>(
-    `SELECT
-       (SELECT COUNT(*) FROM location_fixes WHERE session_id = s.id) AS fix_count,
-       (SELECT COUNT(*) FROM pressure_samples WHERE session_id = s.id) AS pressure_count,
-       (SELECT gps_altitude FROM location_fixes WHERE session_id = s.id ORDER BY sequence DESC LIMIT 1) AS gps_altitude,
-       (SELECT speed FROM location_fixes WHERE session_id = s.id ORDER BY sequence DESC LIMIT 1) AS speed,
-       (SELECT horizontal_accuracy FROM location_fixes WHERE session_id = s.id ORDER BY sequence DESC LIMIT 1) AS horizontal_accuracy,
-       (SELECT pressure FROM pressure_samples WHERE session_id = s.id ORDER BY sequence DESC LIMIT 1) AS pressure,
-       (SELECT payload_json FROM events WHERE session_id = s.id AND event_type = 'location_task_error' ORDER BY occurred_at DESC, id DESC LIMIT 1) AS task_error_json,
-       (SELECT occurred_at FROM events WHERE session_id = s.id AND event_type = 'location_task_error' ORDER BY occurred_at DESC, id DESC LIMIT 1) AS task_error_at
-     FROM sessions s WHERE s.id = ?`,
-    sessionId,
-  );
+export const SESSION_SNAPSHOT_METRICS_SQL = `SELECT
+  (SELECT COUNT(*) FROM location_fixes WHERE session_id = s.id) AS fix_count,
+  (SELECT COUNT(*) FROM pressure_samples WHERE session_id = s.id) AS pressure_count,
+  (SELECT gps_altitude FROM location_fixes WHERE session_id = s.id ORDER BY sequence DESC LIMIT 1) AS gps_altitude,
+  (SELECT speed FROM location_fixes WHERE session_id = s.id ORDER BY sequence DESC LIMIT 1) AS speed,
+  (SELECT horizontal_accuracy FROM location_fixes WHERE session_id = s.id ORDER BY sequence DESC LIMIT 1) AS horizontal_accuracy,
+  (SELECT pressure FROM pressure_samples WHERE session_id = s.id ORDER BY sequence DESC LIMIT 1) AS pressure,
+  (SELECT payload_json FROM events WHERE session_id = s.id AND event_type = 'location_task_error' ORDER BY occurred_at DESC, id DESC LIMIT 1) AS task_error_json,
+  (SELECT occurred_at FROM events WHERE session_id = s.id AND event_type = 'location_task_error' ORDER BY occurred_at DESC, id DESC LIMIT 1) AS task_error_at,
+  s.last_location_callback_at,
+  eligible.source_timestamp AS latest_eligible_fix_source_at,
+  eligible.receipt_timestamp AS latest_eligible_fix_receipt_at
+FROM sessions s
+LEFT JOIN location_fixes eligible ON eligible.id = (
+  SELECT id
+  FROM location_fixes INDEXED BY location_fixes_eligible_receipt_order
+  WHERE session_id = s.id
+    AND mocked = 0
+    AND source_timestamp >= s.started_at
+  ORDER BY receipt_timestamp DESC, sequence DESC
+  LIMIT 1
+)
+WHERE s.id = ?`;
+
+export function mapSessionSnapshotMetrics(
+  row: SnapshotMetricsRow | null,
+): SessionSnapshotMetrics {
   return {
     fixCount: row?.fix_count ?? 0,
     pressureCount: row?.pressure_count ?? 0,
@@ -477,7 +1235,21 @@ export async function getSessionSnapshotMetrics(
       ? String(parseJsonObject(row.task_error_json).message ?? 'The location task reported an error.')
       : null,
     taskErrorAt: row?.task_error_at ?? null,
+    lastLocationCallbackAt: row?.last_location_callback_at ?? null,
+    latestEligibleFixSourceAt: row?.latest_eligible_fix_source_at ?? null,
+    latestEligibleFixReceiptAt: row?.latest_eligible_fix_receipt_at ?? null,
   };
+}
+
+export async function getSessionSnapshotMetrics(
+  sessionId: string,
+): Promise<SessionSnapshotMetrics> {
+  const database = await openDatabase();
+  const row = await database.getFirstAsync<SnapshotMetricsRow>(
+    SESSION_SNAPSHOT_METRICS_SQL,
+    sessionId,
+  );
+  return mapSessionSnapshotMetrics(row);
 }
 
 interface LocationRow {

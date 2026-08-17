@@ -1,8 +1,7 @@
-import * as Location from 'expo-location';
+import type * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 
 import { LOCATION_TASK_NAME } from './config';
-import { getUnfinishedSession, persistLocationBatch, recordEvent } from './database.native';
 
 interface LocationTaskData {
   locations?: Location.LocationObject[];
@@ -13,6 +12,9 @@ if (!TaskManager.isTaskDefined(LOCATION_TASK_NAME)) {
     LOCATION_TASK_NAME,
     async ({ data, error, executionInfo }) => {
       const receivedAt = Date.now();
+      const { getUnfinishedSession, persistLocationBatch, recordEvent } =
+        await import('./database.native');
+
       if (error) {
         const session = await getUnfinishedSession();
         if (session) {

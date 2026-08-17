@@ -8,6 +8,12 @@ import {
 } from '../igc';
 import type { LocationFixRecord } from '../types';
 
+const allTimeSession = {
+  id: 'flight-abc123',
+  startedAt: 0,
+  endedAt: Number.MAX_SAFE_INTEGER,
+};
+
 function fix(
   sequence: number,
   sourceTimestamp: number,
@@ -59,7 +65,7 @@ describe('IGC formatting', () => {
     const eligible = selectExportEligibleFixes(fixes);
     expect(eligible.map((item) => item.sequence)).toEqual([1, 2]);
 
-    const result = buildUnsignedIgc({ id: 'flight-abc123' }, fixes);
+    const result = buildUnsignedIgc(allTimeSession, fixes);
     const bRecords = result.content.split('\r\n').filter((line) => line.startsWith('B'));
     expect(bRecords).toHaveLength(2);
     expect(bRecords[0]).toContain('235959');
@@ -78,11 +84,27 @@ describe('IGC formatting', () => {
         horizontalAccuracy: null,
       }),
     ];
-    const first = buildUnsignedIgc({ id: 'flight-abc123' }, fixes).content;
-    const second = buildUnsignedIgc({ id: 'flight-abc123' }, [...fixes].reverse()).content;
+    const first = buildUnsignedIgc(allTimeSession, fixes).content;
+    const second = buildUnsignedIgc(allTimeSession, [...fixes].reverse()).content;
     expect(second).toBe(first);
     expect(createHash('sha256').update(first, 'utf8').digest('hex')).toBe(
-      'e93b7140c91549b186f2296505ecf00df3ef9a3f5bf8d8ecd1369b5a43dcc7de',
+      '7788bb481e2326d325526722b530f0307afb9e54362b4f2c883f30ba7fb3a129',
     );
+  });
+
+  it('exports only fixes inside the manual recording window', () => {
+    const startedAt = Date.UTC(2026, 0, 15, 4, 5, 6);
+    const fixes = [
+      fix(1, startedAt - 1_000),
+      fix(2, startedAt),
+      fix(3, startedAt + 1_000),
+      fix(4, startedAt + 1_001),
+    ];
+
+    const result = buildUnsignedIgc(
+      { id: 'flight-abc123', startedAt, endedAt: startedAt + 1_000 },
+      fixes,
+    );
+    expect(result.eligibleFixes.map((item) => item.sequence)).toEqual([2, 3]);
   });
 });
