@@ -8,6 +8,7 @@ import {
   Chip,
   Disclaimer,
   Hairline,
+  Input,
   LinkButton,
   ListRow,
   Notice,
@@ -16,6 +17,18 @@ import {
   StatusPill,
   TopBar,
 } from '@/components/ui';
+import {
+  AccountCard,
+} from '@/features/account/components/account-card';
+import {
+  EMPTY_PILOT_PROFILE_FORM,
+  PilotProfileCard,
+} from '@/features/account/components/pilot-profile-card';
+import {
+  CloudUnconfiguredNotice,
+  SignInCard,
+} from '@/features/account/components/sign-in-card';
+import { MetadataForm } from '@/features/flights/components/metadata-form';
 import { InstrumentView } from '@/features/record/components/instrument';
 import type { RecorderCapabilities, RecorderSnapshot } from '@/recorder/types';
 import { fonts, paper } from '@/ui/theme';
@@ -27,7 +40,10 @@ import { fonts, paper } from '@/ui/theme';
  * `UnsupportedScreen` on web.
  *
  * Usage: `expo start --port 8091` then `dist/visual/shot.sh <name> 392x<h> <set>`.
- * Sets: `kit` (every primitive and variant), `instrument` (the in-flight recorder view).
+ * Sets: `kit` (every primitive and variant), `instrument` (the in-flight recorder view),
+ * `account-empty` / `account-profile` (the pilot profile before and after it is filled in),
+ * `account-signed-out` / `account-signed-in` / `account-unconfigured` / `account-error`
+ * (the backup card in each of its states).
  *
  * Delete before handoff — it is a development fixture, not shipped UI.
  */
@@ -161,6 +177,60 @@ function KitPreview() {
         <BusyRow label="Saving flight…" />
       </Group>
 
+      <Group title="Inputs">
+        <Card className="px-[16px] pt-[4px] pb-[4px]">
+          <Input
+            label="Email"
+            value="renate@example.com"
+            placeholder="you@example.com"
+            maxLength={254}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            onChangeText={noop}
+          />
+          <Input
+            label="Code"
+            value=""
+            placeholder="123456"
+            maxLength={6}
+            keyboardType="number-pad"
+            hint="Resend code in 43 s"
+            onChangeText={noop}
+          />
+          <Input
+            label="Pilot name"
+            value="Not a real code"
+            placeholder="As it should appear in your IGC files"
+            maxLength={60}
+            error="That code is not right. Check the email and try again."
+            onChangeText={noop}
+          />
+          <Input
+            label="Disabled"
+            value=""
+            placeholder="Sign in to edit"
+            maxLength={60}
+            editable={false}
+            last
+            onChangeText={noop}
+          />
+        </Card>
+      </Group>
+
+      <Group title="Forms">
+        <MetadataForm
+          values={{
+            title: 'Sunset glass-off',
+            site: 'Sopelana',
+            notes: 'Smooth ridge lift until the sea breeze died. Landed on the beach.',
+          }}
+          onChange={noop}
+          dirty
+          saving={false}
+          onSave={noop}
+        />
+      </Group>
+
       <Group title="Typography">
         <Text style={styles.cardText}>Body text sample</Text>
         <Disclaimer>Not a certified flight recorder. Never fly with this as your only recorder.</Disclaimer>
@@ -198,10 +268,74 @@ function InstrumentPreview({ compact }: { compact: boolean }) {
   );
 }
 
+type AccountBackupState = 'signed-out' | 'signed-in' | 'unconfigured' | 'error';
+
+function BackupPreview({ state }: { state: AccountBackupState }) {
+  const noop = () => undefined;
+  const never = async () => undefined;
+  return (
+    <ScrollView style={styles.kitScreen} contentContainerStyle={styles.kit}>
+      <TopBar title="Account" right={<Chip label="preview" tone="muted" />} />
+      <Group title="Backup">
+        {state === 'unconfigured' ? <CloudUnconfiguredNotice /> : null}
+        {state === 'signed-in' ? (
+          <AccountCard email="renate@example.com" busy={false} onSignOut={noop} />
+        ) : null}
+        {state === 'signed-out' || state === 'error' ? (
+          <SignInCard
+            requestOtp={never}
+            verifyOtp={never}
+            error={state === 'error' ? 'Too many codes requested. Wait a minute and try again.' : null}
+            onClearError={noop}
+          />
+        ) : null}
+      </Group>
+    </ScrollView>
+  );
+}
+
+function AccountPreview({ filled }: { filled: boolean }) {
+  const noop = () => undefined;
+  return (
+    <ScrollView style={styles.kitScreen} contentContainerStyle={styles.kit}>
+      <TopBar title="Account" right={<Chip label="preview" tone="muted" />} />
+      <Group title="Pilot">
+        <PilotProfileCard
+          values={
+            filled
+              ? {
+                  pilotName: 'Renate Gouveia',
+                  gliderType: 'Ozone Rush 6',
+                  gliderId: 'D-1234',
+                  homeSite: 'Sopelana',
+                }
+              : EMPTY_PILOT_PROFILE_FORM
+          }
+          onChange={noop}
+          dirty={filled}
+          saving={false}
+          onSave={noop}
+        />
+        <Disclaimer align="left">
+          {filled
+            ? 'IGC files will record Renate Gouveia flying Ozone Rush 6.'
+            : 'IGC files record the pilot as UNSPECIFIED until you fill this in.'}
+        </Disclaimer>
+      </Group>
+    </ScrollView>
+  );
+}
+
 export default function PreviewRoute() {
   const { set } = useLocalSearchParams<{ set?: string }>();
   if (set === 'instrument') return <InstrumentPreview compact={false} />;
   if (set === 'instrument-degraded') return <InstrumentPreview compact />;
+  if (set === 'account-empty') return <AccountPreview filled={false} />;
+  if (set === 'account-profile') return <AccountPreview filled />;
+  if (set === 'account-signed-out') return <BackupPreview state="signed-out" />;
+  if (set === 'account-signed-in') return <BackupPreview state="signed-in" />;
+  if (set === 'account-unconfigured') return <BackupPreview state="unconfigured" />;
+  if (set === 'account-error') return <BackupPreview state="error" />;
   return <KitPreview />;
 }
 

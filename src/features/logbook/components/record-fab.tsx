@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fonts, paper } from '@/ui/theme';
+import { fonts, paper, TAB_BAR_HEIGHT } from '@/ui/theme';
 
 export function RecordFab({
   label,
@@ -24,7 +24,7 @@ export function RecordFab({
       onPress={onPress}
       style={({ pressed }) => [
         styles.fab,
-        { bottom: Math.max(insets.bottom, 12) + 14 },
+        { bottom: Math.max(insets.bottom, 12) + 14 + TAB_BAR_HEIGHT },
         disabled && styles.disabled,
         pressed && !disabled && styles.pressed,
       ]}>

@@ -3,6 +3,9 @@ import type {
   FlightMetadataPatch,
   FlightRepository,
   FlightSummary,
+  PilotProfile,
+  PilotProfilePatch,
+  PilotProfileRepository,
 } from './types';
 
 function unsupported(): never {
@@ -17,4 +20,9 @@ export const flightRepository: FlightRepository = {
     _patch: FlightMetadataPatch,
   ): Promise<FlightDetail> => unsupported(),
   deleteFlight: async (_flightId: string): Promise<void> => unsupported(),
+};
+
+export const pilotProfileRepository: PilotProfileRepository = {
+  getProfile: async (): Promise<PilotProfile> => unsupported(),
+  updateProfile: async (_patch: PilotProfilePatch): Promise<PilotProfile> => unsupported(),
 };

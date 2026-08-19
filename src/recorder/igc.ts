@@ -104,9 +104,36 @@ function sessionIdentifier(sessionId: string): string {
   return sessionId.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 6).padEnd(6, '0');
 }
 
+/**
+ * IGC H-records are single-line 7-bit ASCII, and a stray colon or newline would break
+ * the record structure for every downstream parser. Accented Latin characters are
+ * folded rather than dropped so "Renaté" stays readable as "RENATE".
+ */
+export function sanitizeIgcHeaderValue(value: string | null | undefined): string | null {
+  if (value === null || value === undefined) return null;
+  const folded = value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9 .,'/-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 60)
+    .trim();
+  return folded.length > 0 ? folded : null;
+}
+
+/** The pilot fields that appear in the IGC header, already normalized by the caller. */
+export interface IgcPilotHeaders {
+  pilotName?: string | null;
+  gliderType?: string | null;
+  gliderId?: string | null;
+}
+
 export function buildUnsignedIgc(
   session: Pick<SessionRecord, 'id' | 'startedAt' | 'endedAt'>,
   fixes: LocationFixRecord[],
+  pilot?: IgcPilotHeaders,
 ): IgcBuildResult {
   const eligibleFixes = selectExportEligibleFixes(fixes, session);
   if (eligibleFixes.length === 0) {
@@ -114,14 +141,19 @@ export function buildUnsignedIgc(
   }
 
   const firstTimestamp = eligibleFixes[0]!.sourceTimestamp;
+  // Absent or blank profile fields keep the historical placeholders, so an IGC exported
+  // by a pilot who never opened the profile screen is byte-identical to before.
+  const pilotName = sanitizeIgcHeaderValue(pilot?.pilotName) ?? 'UNSPECIFIED';
+  const gliderType = sanitizeIgcHeaderValue(pilot?.gliderType) ?? 'PARAGLIDER';
+  const gliderId = sanitizeIgcHeaderValue(pilot?.gliderId) ?? 'UNSPECIFIED';
   const lines = [
     `AXCL${sessionIdentifier(session.id)}`,
     `HFDTE${formatUtcDate(firstTimestamp)}`,
     'HFFXA999',
-    'HFPLTPILOTINCHARGE:UNSPECIFIED',
+    `HFPLTPILOTINCHARGE:${pilotName}`,
     'HFCM2CREW2:NOT APPLICABLE',
-    'HFGTYGLIDERTYPE:PARAGLIDER',
-    'HFGIDGLIDERID:UNSPECIFIED',
+    `HFGTYGLIDERTYPE:${gliderType}`,
+    `HFGIDGLIDERID:${gliderId}`,
     'HFDTM100GPSDATUM:WGS-84',
     'HFRFWFIRMWAREVERSION:1.0.0',
     'HFRHWHARDWAREVERSION:CONSUMER DEVICE',

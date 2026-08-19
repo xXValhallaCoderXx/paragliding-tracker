@@ -1,8 +1,8 @@
 export const LOCATION_TASK_NAME = 'xc-recorder-location-v1';
 
 export const RECORDER_CONFIG = Object.freeze({
-  schemaVersion: 4,
-  igcArtifactVersion: 2,
+  schemaVersion: 5,
+  igcArtifactVersion: 3,
   diagnosticsArtifactVersion: 2,
   accuracy: 'BestForNavigation',
   androidTimeIntervalMs: 1000,

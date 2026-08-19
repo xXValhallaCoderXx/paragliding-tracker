@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 
+import { useCloudAuth } from '@/features/account/auth-provider';
+import { useCloudSync } from '@/features/account/cloud-sync-provider';
 import { EvidenceBlock } from '@/features/flights/components/evidence';
 import { FlightHero, type DetailStatus, type SavedContext } from '@/features/flights/components/hero';
 import { MetadataForm, type MetadataFormValues } from '@/features/flights/components/metadata-form';
@@ -41,6 +43,11 @@ import { fonts, paper } from '@/ui/theme';
 export default function FlightDetailScreen() {
   const { id, saved } = useLocalSearchParams<{ id: string; saved?: string }>();
   const router = useRouter();
+  const auth = useCloudAuth();
+  const sync = useCloudSync();
+  // Whether this flight has a copy anywhere but this phone, which changes what the
+  // delete confirmation is honestly able to promise.
+  const backedUp = auth.status === 'signed_in';
   const [flight, setFlight] = useState<FlightDetail | null>(null);
   const [form, setForm] = useState<MetadataFormValues>({ title: '', site: '', notes: '' });
   const [insight, setInsight] = useState<string | null>(null);
@@ -131,6 +138,8 @@ export default function FlightDetailScreen() {
     await flightRepository.updateFlight(flight.id, patch);
     await loadFlight();
     setMessage({ text: 'Flight details saved.', tone: 'good' });
+    // The edit bumped flights.updated_at, which is what makes it dirty for backup.
+    sync.requestSync('post-save');
   }
 
   async function exportAndShare(kind: ExportArtifact['kind']) {
@@ -153,7 +162,9 @@ export default function FlightDetailScreen() {
     if (!flight) return;
     Alert.alert(
       'Delete this flight permanently?',
-      'The recorded track, stats, notes, and generated files are removed from this phone. There is no cloud copy, so this cannot be undone.',
+      backedUp
+        ? 'The recorded track, stats, notes, and generated files are removed from this phone, and the backed-up copy is removed from your account. This cannot be undone.'
+        : 'The recorded track, stats, notes, and generated files are removed from this phone. There is no cloud copy, so this cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -162,6 +173,8 @@ export default function FlightDetailScreen() {
           onPress: () =>
             void runAction('Deleting flight…', async () => {
               await flightRepository.deleteFlight(flight.id);
+              // The delete left a tombstone; push it before the pilot forgets about it.
+              sync.requestSync('post-save');
               router.replace('/');
             }),
         },
@@ -319,8 +332,9 @@ export default function FlightDetailScreen() {
           <View style={styles.dangerZone}>
             <Text style={styles.dangerTitle}>Delete flight</Text>
             <Text style={styles.dangerBody}>
-              Permanently removes the local recording from this phone. There is no cloud copy to
-              recover it from.
+              {backedUp
+                ? 'Permanently removes the recording from this phone and from your account. There is no other copy to recover it from.'
+                : 'Permanently removes the local recording from this phone. There is no cloud copy to recover it from.'}
             </Text>
             <Button
               label={canDelete ? 'Delete flight permanently' : isOpen ? 'Cannot delete an open flight' : 'Cannot delete while processing'}

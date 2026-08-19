@@ -20,6 +20,7 @@ import {
   getLatestSession,
   getPendingSessionRecoveryAttempt,
   getSession,
+  getPilotProfile,
   getSessionExportData,
   getSessionSnapshotMetrics,
   getUnfinishedSession,
@@ -31,7 +32,7 @@ import {
 } from './database.native';
 import { buildDiagnosticJson } from './diagnostics';
 import { finalizeFlightForSession } from './flight-repository.native';
-import { buildUnsignedIgc, selectExportEligibleFixes } from './igc';
+import { buildUnsignedIgc, selectExportEligibleFixes, type IgcPilotHeaders } from './igc';
 import { locationTaskOptionsMatch } from './location-task-options';
 import { LifecycleCoordinator } from './operation-queue';
 import {
@@ -761,13 +762,33 @@ class NativeRecorderService implements RecorderService {
     if (metricsFailure) this.updateSnapshot({ lastError: metricsFailure });
   }
 
+  /**
+   * The local pilot profile, or nothing if it has never been filled in.
+   *
+   * Read at export time rather than cached: the pilot may edit it between flights, and
+   * a stale name in an IGC file is worse than an extra single-row query. A failure here
+   * must never block an export, so it degrades to the historical placeholders.
+   */
+  private async pilotHeaders(): Promise<IgcPilotHeaders | undefined> {
+    try {
+      const profile = await getPilotProfile();
+      return {
+        pilotName: profile.pilotName,
+        gliderType: profile.gliderType,
+        gliderId: profile.gliderId,
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
   async exportIgc(sessionId: string): Promise<ExportArtifact> {
     try {
       const data = await getSessionExportData(sessionId);
       if (data.session.status === 'recording') {
         throw new RecorderError('export_error', 'Stop or finalize the session before exporting.');
       }
-      const igc = buildUnsignedIgc(data.session, data.locations);
+      const igc = buildUnsignedIgc(data.session, data.locations, await this.pilotHeaders());
       return await this.writeArtifact(
         sessionId,
         'igc',
@@ -790,7 +811,9 @@ class NativeRecorderService implements RecorderService {
       }
       const eligibleFixes = selectExportEligibleFixes(data.locations, data.session);
       const igc =
-        eligibleFixes.length > 0 ? buildUnsignedIgc(data.session, data.locations) : null;
+        eligibleFixes.length > 0
+          ? buildUnsignedIgc(data.session, data.locations, await this.pilotHeaders())
+          : null;
       const content = buildDiagnosticJson(
         data,
         igc

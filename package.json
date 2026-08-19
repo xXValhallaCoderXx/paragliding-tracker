@@ -7,6 +7,7 @@
     "@expo-google-fonts/ibm-plex-mono": "^0.4.1",
     "@expo/metro-runtime": "~57.0.11",
     "@expo/ui": "~57.0.11",
+    "@supabase/supabase-js": "^2.112.3",
     "expo": "~57.0.14",
     "expo-battery": "~57.0.2",
     "expo-constants": "~57.0.12",
@@ -66,7 +67,11 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
-    "validate:deps": "expo install --check"
+    "validate:deps": "expo install --check",
+    "db:push": "pnpm dlx supabase@latest db push",
+    "db:diff": "pnpm dlx supabase@latest db diff",
+    "db:test": "pnpm dlx supabase@latest test db",
+    "fn:deploy": "pnpm dlx supabase@latest functions deploy delete-account"
   },
   "jest": {
     "preset": "jest-expo",

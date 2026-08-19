@@ -16,6 +16,8 @@ import {
   EXPECTED_V3_TABLE_COLUMNS,
   EXPECTED_V4_INDEX_NAMES,
   EXPECTED_V4_TABLE_COLUMNS,
+  EXPECTED_V5_INDEX_NAMES,
+  EXPECTED_V5_TABLE_COLUMNS,
 } from '../flight-repository-core';
 
 jest.mock('expo-sqlite', () => ({
@@ -37,16 +39,29 @@ class StructurallyValidDatabase {
     ),
   ]);
 
-  constructor(userVersion: 2 | 3 = 2) {
+  constructor(userVersion: 2 | 3 | 4 | 5 = 2) {
     this.userVersion = userVersion;
     if (userVersion >= 3) {
-      for (const [table, columns] of Object.entries(EXPECTED_V3_TABLE_COLUMNS)) {
-        const target = this.tables.get(table) ?? new Set<string>();
-        columns.forEach((column) => target.add(column));
-        this.tables.set(table, target);
-      }
-      EXPECTED_V3_INDEX_NAMES.forEach((name) => this.indexes.add(name));
+      this.applySchema(EXPECTED_V3_TABLE_COLUMNS, EXPECTED_V3_INDEX_NAMES);
     }
+    if (userVersion >= 4) {
+      this.applySchema(EXPECTED_V4_TABLE_COLUMNS, EXPECTED_V4_INDEX_NAMES);
+    }
+    if (userVersion >= 5) {
+      this.applySchema(EXPECTED_V5_TABLE_COLUMNS, EXPECTED_V5_INDEX_NAMES);
+    }
+  }
+
+  applySchema(
+    columnsByTable: Readonly<Record<string, readonly string[]>>,
+    indexNames: readonly string[],
+  ): void {
+    for (const [table, columns] of Object.entries(columnsByTable)) {
+      const target = this.tables.get(table) ?? new Set<string>();
+      columns.forEach((column) => target.add(column));
+      this.tables.set(table, target);
+    }
+    indexNames.forEach((name) => this.indexes.add(name));
   }
 
   async getFirstAsync<T>(source: string, ...params: unknown[]): Promise<T | null> {
@@ -97,12 +112,12 @@ class StructurallyValidDatabase {
     }
     if (source.includes('ALTER TABLE sessions ADD COLUMN manual_stop_at')) {
       this.trace.push('migrate:v4');
-      for (const [table, columns] of Object.entries(EXPECTED_V4_TABLE_COLUMNS)) {
-        const target = this.tables.get(table) ?? new Set<string>();
-        columns.forEach((column) => target.add(column));
-        this.tables.set(table, target);
-      }
-      EXPECTED_V4_INDEX_NAMES.forEach((name) => this.indexes.add(name));
+      this.applySchema(EXPECTED_V4_TABLE_COLUMNS, EXPECTED_V4_INDEX_NAMES);
+      return;
+    }
+    if (source.includes('CREATE TABLE pilot_profile')) {
+      this.trace.push('migrate:v5');
+      this.applySchema(EXPECTED_V5_TABLE_COLUMNS, EXPECTED_V5_INDEX_NAMES);
       return;
     }
     const version = source.match(/PRAGMA user_version = (\d+)/)?.[1];
@@ -126,22 +141,27 @@ class StructurallyValidDatabase {
 describe('native database migration ordering', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('accepts a structurally valid v2 database and runs v3 then v4 before validating them', async () => {
+  it('accepts a structurally valid v2 database and runs v3, v4 then v5 in order', async () => {
     const database = new StructurallyValidDatabase(2);
 
     await migrateDatabase(database as unknown as SQLite.SQLiteDatabase);
 
-    expect(database.userVersion).toBe(4);
+    expect(database.userVersion).toBe(5);
     expect(database.tables.get('sessions')).toContain('last_location_callback_at');
     expect(database.tables.get('sessions')).toContain('manual_stop_at');
     expect(database.tables.has('session_recovery_attempts')).toBe(true);
+    expect(database.tables.has('flight_sync_state')).toBe(true);
     expect(database.indexes).toContain('location_fixes_eligible_receipt_order');
     expect(database.indexes).toContain('one_pending_session_recovery_attempt');
+    expect(database.indexes).toContain('flight_sync_state_retry_order');
     expect(database.trace.indexOf('migrate:v3')).toBeGreaterThan(
       database.trace.indexOf('inspect:sessions:v2'),
     );
     expect(database.trace.indexOf('migrate:v4')).toBeGreaterThan(
       database.trace.indexOf('migrate:v3'),
+    );
+    expect(database.trace.indexOf('migrate:v5')).toBeGreaterThan(
+      database.trace.indexOf('migrate:v4'),
     );
     expect(database.trace.slice(database.trace.indexOf('migrate:v4') + 1)).toContain(
       'inspect:sessions:v4',
@@ -150,12 +170,12 @@ describe('native database migration ordering', () => {
     expect(SQLite.deleteDatabaseAsync).toHaveBeenCalledTimes(1);
   });
 
-  it('accepts a structurally valid v3 database and adds v4 only after validating v3', async () => {
+  it('accepts a structurally valid v3 database and adds v4 and v5 only after validating v3', async () => {
     const database = new StructurallyValidDatabase(3);
 
     await migrateDatabase(database as unknown as SQLite.SQLiteDatabase);
 
-    expect(database.userVersion).toBe(4);
+    expect(database.userVersion).toBe(5);
     expect(database.trace).not.toContain('migrate:v3');
     expect(database.trace.indexOf('migrate:v4')).toBeGreaterThan(
       database.trace.indexOf('inspect:sessions:v3'),
@@ -164,6 +184,39 @@ describe('native database migration ordering', () => {
     expect(database.tables.has('session_recovery_attempts')).toBe(true);
     expect(SQLite.backupDatabaseAsync).toHaveBeenCalledTimes(1);
     expect(SQLite.deleteDatabaseAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it('accepts a structurally valid v4 database and adds v5 only after validating v4', async () => {
+    const database = new StructurallyValidDatabase(4);
+
+    await migrateDatabase(database as unknown as SQLite.SQLiteDatabase);
+
+    expect(database.userVersion).toBe(5);
+    expect(database.trace).not.toContain('migrate:v3');
+    expect(database.trace).not.toContain('migrate:v4');
+    // v4's own validation used to live only inside the "already latest" branch. It has
+    // to run before the v5 step, or a corrupt v4 database would migrate unchecked.
+    expect(database.trace.indexOf('migrate:v5')).toBeGreaterThan(
+      database.trace.indexOf('inspect:sessions:v4'),
+    );
+    expect(database.tables.has('pilot_profile')).toBe(true);
+    expect(database.tables.has('cloud_link')).toBe(true);
+    expect(database.tables.has('flight_deletions')).toBe(true);
+    expect(database.indexes).toContain('flight_deletions_retry_order');
+    expect(SQLite.backupDatabaseAsync).toHaveBeenCalledTimes(1);
+    expect(SQLite.deleteDatabaseAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it('accepts a current v5 database without migrating or taking a backup', async () => {
+    const database = new StructurallyValidDatabase(5);
+
+    await migrateDatabase(database as unknown as SQLite.SQLiteDatabase);
+
+    expect(database.userVersion).toBe(5);
+    expect(database.trace).not.toContain('transaction:begin');
+    expect(database.trace.filter((entry) => entry.startsWith('migrate:'))).toEqual([]);
+    expect(SQLite.backupDatabaseAsync).not.toHaveBeenCalled();
+    expect(SQLite.deleteDatabaseAsync).not.toHaveBeenCalled();
   });
 });
 
@@ -206,6 +259,22 @@ describe('sticky manual Stop SQL', () => {
     expect(PENDING_SESSION_STOP_SQL).toContain('manual_stop_at IS NOT NULL');
     expect(COMPLETE_SESSION_SQL).toContain("status = 'completed'");
     expect(COMPLETE_SESSION_SQL).not.toContain('manual_stop_at = NULL');
+  });
+
+  it('tombstones and clears flight sync state before the flight row it references', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/recorder/database.native.ts'),
+      'utf8',
+    );
+    // flight_sync_state holds a RESTRICT foreign key to flights, and the tombstone
+    // needs the flight's session id, so both must happen before the flight row goes.
+    const tombstone = source.indexOf('INSERT OR IGNORE INTO flight_deletions');
+    const syncState = source.indexOf('DELETE FROM flight_sync_state WHERE flight_id = ?');
+    const flights = source.indexOf("DELETE FROM flights WHERE id = ?");
+
+    expect(tombstone).toBeGreaterThanOrEqual(0);
+    expect(syncState).toBeGreaterThan(tombstone);
+    expect(flights).toBeGreaterThan(syncState);
   });
 
   it('deletes recovery proof rows before their referenced location fixes', () => {

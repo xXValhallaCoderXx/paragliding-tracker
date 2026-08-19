@@ -34,6 +34,7 @@ const OWN = new Set([
   'Chip',
   'Disclaimer',
   'Hairline',
+  'Input',
   'LinkButton',
   'ListRow',
   'LoadingScreen',

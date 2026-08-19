@@ -1,24 +1,54 @@
 import { Tabs } from 'expo-router';
 
-import { paper } from '@/ui/theme';
+import { TabGlyph } from '@/components/ui';
+import { fonts, paper } from '@/ui/theme';
 
 /**
- * Tab shell. Only the logbook exists today, so the bar is hidden — a single-tab bar is noise.
- * Adding Stats or Settings later is one file per tab plus deleting the `tabBarStyle` line.
+ * Tab shell: the logbook and the pilot's account.
  *
  * `/record` and `/flights/[id]` deliberately sit *above* this group in the root Stack, so they
  * present full-screen over the tabs. Route groups do not appear in the URL, so every existing
- * `router.push('/')` and `router.replace('/')` still resolves here unchanged.
+ * `router.push('/')` and `router.replace('/')` still resolves to the logbook unchanged.
+ *
+ * Account is intentionally a peer of the logbook rather than a gate in front of it: signing in
+ * is optional, and the recorder has to work with no account and no signal.
  */
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { display: 'none' },
         sceneStyle: { backgroundColor: paper.background },
+        tabBarActiveTintColor: paper.thermal,
+        tabBarInactiveTintColor: paper.muted,
+        // Height is deliberately left to the navigator so the safe-area inset on notched
+        // phones is handled for us. TAB_BAR_HEIGHT is only the padding reserve that
+        // scrolling screens add so their content clears the bar.
+        tabBarStyle: {
+          backgroundColor: paper.card,
+          borderTopColor: paper.border,
+          borderTopWidth: 1,
+        },
+        tabBarLabelStyle: { fontFamily: fonts.sansSemi, fontSize: 10, letterSpacing: 0.6 },
       }}>
-      <Tabs.Screen name="index" options={{ title: 'Logbook' }} />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Logbook',
+          tabBarIcon: ({ color, focused }) => (
+            <TabGlyph shape="logbook" color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="account"
+        options={{
+          title: 'Account',
+          tabBarIcon: ({ color, focused }) => (
+            <TabGlyph shape="pilot" color={color} focused={focused} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

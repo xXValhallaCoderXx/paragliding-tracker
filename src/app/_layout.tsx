@@ -15,6 +15,8 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
+import { CloudAuthProvider } from '@/features/account/auth-provider';
+import { CloudSyncProvider } from '@/features/account/cloud-sync-provider';
 import { RecorderLifecycleProvider } from '@/features/record/recorder-lifecycle';
 import { paper } from '@/ui/theme';
 
@@ -39,19 +41,30 @@ export default function RootLayout() {
     if (fontsSettled) void SplashScreen.hideAsync().catch(() => undefined);
   }, [fontsSettled]);
 
+  // Auth sits outermost because it depends on nothing and restoring a stored session is
+  // fast. Sync sits inside the recorder lifecycle so it can see `recovering` and stay out
+  // of the way. All three stay outside the fonts gate, so session restore and recorder
+  // recovery run in parallel with font loading.
+  //
+  // None of them gates a route: signing in is optional, and the recorder must work with
+  // no account and no signal. There is deliberately no Stack.Protected in this app.
   return (
-    <RecorderLifecycleProvider>
-      {fontsSettled ? (
-        <Stack
-          screenOptions={{
-            animation: 'slide_from_right',
-            contentStyle: { backgroundColor: paper.background },
-            headerShown: false,
-            // Every screen is warm paper, so the status bar is dark-on-light throughout.
-            statusBarStyle: 'dark',
-          }}
-        />
-      ) : null}
-    </RecorderLifecycleProvider>
+    <CloudAuthProvider>
+      <RecorderLifecycleProvider>
+        <CloudSyncProvider>
+          {fontsSettled ? (
+            <Stack
+              screenOptions={{
+                animation: 'slide_from_right',
+                contentStyle: { backgroundColor: paper.background },
+                headerShown: false,
+                // Every screen is warm paper, so the status bar is dark-on-light throughout.
+                statusBarStyle: 'dark',
+              }}
+            />
+          ) : null}
+        </CloudSyncProvider>
+      </RecorderLifecycleProvider>
+    </CloudAuthProvider>
   );
 }

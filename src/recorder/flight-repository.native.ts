@@ -3,6 +3,7 @@ import { File } from 'expo-file-system';
 import {
   completePendingFileDeletion,
   deleteCompletedFlight,
+  getPilotProfile,
   getFlightBySessionId,
   getFlightDetail,
   getSessionExportData,
@@ -10,6 +11,7 @@ import {
   listPendingFileDeletions,
   setFlightStatus,
   updateFlightMetadata,
+  updatePilotProfile,
   upsertFlightMetrics,
 } from './database.native';
 import {
@@ -21,6 +23,9 @@ import type {
   FlightMetadataPatch,
   FlightRepository,
   FlightSummary,
+  PilotProfile,
+  PilotProfilePatch,
+  PilotProfileRepository,
 } from './types';
 
 async function removePendingArtifacts(): Promise<void> {
@@ -120,4 +125,14 @@ export const flightRepository: FlightRepository = {
   getFlight,
   updateFlight,
   deleteFlight,
+};
+
+/**
+ * The pilot's own identity. Lives beside the flight repository because it shares the
+ * same local database and the same platform split, and because it is what the IGC
+ * writer reads. Entirely independent of any account: it works signed out and offline.
+ */
+export const pilotProfileRepository: PilotProfileRepository = {
+  getProfile: (): Promise<PilotProfile> => getPilotProfile(),
+  updateProfile: (patch: PilotProfilePatch): Promise<PilotProfile> => updatePilotProfile(patch),
 };

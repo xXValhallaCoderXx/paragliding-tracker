@@ -73,4 +73,13 @@ export const spacing = {
   gutter: 22,
 } as const;
 
+/**
+ * Height of the bottom tab bar, excluding the safe-area inset.
+ *
+ * expo-router v6 vendors React Navigation rather than depending on it, so
+ * `useBottomTabBarHeight` is not importable and deep-importing the vendored copy would
+ * be fragile. Screens that scroll under the bar add this to their bottom padding.
+ */
+export const TAB_BAR_HEIGHT = 49;
+
 export type Tone = 'neutral' | 'good' | 'warning' | 'danger';

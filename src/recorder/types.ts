@@ -235,6 +235,73 @@ export interface FlightRepository {
   deleteFlight(flightId: string): Promise<void>;
 }
 
+/**
+ * The pilot's own identity, held locally in a single `pilot_profile` row.
+ *
+ * Deliberately independent of any account: it works offline and signed out, and
+ * it is what fills the IGC HFPLTPILOTINCHARGE / HFGTYGLIDERTYPE / HFGIDGLIDERID
+ * headers. Cloud backup mirrors it, but never owns it.
+ */
+export interface PilotProfile {
+  pilotName: string | null;
+  gliderType: string | null;
+  gliderId: string | null;
+  homeSite: string | null;
+  updatedAt: number;
+  pushedUpdatedAt: number | null;
+}
+
+export interface PilotProfilePatch {
+  pilotName?: string | null;
+  gliderType?: string | null;
+  gliderId?: string | null;
+  homeSite?: string | null;
+}
+
+export interface PilotProfileRepository {
+  getProfile(): Promise<PilotProfile>;
+  updateProfile(patch: PilotProfilePatch): Promise<PilotProfile>;
+}
+
+/**
+ * Which cloud account this device's logbook is bound to.
+ *
+ * There is deliberately no owner column on flights or sessions: this phone holds
+ * one logbook, and signing out must never hide it. Ownership is a property of the
+ * device's link to an account, not of each flight.
+ */
+export interface CloudLink {
+  userId: string | null;
+  linkedAt: number | null;
+  flightsCursor: string | null;
+  profileCursor: string | null;
+  lastSyncAt: number | null;
+  lastSyncError: string | null;
+  cloudOnlyFlightCount: number;
+}
+
+/** A completed flight that is due to be pushed, plus its sync bookkeeping. */
+export interface FlightSyncCandidate extends FlightSummary {
+  pushedUpdatedAt: number | null;
+  igcSha256: string | null;
+  igcObjectPath: string | null;
+  attemptCount: number;
+  nextAttemptAt: number;
+}
+
+/**
+ * Tombstone for a locally deleted flight. Without it the next pull would
+ * resurrect the flight from the server.
+ */
+export interface FlightDeletionRecord {
+  flightId: string;
+  recordingSessionId: string;
+  deletedAt: number;
+  attemptCount: number;
+  nextAttemptAt: number;
+  lastError: string | null;
+}
+
 export interface LocationFixRecord {
   sessionId: string;
   sequence: number;

@@ -7,10 +7,13 @@ import {
   EXPECTED_V3_TABLE_COLUMNS,
   EXPECTED_V4_INDEX_NAMES,
   EXPECTED_V4_TABLE_COLUMNS,
+  EXPECTED_V5_INDEX_NAMES,
+  EXPECTED_V5_TABLE_COLUMNS,
   LATEST_DATABASE_VERSION,
   flightStatusForSession,
   getSchemaMigrationSteps,
   normalizeFlightMetadataPatch,
+  normalizePilotProfilePatch,
 } from './flight-repository-core';
 import {
   PENDING_SESSION_RECOVERY_ATTEMPT_SQL,
@@ -25,17 +28,50 @@ import {
   type LocationBatchInput,
   type SessionRecoveryAttemptProofRow,
 } from './repository-core';
+import {
+  BIND_CLOUD_LINK_SQL,
+  CLOUD_LINK_SQL,
+  COUNT_PENDING_SYNC_SQL,
+  DIRTY_FLIGHTS_SQL,
+  EMPTY_CLOUD_LINK,
+  EMPTY_PILOT_PROFILE,
+  MARK_FLIGHT_IGC_PUSHED_SQL,
+  MARK_FLIGHT_PUSHED_SQL,
+  MARK_PILOT_PROFILE_PUSHED_SQL,
+  PENDING_FLIGHT_DELETIONS_SQL,
+  PILOT_PROFILE_SQL,
+  RECORD_FLIGHT_DELETION_FAILURE_SQL,
+  RECORD_FLIGHT_SYNC_FAILURE_SQL,
+  applyRemoteFlightMetadataTransaction,
+  mapCloudLink,
+  mapFlightDeletion,
+  mapFlightSyncCandidate,
+  mapPilotProfile,
+  resetCloudLinkTransaction,
+  updatePilotProfileTransaction,
+  type CloudLinkRow,
+  type FlightDeletionRow,
+  type FlightSyncCandidateRow,
+  type PilotProfileRow,
+  type RemoteFlightMetadata,
+  type RemoteMetadataOutcome,
+} from './sync-repository-core';
 import type {
   BeginSessionRecoveryAttemptInput,
   CompletionReason,
   ExportArtifact,
+  CloudLink,
+  FlightDeletionRecord,
   FlightDetail,
   FlightMetadataPatch,
   FlightMetricsRecord,
   FlightRecord,
   FlightStatus,
   FlightSummary,
+  FlightSyncCandidate,
   LocationFixRecord,
+  PilotProfile,
+  PilotProfilePatch,
   PendingSessionRecoveryAttempt,
   PendingSessionStop,
   PowerReading,
@@ -206,9 +242,14 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
     await validateExpectedIndexes(database, EXPECTED_V3_INDEX_NAMES);
   }
 
-  if (currentVersion === LATEST_DATABASE_VERSION) {
+  if (currentVersion >= 4) {
     await validateExpectedSchema(database, EXPECTED_V4_TABLE_COLUMNS);
     await validateExpectedIndexes(database, EXPECTED_V4_INDEX_NAMES);
+  }
+
+  if (currentVersion === LATEST_DATABASE_VERSION) {
+    await validateExpectedSchema(database, EXPECTED_V5_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V5_INDEX_NAMES);
     await assertDatabaseIntegrity(database);
     return;
   }
@@ -244,6 +285,8 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
     await validateExpectedIndexes(database, EXPECTED_V3_INDEX_NAMES);
     await validateExpectedSchema(database, EXPECTED_V4_TABLE_COLUMNS);
     await validateExpectedIndexes(database, EXPECTED_V4_INDEX_NAMES);
+    await validateExpectedSchema(database, EXPECTED_V5_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V5_INDEX_NAMES);
     await assertDatabaseIntegrity(database);
     if (backupName) await SQLite.deleteDatabaseAsync(backupName);
   } catch (error) {
@@ -1148,6 +1191,17 @@ export async function deleteCompletedFlight(
         row.recording_session_id,
       );
       await transaction.runAsync('DELETE FROM flight_metrics WHERE flight_id = ?', flightId);
+      // Tombstone before the row disappears, so a later sync can push the delete
+      // instead of the next pull resurrecting the flight from the server. The sync
+      // state row holds a RESTRICT foreign key, so it must go before flights.
+      await transaction.runAsync(
+        `INSERT OR IGNORE INTO flight_deletions (flight_id, recording_session_id, deleted_at)
+         VALUES (?, ?, ?)`,
+        flightId,
+        row.recording_session_id,
+        deletedAt,
+      );
+      await transaction.runAsync('DELETE FROM flight_sync_state WHERE flight_id = ?', flightId);
       await transaction.runAsync('DELETE FROM flights WHERE id = ?', flightId);
       await transaction.runAsync('DELETE FROM sessions WHERE id = ?', row.recording_session_id);
     });
@@ -1375,5 +1429,224 @@ export async function recordExport(
       artifact.eligibleFixCount,
       createdAt,
     );
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Cloud backup bookkeeping (schema v5)
+//
+// Every write below goes through enqueueWrite, so it can never interleave inside a
+// recorder transaction. None of them touch sessions, location_fixes, pressure_samples,
+// events, exports or session_recovery_attempts — cloud backup observes the recorder's
+// output, it never participates in capture.
+// ---------------------------------------------------------------------------
+
+export async function getPilotProfile(): Promise<PilotProfile> {
+  const database = await openDatabase();
+  const row = await database.getFirstAsync<PilotProfileRow>(PILOT_PROFILE_SQL);
+  return row ? mapPilotProfile(row) : EMPTY_PILOT_PROFILE;
+}
+
+export async function updatePilotProfile(
+  patch: PilotProfilePatch,
+  updatedAt = Date.now(),
+): Promise<PilotProfile> {
+  const normalized = normalizePilotProfilePatch(patch);
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    if (Object.keys(normalized).length > 0) {
+      await database.withExclusiveTransactionAsync(async (transaction) => {
+        await updatePilotProfileTransaction(transaction, normalized, updatedAt);
+      });
+    }
+    const row = await database.getFirstAsync<PilotProfileRow>(PILOT_PROFILE_SQL);
+    return row ? mapPilotProfile(row) : EMPTY_PILOT_PROFILE;
+  });
+}
+
+export async function markPilotProfilePushed(updatedAt: number): Promise<void> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.runAsync(MARK_PILOT_PROFILE_PUSHED_SQL, updatedAt);
+  });
+}
+
+export async function getCloudLink(): Promise<CloudLink> {
+  const database = await openDatabase();
+  const row = await database.getFirstAsync<CloudLinkRow>(CLOUD_LINK_SQL);
+  return row ? mapCloudLink(row) : EMPTY_CLOUD_LINK;
+}
+
+/**
+ * Claims this device's logbook for an account, but only if it is unclaimed. A device
+ * already bound elsewhere is left alone so the caller can surface the mismatch rather
+ * than silently uploading one pilot's flights into another pilot's account.
+ */
+export async function bindCloudLink(userId: string, linkedAt = Date.now()): Promise<CloudLink> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.runAsync(BIND_CLOUD_LINK_SQL, userId, linkedAt);
+    const row = await database.getFirstAsync<CloudLinkRow>(CLOUD_LINK_SQL);
+    return row ? mapCloudLink(row) : EMPTY_CLOUD_LINK;
+  });
+}
+
+/** Rebinds to a different account, or unbinds with `null`. Never touches local flights. */
+export async function resetCloudLink(
+  userId: string | null,
+  resetAt = Date.now(),
+): Promise<CloudLink> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      await resetCloudLinkTransaction(transaction, userId, resetAt);
+    });
+    const row = await database.getFirstAsync<CloudLinkRow>(CLOUD_LINK_SQL);
+    return row ? mapCloudLink(row) : EMPTY_CLOUD_LINK;
+  });
+}
+
+export interface CloudCursorPatch {
+  flightsCursor?: string | null;
+  profileCursor?: string | null;
+  lastSyncAt?: number | null;
+  lastSyncError?: string | null;
+  cloudOnlyFlightCount?: number;
+}
+
+const CLOUD_CURSOR_COLUMNS: Readonly<Record<keyof CloudCursorPatch, string>> = Object.freeze({
+  flightsCursor: 'flights_cursor',
+  profileCursor: 'profile_cursor',
+  lastSyncAt: 'last_sync_at',
+  lastSyncError: 'last_sync_error',
+  cloudOnlyFlightCount: 'cloud_only_flight_count',
+});
+
+export async function setCloudCursors(patch: CloudCursorPatch): Promise<void> {
+  const assignments: string[] = [];
+  const params: (string | number | null)[] = [];
+  for (const [field, column] of Object.entries(CLOUD_CURSOR_COLUMNS) as [
+    keyof CloudCursorPatch,
+    string,
+  ][]) {
+    if (!Object.prototype.hasOwnProperty.call(patch, field)) continue;
+    assignments.push(`${column} = ?`);
+    params.push(patch[field] ?? null);
+  }
+  if (assignments.length === 0) return;
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.runAsync(
+      `UPDATE cloud_link SET ${assignments.join(', ')} WHERE id = 1`,
+      ...params,
+    );
+  });
+}
+
+export async function listDirtyFlights(
+  limit: number,
+  now = Date.now(),
+): Promise<FlightSyncCandidate[]> {
+  const database = await openDatabase();
+  const rows = await database.getAllAsync<FlightSyncCandidateRow>(DIRTY_FLIGHTS_SQL, now, limit);
+  return rows.map(mapFlightSyncCandidate);
+}
+
+export async function countPendingSync(): Promise<{ flights: number; deletions: number }> {
+  const database = await openDatabase();
+  const row = await database.getFirstAsync<{ flights: number; deletions: number }>(
+    COUNT_PENDING_SYNC_SQL,
+  );
+  return { flights: row?.flights ?? 0, deletions: row?.deletions ?? 0 };
+}
+
+export async function markFlightPushed(input: {
+  flightId: string;
+  pushedUpdatedAt: number;
+  remoteUpdatedAt: string;
+}): Promise<void> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.runAsync(
+      MARK_FLIGHT_PUSHED_SQL,
+      input.flightId,
+      input.pushedUpdatedAt,
+      input.remoteUpdatedAt,
+    );
+  });
+}
+
+export async function markFlightIgcPushed(input: {
+  flightId: string;
+  sha256: string;
+  objectPath: string;
+  pushedAt: number;
+}): Promise<void> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.runAsync(
+      MARK_FLIGHT_IGC_PUSHED_SQL,
+      input.sha256,
+      input.objectPath,
+      input.pushedAt,
+      input.flightId,
+    );
+  });
+}
+
+export async function recordFlightSyncFailure(
+  flightId: string,
+  error: string,
+  nextAttemptAt: number,
+): Promise<void> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.runAsync(RECORD_FLIGHT_SYNC_FAILURE_SQL, flightId, nextAttemptAt, error);
+  });
+}
+
+export async function listPendingFlightDeletions(
+  limit: number,
+  now = Date.now(),
+): Promise<FlightDeletionRecord[]> {
+  const database = await openDatabase();
+  const rows = await database.getAllAsync<FlightDeletionRow>(
+    PENDING_FLIGHT_DELETIONS_SQL,
+    now,
+    limit,
+  );
+  return rows.map(mapFlightDeletion);
+}
+
+export async function clearFlightDeletion(flightId: string): Promise<void> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.runAsync('DELETE FROM flight_deletions WHERE flight_id = ?', flightId);
+  });
+}
+
+export async function recordFlightDeletionFailure(
+  flightId: string,
+  error: string,
+  nextAttemptAt: number,
+): Promise<void> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.runAsync(RECORD_FLIGHT_DELETION_FAILURE_SQL, nextAttemptAt, error, flightId);
+  });
+}
+
+/** Applies a remote metadata edit under last-write-wins. See `RemoteMetadataOutcome`. */
+export async function applyRemoteFlightMetadata(
+  remote: RemoteFlightMetadata,
+  remoteUpdatedAt: string,
+): Promise<RemoteMetadataOutcome> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    let outcome: RemoteMetadataOutcome = 'missing';
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      outcome = await applyRemoteFlightMetadataTransaction(transaction, remote, remoteUpdatedAt);
+    });
+    return outcome;
   });
 }

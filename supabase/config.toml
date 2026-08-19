@@ -1,0 +1,7 @@
+# Minimal config so `supabase link` / `db push` / `test db` work from this repo.
+# The project id is set by `supabase link --project-ref <ref>`.
+project_id = "xc-mvp"
+
+[db]
+port = 54322
+major_version = 17

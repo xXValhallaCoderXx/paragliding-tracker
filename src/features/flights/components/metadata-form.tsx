@@ -1,7 +1,6 @@
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { Button, Card } from '@/components/ui';
-import { fonts, paper } from '@/ui/theme';
+import { Button, Card, Input } from '@/components/ui';
 
 export interface MetadataFormValues {
   title: string;
@@ -27,7 +26,7 @@ export function MetadataForm({
 }) {
   return (
     <Card className="mx-[16px] px-[16px] pt-[4px] pb-[4px]">
-      <Field
+      <Input
         label="Title"
         value={values.title}
         placeholder="Name this flight"
@@ -35,7 +34,7 @@ export function MetadataForm({
         onChangeText={(title) => onChange({ ...values, title })}
         editable={!disabled}
       />
-      <Field
+      <Input
         label="Site"
         value={values.site}
         placeholder="Where did you launch?"
@@ -43,7 +42,7 @@ export function MetadataForm({
         onChangeText={(site) => onChange({ ...values, site })}
         editable={!disabled}
       />
-      <Field
+      <Input
         label="Notes"
         value={values.notes}
         placeholder="How did it fly?"
@@ -68,59 +67,6 @@ export function MetadataForm({
   );
 }
 
-function Field({
-  label,
-  value,
-  placeholder,
-  maxLength,
-  multiline = false,
-  editable = true,
-  last = false,
-  onChangeText,
-}: {
-  label: string;
-  value: string;
-  placeholder: string;
-  maxLength: number;
-  multiline?: boolean;
-  editable?: boolean;
-  last?: boolean;
-  onChangeText: (value: string) => void;
-}) {
-  return (
-    <View style={[styles.field, last && styles.fieldLast]}>
-      <Text style={styles.fieldLabel}>{label.toUpperCase()}</Text>
-      <TextInput
-        accessibilityLabel={label}
-        autoCapitalize="sentences"
-        editable={editable}
-        maxLength={maxLength}
-        multiline={multiline}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={paper.placeholder}
-        selectionColor={paper.thermal}
-        cursorColor={paper.thermal}
-        style={[styles.input, multiline && styles.inputMultiline]}
-        textAlignVertical={multiline ? 'top' : 'center'}
-        value={value}
-      />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  field: { paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: paper.hairline, gap: 4 },
-  fieldLast: { borderBottomWidth: 0 },
-  fieldLabel: { fontFamily: fonts.sansSemi, fontSize: 9.5, letterSpacing: 1.4, color: paper.muted },
-  input: {
-    fontFamily: fonts.sansSemi,
-    fontSize: 15,
-    color: paper.ink,
-    paddingVertical: 4,
-    paddingHorizontal: 0,
-    minHeight: 30,
-  },
-  inputMultiline: { fontFamily: fonts.sans, fontSize: 14, lineHeight: 20, minHeight: 72 },
   saveRow: { paddingVertical: 12 },
 });

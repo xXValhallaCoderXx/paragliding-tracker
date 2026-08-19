@@ -23,12 +23,14 @@ recorder carried on a flight.
 - Deterministic unsigned IGC and adjacent diagnostic JSON artifacts.
 - Native share-sheet export and automated feasibility tests.
 - A buildable unsupported-platform page on web.
+- An optional pilot profile that works offline and fills the IGC pilot and glider headers.
+- Optional email one-time-code sign-in and push-only cloud backup of flights and IGC files.
 
 The personal alpha is intentionally narrow: it lists flights recorded on this device, derives a
 small set of trustworthy track statistics, allows optional title/site/notes, and shows no map.
-There are no imported or manually created flights, accounts, or cloud sync. Deletion is permanent
-after confirmation. The logbook's season card and the detail screen's one-line insight are
-computed only from flights stored on this phone.
+There are no imported or manually created flights. Deletion is permanent after confirmation. The
+logbook's season card and the detail screen's one-line insight are computed only from flights
+stored on this phone.
 
 The UI fonts (Archivo, IBM Plex Mono) load at runtime through `expo-font`, so design changes do
 not require a native rebuild.
@@ -36,6 +38,79 @@ not require a native rebuild.
 Physical reliability is not established by the code or bundle checks. Follow
 [`docs/iteration-1-feasibility.md`](./docs/iteration-1-feasibility.md) and record real-device
 results before treating the recorder as reliable.
+
+## Accounts and cloud backup
+
+Signing in is **optional and never gates anything**. The recorder, the logbook and every export
+work with no account and no signal — a login wall in front of a device that records in the air
+would break the product, and App Store Guideline 5.1.1(v) forbids requiring registration for
+features that do not need an account. There is deliberately no `Stack.Protected` in this app.
+
+**Auth** is Supabase email one-time codes (`signInWithOtp` + `verifyOtp`). No magic links: email
+clients pre-fetch and burn single-use links. No Apple or Google sign-in: those are third-party
+logins, which would trigger Guideline 4.8's Sign-in-with-Apple obligation. Sessions persist in
+`expo-sqlite/localStorage`, which costs no new dependency and no-ops on web.
+
+**Backup is push-only.** The phone is the source of truth:
+
+- Flight facts (status, timestamps, metrics, IGC references) are pushed and never pulled.
+- Only `title`, `site` and `notes` merge back down, last-write-wins on the client clock.
+- A deletion on this phone is pushed; a deletion elsewhere never removes local evidence.
+- Raw fixes and pressure samples are never uploaded — the derived IGC file is the archive.
+- A fresh install does **not** re-download flights. Cloud-only flights are counted and shown.
+
+**Backup never competes with capture.** `evaluateSyncGate` refuses to run while a session is
+recording, and the dirty-flight query independently excludes anything that is not a completed
+session. No network call happens inside a database transaction, and auth token refresh is stopped
+while the app is backgrounded so a long flight generates no auth traffic. Two independent tests
+guard this: `src/cloud/__tests__/sync-plan.test.ts` and
+`src/cloud/__tests__/module-boundaries.test.ts`.
+
+### Layout
+
+| Path | Role |
+| --- | --- |
+| `src/cloud/` | Domain layer: config, types, pure policy, Supabase client, auth service, sync engine. Imports `src/recorder`, never the reverse. |
+| `src/features/account/` | The `/account` route's providers, presentation and components. |
+| `src/recorder/sync-repository-core.ts` | Platform-free SQL and mappers for the v5 sync bookkeeping tables. |
+| `supabase/migrations/` | Server schema, RLS policies and the IGC storage bucket. |
+| `supabase/functions/delete-account/` | In-app account deletion (needs `service_role`, so it cannot be done from the client). |
+
+### Setup
+
+Copy `.env.example` to `.env.local` and fill in the two values from Supabase's Project Settings →
+API: the project URL and the **publishable key** (`sb_publishable_...`, formerly called the anon
+key). Both are public by design and ship inside the bundle — row level security is what protects
+the data. The secret key is never needed by the app; the account-deletion Edge Function is the
+only thing that uses one, and Supabase injects it there automatically.
+
+Register the same variables as EAS environment variables too: EAS Build respects `.gitignore`, so
+an ignored `.env.local` alone would produce a build with no backend. A build with no configuration
+is a supported state — the account screen says backup is unavailable and everything else works.
+
+```bash
+pnpm dlx supabase@latest link --project-ref <ref>
+pnpm db:push
+pnpm fn:deploy
+pnpm db:test      # pgTAP RLS regression tests
+```
+
+Two dashboard steps are easy to miss and both are required:
+
+1. Edit the **Magic Link** email template to contain `{{ .Token }}`. Otherwise `signInWithOtp`
+   sends a link, and pilots receive something they cannot use.
+2. Configure **custom SMTP**. The built-in sender is capped at roughly two emails per hour, which
+   makes even solo testing impossible.
+
+### Before submitting to a store
+
+- The app now collects email, precise background location, user content and a user ID, all linked
+  to identity. Update the App Privacy answers and the Play Data safety form accordingly — Play's
+  background-location review gets materially stricter once location is stored off-device.
+- Publish a privacy policy and set `EXPO_PUBLIC_PRIVACY_POLICY_URL`; it must be reachable while
+  signed out. Play also needs a web-accessible account-deletion URL declared in the console.
+- In-app account deletion is implemented and required by Guideline 5.1.1(v).
+- `ios.bundleIdentifier` is set; no Apple Developer console work is needed for email OTP.
 
 ## Local Android development from WSL2
 
@@ -131,11 +206,17 @@ pnpm exec expo export --platform ios --output-dir dist/ios
 pnpm exec expo export --platform web --output-dir dist/web
 ```
 
+The web export is not cosmetic: it is what catches a shared component importing a platform-split
+`.native` module, which would otherwise only fail at build time with a stack trace pointing at
+expo-sqlite rather than at the offending import.
+
 ## References
 
 - [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/)
 - [Expo Location 57](https://docs.expo.dev/versions/v57.0.0/sdk/location/)
 - [Expo TaskManager 57](https://docs.expo.dev/versions/v57.0.0/sdk/task-manager/)
 - [Expo SQLite 57](https://docs.expo.dev/versions/v57.0.0/sdk/sqlite/)
+- [Supabase Auth for React Native](https://supabase.com/docs/guides/auth/quickstarts/react-native)
+- [App Store Review Guideline 4.8 and 5.1.1](https://developer.apple.com/app-store/review/guidelines/)
 - [Iteration 1 evidence protocol](./docs/iteration-1-feasibility.md)
 - [UI design implementation notes](./docs/ui-design-implementation.md)

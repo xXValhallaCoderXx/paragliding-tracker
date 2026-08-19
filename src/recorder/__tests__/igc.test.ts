@@ -4,6 +4,7 @@ import {
   buildUnsignedIgc,
   formatIgcAltitude,
   formatIgcCoordinate,
+  sanitizeIgcHeaderValue,
   selectExportEligibleFixes,
 } from '../igc';
 import type { LocationFixRecord } from '../types';
@@ -106,5 +107,79 @@ describe('IGC formatting', () => {
       fixes,
     );
     expect(result.eligibleFixes.map((item) => item.sequence)).toEqual([2, 3]);
+  });
+});
+
+describe('pilot header records', () => {
+  const session = { id: 'session-header', startedAt: 1_700_000_000_000, endedAt: null };
+  const fixes = [
+    fix(1, 1_700_000_001_000, { sessionId: 'session-header' }),
+  ];
+
+  function headers(pilot?: Parameters<typeof buildUnsignedIgc>[2]): string[] {
+    // IGC records are CRLF-terminated.
+    return buildUnsignedIgc(session, fixes, pilot)
+      .content.split('\r\n')
+      .filter((line) => line.startsWith('HFPLT') || line.startsWith('HFGTY') || line.startsWith('HFGID'));
+  }
+
+  it('keeps the historical placeholders when no profile has been filled in', () => {
+    const placeholders = [
+      'HFPLTPILOTINCHARGE:UNSPECIFIED',
+      'HFGTYGLIDERTYPE:PARAGLIDER',
+      'HFGIDGLIDERID:UNSPECIFIED',
+    ];
+    expect(headers()).toEqual(placeholders);
+    expect(headers({})).toEqual(placeholders);
+    expect(headers({ pilotName: null, gliderType: '   ' })).toEqual(placeholders);
+  });
+
+  it('writes the profile into the pilot, glider type and glider id records', () => {
+    expect(headers({ pilotName: 'Renate Gouveia', gliderType: 'Ozone Rush 6', gliderId: 'D-1234' })).toEqual([
+      'HFPLTPILOTINCHARGE:RENATE GOUVEIA',
+      'HFGTYGLIDERTYPE:OZONE RUSH 6',
+      'HFGIDGLIDERID:D-1234',
+    ]);
+  });
+
+  it('is deterministic: the same profile produces byte-identical output', () => {
+    const pilot = { pilotName: 'Renate', gliderType: 'Rush 6', gliderId: 'D-1' };
+    expect(buildUnsignedIgc(session, fixes, pilot).content).toBe(
+      buildUnsignedIgc(session, fixes, pilot).content,
+    );
+  });
+});
+
+describe('sanitizeIgcHeaderValue', () => {
+  it('strips the characters that would break the single-line record structure', () => {
+    // A colon would look like a second record separator, and a newline would split
+    // the header into two malformed records.
+    expect(sanitizeIgcHeaderValue('Renate: the\npilot')).toBe('RENATE THE PILOT');
+    expect(sanitizeIgcHeaderValue('a\r\nb')).toBe('A B');
+  });
+
+  it('folds accents rather than dropping the letters they sit on', () => {
+    expect(sanitizeIgcHeaderValue('Renaté Gouveia')).toBe('RENATE GOUVEIA');
+    expect(sanitizeIgcHeaderValue('Jörg Müller')).toBe('JORG MULLER');
+    // Letters that are not decomposable accents (Æ, ø) have no ASCII fold, so they
+    // become separators rather than silently turning into a different letter.
+    expect(sanitizeIgcHeaderValue('Ærø')).toBe('R');
+  });
+
+  it('keeps the punctuation a glider registration actually uses', () => {
+    expect(sanitizeIgcHeaderValue("Ozone Rush 6 / D-1234, v2.1 'red'")).toBe(
+      "OZONE RUSH 6 / D-1234, V2.1 'RED'",
+    );
+  });
+
+  it('collapses to null when nothing usable survives', () => {
+    expect(sanitizeIgcHeaderValue(null)).toBeNull();
+    expect(sanitizeIgcHeaderValue(undefined)).toBeNull();
+    expect(sanitizeIgcHeaderValue('   ')).toBeNull();
+    expect(sanitizeIgcHeaderValue('!!!')).toBeNull();
+  });
+
+  it('truncates to a length IGC parsers tolerate', () => {
+    expect(sanitizeIgcHeaderValue('X'.repeat(200))).toHaveLength(60);
   });
 });

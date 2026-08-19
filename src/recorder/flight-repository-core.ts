@@ -2,10 +2,11 @@ import type {
   CompletionReason,
   FlightMetadataPatch,
   FlightStatus,
+  PilotProfilePatch,
   SessionRecord,
 } from './types';
 
-export const LATEST_DATABASE_VERSION = 4;
+export const LATEST_DATABASE_VERSION = 5;
 
 export const EXPECTED_V1_TABLE_COLUMNS = Object.freeze({
   sessions: [
@@ -125,6 +126,52 @@ export const EXPECTED_V4_TABLE_COLUMNS = Object.freeze({
 
 export const EXPECTED_V4_INDEX_NAMES = Object.freeze([
   'one_pending_session_recovery_attempt',
+] as const);
+
+export const EXPECTED_V5_TABLE_COLUMNS = Object.freeze({
+  pilot_profile: [
+    'id',
+    'pilot_name',
+    'glider_type',
+    'glider_id',
+    'home_site',
+    'updated_at',
+    'pushed_updated_at',
+  ],
+  cloud_link: [
+    'id',
+    'user_id',
+    'linked_at',
+    'flights_cursor',
+    'profile_cursor',
+    'last_sync_at',
+    'last_sync_error',
+    'cloud_only_flight_count',
+  ],
+  flight_sync_state: [
+    'flight_id',
+    'pushed_updated_at',
+    'remote_updated_at',
+    'igc_sha256',
+    'igc_object_path',
+    'igc_pushed_at',
+    'attempt_count',
+    'next_attempt_at',
+    'last_error',
+  ],
+  flight_deletions: [
+    'flight_id',
+    'recording_session_id',
+    'deleted_at',
+    'attempt_count',
+    'next_attempt_at',
+    'last_error',
+  ],
+} as const);
+
+export const EXPECTED_V5_INDEX_NAMES = Object.freeze([
+  'flight_sync_state_retry_order',
+  'flight_deletions_retry_order',
 ] as const);
 
 export const CREATE_V1_SCHEMA_SQL = `
@@ -315,6 +362,75 @@ export const MIGRATE_V4_SCHEMA_SQL = `
     WHERE completed_at IS NULL;
 `;
 
+export const MIGRATE_V5_SCHEMA_SQL = `
+  -- Local pilot identity. Works fully offline and with no account; it is what fills
+  -- the IGC HFPLTPILOTINCHARGE / HFGTYGLIDERTYPE / HFGIDGLIDERID headers. Single row,
+  -- enforced by the primary-key CHECK rather than a partial index.
+  CREATE TABLE pilot_profile (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    pilot_name TEXT,
+    glider_type TEXT,
+    glider_id TEXT,
+    home_site TEXT,
+    updated_at INTEGER NOT NULL,
+    pushed_updated_at INTEGER
+  );
+
+  INSERT INTO pilot_profile (id, updated_at) VALUES (1, 0);
+
+  -- Which cloud account this device's logbook is bound to. There is deliberately no
+  -- owner column on flights: this phone holds one logbook, and signing out must never
+  -- hide it. Scoping one_unfinished_session to an owner would also let a signed-out
+  -- session (NULL, distinct under SQLite unique indexes) coexist with a signed-in one,
+  -- silently permitting two concurrent recordings. That index stays global.
+  CREATE TABLE cloud_link (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    user_id TEXT,
+    linked_at INTEGER,
+    flights_cursor TEXT,
+    profile_cursor TEXT,
+    last_sync_at INTEGER,
+    last_sync_error TEXT,
+    cloud_only_flight_count INTEGER NOT NULL DEFAULT 0
+  );
+
+  INSERT INTO cloud_link (id) VALUES (1);
+
+  -- Per-flight sync bookkeeping. A flight is DIRTY when it has no row here or when
+  -- pushed_updated_at < flights.updated_at, so every existing write path already marks
+  -- flights dirty for free and needs no edit. Nothing is backfilled here on purpose:
+  -- "no row" already means "never pushed", which is exactly right for existing flights.
+  CREATE TABLE flight_sync_state (
+    flight_id TEXT PRIMARY KEY NOT NULL REFERENCES flights(id) ON DELETE RESTRICT,
+    pushed_updated_at INTEGER,
+    remote_updated_at TEXT,
+    igc_sha256 TEXT,
+    igc_object_path TEXT,
+    igc_pushed_at INTEGER,
+    attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+    next_attempt_at INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT
+  );
+
+  CREATE INDEX flight_sync_state_retry_order
+    ON flight_sync_state (next_attempt_at, flight_id);
+
+  -- Tombstones. deleteCompletedFlight hard-deletes locally; without these the next
+  -- pull would resurrect the flight from the server. No foreign key to flights: the
+  -- flight row is gone by definition.
+  CREATE TABLE flight_deletions (
+    flight_id TEXT PRIMARY KEY NOT NULL,
+    recording_session_id TEXT NOT NULL,
+    deleted_at INTEGER NOT NULL,
+    attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+    next_attempt_at INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT
+  );
+
+  CREATE INDEX flight_deletions_retry_order
+    ON flight_deletions (next_attempt_at, flight_id);
+`;
+
 export const BACKFILL_FLIGHTS_SQL = `
   INSERT OR IGNORE INTO flights (
     id, recording_session_id, status, started_at, ended_at,
@@ -369,6 +485,10 @@ export function getSchemaMigrationSteps(
   }
   if (version < 4) {
     steps.push({ version: 4, statements: [MIGRATE_V4_SCHEMA_SQL] });
+    version = 4;
+  }
+  if (version < 5) {
+    steps.push({ version: 5, statements: [MIGRATE_V5_SCHEMA_SQL] });
   }
   return steps;
 }
@@ -396,6 +516,31 @@ export function normalizeFlightMetadataPatch(
     const trimmed = value?.trim() ?? '';
     if (trimmed.length > METADATA_LIMITS[field]) {
       throw new Error(`${field} must be ${METADATA_LIMITS[field]} characters or fewer.`);
+    }
+    normalized[field] = trimmed.length > 0 ? trimmed : null;
+  }
+  return normalized;
+}
+
+// IGC H-records are single-line ASCII, so the pilot fields stay short by design.
+const PILOT_PROFILE_LIMITS = Object.freeze({
+  pilotName: 60,
+  gliderType: 60,
+  gliderId: 30,
+  homeSite: 120,
+});
+
+export function normalizePilotProfilePatch(patch: PilotProfilePatch): PilotProfilePatch {
+  const normalized: PilotProfilePatch = {};
+  for (const field of ['pilotName', 'gliderType', 'gliderId', 'homeSite'] as const) {
+    if (!Object.prototype.hasOwnProperty.call(patch, field)) continue;
+    const value = patch[field];
+    if (value !== null && typeof value !== 'string') {
+      throw new TypeError(`${field} must be a string or null.`);
+    }
+    const trimmed = value?.trim() ?? '';
+    if (trimmed.length > PILOT_PROFILE_LIMITS[field]) {
+      throw new Error(`${field} must be ${PILOT_PROFILE_LIMITS[field]} characters or fewer.`);
     }
     normalized[field] = trimmed.length > 0 ? trimmed : null;
   }

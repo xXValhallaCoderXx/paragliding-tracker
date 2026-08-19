@@ -16,15 +16,17 @@ import { FlightCard } from '@/features/logbook/components/flight-card';
 import { OpenFlightCard } from '@/features/logbook/components/open-flight-card';
 import { RecordFab } from '@/features/logbook/components/record-fab';
 import { SeasonCard } from '@/features/logbook/components/season-card';
+import { useCloudSync } from '@/features/account/cloud-sync-provider';
 import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import { flightRepository } from '@/recorder/flight-repository';
 import type { FlightSummary } from '@/recorder/types';
 import { buildLogbookLayout, seasonSummary } from '@/features/logbook/logbook';
-import { fonts, paper } from '@/ui/theme';
+import { fonts, paper, TAB_BAR_HEIGHT } from '@/ui/theme';
 
 export default function LogbookScreen() {
   const router = useRouter();
   const recorderLifecycle = useRecorderLifecycle();
+  const sync = useCloudSync();
   const [flights, setFlights] = useState<FlightSummary[]>([]);
   const [loadedAt, setLoadedAt] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,7 +57,10 @@ export default function LogbookScreen() {
   useFocusEffect(
     useCallback(() => {
       void loadFlights();
-    }, [loadFlights]),
+      // Cheapest reliable post-flight trigger: the recorder navigates here after a save.
+      // Subscribing to recorderService instead would start its 1 Hz poll permanently.
+      sync.requestSync('logbook-focus');
+    }, [loadFlights, sync]),
   );
 
   const layout = useMemo(() => buildLogbookLayout(flights), [flights]);
@@ -80,7 +85,11 @@ export default function LogbookScreen() {
             tintColor={paper.thermal}
             colors={[paper.thermal]}
             progressBackgroundColor={paper.card}
-            onRefresh={() => void loadFlights(true)}
+            onRefresh={() => {
+              void loadFlights(true);
+              // A deliberate pull is a manual trigger, so it bypasses the throttle.
+              sync.requestSync('manual');
+            }}
           />
         }>
         <View style={styles.header}>
@@ -187,8 +196,9 @@ export default function LogbookScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: 120 },
-  contentEmpty: { paddingBottom: 40 },
+  // The tab bar overlays the scroll view, so its height has to be reserved here.
+  content: { paddingBottom: 120 + TAB_BAR_HEIGHT },
+  contentEmpty: { paddingBottom: 40 + TAB_BAR_HEIGHT },
   header: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 6 },
   title: { fontFamily: fonts.sansBold, fontSize: 15, letterSpacing: -0.1, color: paper.ink },
   block: { paddingHorizontal: 16, paddingTop: 10 },
