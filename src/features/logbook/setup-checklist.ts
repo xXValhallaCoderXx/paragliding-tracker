@@ -1,4 +1,6 @@
-import type { PilotProfile, RecorderCapabilities } from '@/recorder/types';
+import type { AppSettings, PilotProfile, RecorderCapabilities } from '@/recorder/types';
+
+type OnboardingState = AppSettings['onboardingState'];
 
 /**
  * The "two things before you fly" card, shown on a logbook whose owner skipped setup.
@@ -44,8 +46,15 @@ function locationDone(capabilities: RecorderCapabilities): boolean {
 export function setupChecklist(args: {
   profile: PilotProfile;
   capabilities: RecorderCapabilities;
+  /** What the pilot did with first-run setup. Null while the settings read is still in flight. */
+  onboardingState: OnboardingState | null;
 }): SetupChecklist | null {
   const { profile, capabilities } = args;
+
+  // The gate the comment above has always described and the code never enforced. A pilot who
+  // stepped through setup was asked about every one of these and answered — offering the card
+  // anyway reads as the app not having listened. Only a skipper was never asked.
+  if (args.onboardingState !== 'skipped') return null;
 
   const items: ChecklistItem[] = [
     {

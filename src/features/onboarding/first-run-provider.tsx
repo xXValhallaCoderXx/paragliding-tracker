@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { appSettingsRepository } from '@/recorder/flight-repository';
+import { useGetAppSettingsQuery, useUpdateAppSettingsMutation } from '@/store/endpoints';
 
 import {
   INITIAL_ONBOARDING_STATE,
@@ -64,37 +64,36 @@ const FirstRunContext = createContext<FirstRunValue | null>(null);
 const SETTINGS_READ_TIMEOUT_MS = 5_000;
 
 export function FirstRunProvider({ children }: { children: ReactNode }) {
-  const [status, setStatus] = useState<FirstRunStatus>('loading');
   const [replayRequested, setReplayRequested] = useState(false);
   const [wizard, setWizard] = useState<OnboardingState>(INITIAL_ONBOARDING_STATE);
+  /** Set the moment the pilot finishes or abandons setup, before the write is attempted. */
+  const [finished, setFinished] = useState(false);
+  const [readTimedOut, setReadTimedOut] = useState(false);
+
+  // Read through the cache rather than the repository. A screen reading around RTK Query is a
+  // second source of truth, and the write below invalidates the AppSettings tag — so these two
+  // now agree by construction instead of by luck.
+  const { data: settings, isError: settingsFailed } = useGetAppSettingsQuery();
 
   useEffect(() => {
-    let mounted = true;
-
-    const timeout = setTimeout(() => {
-      if (mounted) setStatus((current) => (current === 'loading' ? 'unavailable' : current));
-    }, SETTINGS_READ_TIMEOUT_MS);
-
-    void (async () => {
-      try {
-        const settings = await appSettingsRepository.getSettings();
-        if (!mounted) return;
-        setStatus(shouldShowOnboarding(settings.onboardingState) ? 'required' : 'complete');
-      } catch (error) {
-        // A settings row we cannot read is not something the pilot can act on, and it
-        // must never stand between them and their logbook.
-        if (__DEV__) console.warn('First-run settings read failed', error);
-        if (mounted) setStatus('unavailable');
-      } finally {
-        clearTimeout(timeout);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-      clearTimeout(timeout);
-    };
+    const timeout = setTimeout(() => setReadTimedOut(true), SETTINGS_READ_TIMEOUT_MS);
+    return () => clearTimeout(timeout);
   }, []);
+
+  // Derived rather than held in state. The React Compiler rejects setting state from an effect,
+  // and the ordering this expresses — the pilot's own action first, then the read, then failing
+  // open — is exactly what the old `current === 'loading'` guards were simulating by hand.
+  const status: FirstRunStatus = finished
+    ? 'complete'
+    : settings
+      ? shouldShowOnboarding(settings.onboardingState)
+        ? 'required'
+        : 'complete'
+      : // A settings row we cannot read is not something the pilot can act on, and it must never
+        // stand between them and their logbook.
+        settingsFailed || readTimedOut
+        ? 'unavailable'
+        : 'loading';
 
   const restartSetup = useCallback(() => {
     setWizard(INITIAL_ONBOARDING_STATE);
@@ -106,25 +105,27 @@ export function FirstRunProvider({ children }: { children: ReactNode }) {
     setWizard(INITIAL_ONBOARDING_STATE);
   }, []);
 
+  const [persistSettings] = useUpdateAppSettingsMutation();
+
   const finishSetup = useCallback(async (state: OnboardingState) => {
     // Close first, write second. The pilot is done either way, and a slow or failed
     // write must not leave them staring at a wizard they have already finished.
     setReplayRequested(false);
-    setStatus('complete');
+    setFinished(true);
     setWizard(INITIAL_ONBOARDING_STATE);
     try {
       const now = Date.now();
-      await appSettingsRepository.updateSettings({
+      await persistSettings({
         onboardingState: persistedResult(state),
         onboardingCompletedAt: now,
         ...(state.disclaimerAcknowledged ? { disclaimerAckAt: now } : {}),
-      });
+      }).unwrap();
     } catch (error) {
       // Worst case the pilot sees setup once more on the next launch, which is a far
       // smaller failure than blocking them here.
       if (__DEV__) console.warn('Recording first-run completion failed', error);
     }
-  }, []);
+  }, [persistSettings]);
 
   const value = useMemo<FirstRunValue>(
     () => ({

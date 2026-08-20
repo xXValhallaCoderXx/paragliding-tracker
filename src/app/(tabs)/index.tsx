@@ -22,7 +22,12 @@ import { useCloudSync } from '@/features/account/cloud-sync-provider';
 import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import { recorderService } from '@/recorder/recorder-service';
 import type { FlightSummary, RecorderCapabilities } from '@/recorder/types';
-import { useGetFlightsQuery, useGetFlightTracksQuery, useGetProfileQuery } from '@/store/endpoints';
+import {
+  useGetAppSettingsQuery,
+  useGetFlightsQuery,
+  useGetFlightTracksQuery,
+  useGetProfileQuery,
+} from '@/store/endpoints';
 import { errorMessage } from '@/lib/format/error-message';
 import type { TrackSegments } from '@/lib/track/types';
 import { setupChecklist, type ChecklistKey } from '@/features/logbook/setup-checklist';
@@ -64,6 +69,8 @@ export default function LogbookScreen() {
     refetch,
   } = useGetFlightsQuery(undefined, { skip });
   const { data: profile = null } = useGetProfileQuery(undefined, { skip });
+  // Only to decide whether the setup card is owed at all — see `setupChecklist`.
+  const { data: appSettings = null } = useGetAppSettingsQuery(undefined, { skip });
   // One read for the whole list rather than a hook per card, and its own cache entry so
   // editing a flight's title does not re-read and re-parse every flight's geometry.
   const { data: tracks = EMPTY_TRACKS, refetch: refetchTracks } = useGetFlightTracksQuery(
@@ -127,8 +134,14 @@ export default function LogbookScreen() {
   );
   const checklist = useMemo(
     () =>
-      profile && capabilities ? setupChecklist({ profile, capabilities }) : null,
-    [profile, capabilities],
+      profile && capabilities
+        ? setupChecklist({
+            profile,
+            capabilities,
+            onboardingState: appSettings?.onboardingState ?? null,
+          })
+        : null,
+    [profile, capabilities, appSettings],
   );
   const capacityNotice = useMemo(
     () => guestCapacityNotice(capacity, oldestRemovableFlight(layout)),
@@ -278,6 +291,11 @@ export default function LogbookScreen() {
         {isEmpty ? (
           <EmptyLogbook
             pilotName={profile?.pilotName ?? null}
+            gliderType={profile?.gliderType ?? null}
+            locationReady={
+              capabilities?.foregroundPermission === 'granted' &&
+              capabilities?.backgroundPermission === 'granted'
+            }
             hasSetup={checklist === null}
             onRecord={openRecorder}
             disabled={recorderBusy}

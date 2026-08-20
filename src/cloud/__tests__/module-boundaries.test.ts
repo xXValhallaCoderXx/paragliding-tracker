@@ -217,6 +217,27 @@ describe('cloud backup never reaches the capture path', () => {
     }
   });
 
+  it('no screen or feature writes to the database behind the cache', () => {
+    // A UI module holding a repository can write to SQLite without RTK Query hearing about it,
+    // so no tag is invalidated and every screen subscribed to that data keeps showing the old
+    // value. That is not hypothetical: the first-run wizard saved the pilot's name straight to
+    // the repository, and the logbook — mounted underneath the overlay, already subscribed to
+    // an empty `getProfile` entry — went on claiming the name was missing for the rest of the
+    // process lifetime.
+    //
+    // Reads are covered by the same rule on purpose. A screen reading around the cache is a
+    // second source of truth, which is how the two drift apart in the first place.
+    for (const directory of ['src/app', 'src/features']) {
+      for (const file of sourceFiles(directory)) {
+        for (const specifier of runtimeImportsOf(file)) {
+          expect({ file, specifier }).not.toMatchObject({
+            specifier: expect.stringContaining('@/recorder/flight-repository'),
+          });
+        }
+      }
+    }
+  });
+
   it('the cloud layer never imports UI, so it stays testable and reusable', () => {
     for (const file of sourceFiles('src/cloud')) {
       for (const specifier of importsOf(file)) {

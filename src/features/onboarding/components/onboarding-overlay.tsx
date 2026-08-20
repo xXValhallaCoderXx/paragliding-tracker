@@ -18,7 +18,7 @@ import {
   type NotificationPermission,
 } from '@/lib/notification-permission';
 import { openSystemScreen } from '@/lib/system-settings';
-import { pilotProfileRepository } from '@/recorder/flight-repository';
+import { useUpdateProfileMutation } from '@/store/endpoints';
 import { recorderService } from '@/recorder/recorder-service';
 import type { RecorderCapabilities } from '@/recorder/types';
 import { fonts, paper } from '@/ui/theme';
@@ -60,6 +60,11 @@ export function OnboardingOverlay() {
     [firstRun, state],
   );
 
+  // The same mutation the account screen uses, so the write invalidates the Profile tag. Writing
+  // to the repository directly left the logbook — mounted underneath this overlay and already
+  // subscribed to an empty profile — insisting the pilot had entered nothing.
+  const [savePilotProfile] = useUpdateProfileMutation();
+
   /** Persists whatever the pilot typed. Blank fields are simply not written. */
   const saveProfile = useCallback(async () => {
     const patch = {
@@ -69,12 +74,12 @@ export function OnboardingOverlay() {
     };
     if (Object.keys(patch).length === 0) return;
     try {
-      await pilotProfileRepository.updateProfile(patch);
+      await savePilotProfile(patch).unwrap();
     } catch {
       // Setup is not the place to fail. Everything here is re-editable on the account
       // screen, and blocking the pilot behind a write error would be far worse.
     }
-  }, [pilotName, registrationId, glider]);
+  }, [pilotName, registrationId, glider, savePilotProfile]);
 
   const step = useCallback(
     (outcome: 'continue' | 'skip' | 'back') => {

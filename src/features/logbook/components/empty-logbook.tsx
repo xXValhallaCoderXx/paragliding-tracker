@@ -1,6 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, Disclaimer } from '@/components/ui';
+import { Button, Chip, Disclaimer } from '@/components/ui';
+import { GhostTrack } from '@/features/logbook/components/ghost-track';
+import { emptyLogbookChips } from '@/features/logbook/empty-logbook';
 import { fonts, paper } from '@/ui/theme';
 
 /**
@@ -14,17 +16,23 @@ import { fonts, paper } from '@/ui/theme';
  */
 export function EmptyLogbook({
   pilotName = null,
+  gliderType = null,
+  locationReady = false,
   hasSetup = true,
   onRecord,
   disabled = false,
   busyLabel,
 }: {
   pilotName?: string | null;
+  /** Named here so the chips can promise it by name rather than in the abstract. */
+  gliderType?: string | null;
+  locationReady?: boolean;
   hasSetup?: boolean;
   onRecord: () => void;
   disabled?: boolean;
   busyLabel?: string | null;
 }) {
+  const chips = emptyLogbookChips({ gliderType, locationReady });
   const title = !hasSetup
     ? 'No flights yet.'
     : pilotName
@@ -37,12 +45,14 @@ export function EmptyLogbook({
       : 'Tap record before you launch and stop after you land. The track and its stats stay on this phone — no account, no signal needed.';
   return (
     <View style={styles.wrap}>
-      <View style={styles.placeholder} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Text style={styles.placeholderValue}>0:00</Text>
-        <Text style={styles.placeholderLabel}>AIRTIME</Text>
-      </View>
+      <GhostTrack />
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.body}>{body}</Text>
+      <View style={styles.chips}>
+        {chips.map((chip) => (
+          <Chip key={chip.key} label={chip.label} tone={chip.tone} />
+        ))}
+      </View>
       <View style={styles.cta}>
         <Button
           label={busyLabel ?? 'Record your first flight'}
@@ -62,20 +72,7 @@ export function EmptyLogbook({
 
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 30, paddingTop: 44, alignItems: 'center' },
-  placeholder: {
-    width: 150,
-    height: 150,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#CFC2A8',
-    backgroundColor: '#EFE7D6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  placeholderValue: { fontFamily: fonts.monoSemi, fontSize: 34, letterSpacing: -1, color: paper.faint },
-  placeholderLabel: { fontFamily: fonts.sansSemi, fontSize: 9.5, letterSpacing: 1.3, color: paper.faint },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 14 },
   title: {
     fontFamily: fonts.sansBold,
     fontSize: 22,
