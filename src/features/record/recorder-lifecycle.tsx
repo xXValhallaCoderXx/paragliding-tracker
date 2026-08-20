@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { AppState } from 'react-native';
 
+import { errorMessage } from '@/lib/format/error-message';
 import { recorderService } from '@/recorder/recorder-service';
 
 interface RecorderLifecycleState {
@@ -49,7 +50,7 @@ export function RecorderLifecycleProvider({ children }: { children: ReactNode })
         await recoverRecorderOnce();
       } catch (error) {
         if (mounted) {
-          setRecoveryError(error instanceof Error ? error.message : String(error));
+          setRecoveryError(errorMessage(error));
         }
       } finally {
         if (mounted) {

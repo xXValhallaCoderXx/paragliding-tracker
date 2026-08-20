@@ -191,6 +191,35 @@ adb reverse --remove-all
 The resulting artifact is `android/app/build/outputs/apk/release/app-release.apk`. Stop Metro before
 the trial; the release APK must launch and record from its embedded JavaScript bundle.
 
+### Reset the device's data
+
+```bash
+pnpm android:reset-data   # everything the app owns
+pnpm android:reset-db     # the recorder database only
+```
+
+`android:reset-data` runs `adb shell pm clear`. It deletes the recorder database, the signed-in
+session held in expo-secure-store, onboarding state, app settings, **and every runtime permission
+grant** — so the multi-step Android background-location flow has to be walked again. The
+development APK stays installed, but the dev client forgets its Metro URL: relaunch with
+`pnpm android`, or press `a` in Metro.
+
+`android:reset-db` force-stops the app and deletes only `files/SQLite/xc-recorder.db*`, keeping
+permissions, the signed-in session and the saved Metro URL. It still loses flights, onboarding
+state and settings, because those all live in that database. Two caveats: it uses `run-as`, so it
+works against a **debuggable** build and fails against the release APK; and it leaves the Supabase
+session in secure-store while deleting the local `cloud_link` row, which reads as signed in with
+no record of the link. Prefer `android:reset-data` for anything touching accounts.
+
+**Editing an already-applied migration in place requires a reset.** That is the normal way this
+schema changes before release — but `migrateDatabase` validates with `PRAGMA table_info`, which
+compares **column names only**. A changed `CHECK` constraint passes validation and then rejects
+writes at runtime, with nothing to connect the failure to the edit. This cost a day once: the v6
+`site_source` constraint was tightened from `('gps', 'manual', 'none')` to
+`('paraglidingearth', 'osm', 'manual')`, and every device that had already applied v6 kept the old
+one and silently refused to save a launch picked from the catalogue. If you edit DDL that has
+already run on a device, reset that device.
+
 For ordinary TypeScript, React, route, style, and recorder-logic changes, do not rebuild the APK.
 Keep the installed development app and run Metro with Fast Refresh. This default command also
 establishes ADB reverse and uses Expo's documented localhost mode, so pressing `a` is safe:

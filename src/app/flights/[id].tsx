@@ -41,6 +41,7 @@ import {
   formatThousands,
 } from '@/lib/format/flight-format';
 import { removalGuidance } from '@/features/logbook/guest-capacity';
+import { errorMessage } from '@/lib/format/error-message';
 import { flightInsight, flightInsightText, isFlightProcessing } from '@/features/logbook/logbook';
 import { StatGrid } from '@/features/flights/components/stat-grid';
 import { TrackPlate } from '@/features/flights/components/track-plate';
@@ -153,7 +154,7 @@ export default function FlightDetailScreen() {
     try {
       await action();
     } catch (error) {
-      setMessage({ text: messageFrom(error), tone: 'danger' });
+      setMessage({ text: errorMessage(error), tone: 'danger' });
     } finally {
       setBusy(null);
     }
@@ -355,6 +356,10 @@ export default function FlightDetailScreen() {
 
           <SectionLabel className="px-[18px] pt-[20px] pb-[8px]">About this flight</SectionLabel>
           <MetadataForm
+            // Keyed on the flight so the picker starts shut for each one. Without it, a
+            // route reused between two flights would carry the previous flight's
+            // opened/settled state onto the next.
+            key={flight.id}
             // Where this flight actually launched, so the nearby list is about the launch
             // rather than about wherever the phone happens to be days later.
             takeoff={
@@ -444,9 +449,6 @@ function optionalText(value: string): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function messageFrom(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },

@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, Card, Input } from '@/components/ui';
 import { SiteSuggestions } from '@/features/flights/components/site-suggestions';
+import { readCoarsePosition } from '@/features/flights/current-position';
+import { siteFieldHint, sitePickerView } from '@/features/flights/site-picker';
+import type { SitePickerTrigger } from '@/features/flights/site-picker';
 import type { Coordinate, SiteSuggestion } from '@/sites/types';
 import type { SiteSource } from '@/recorder/types';
 
@@ -36,6 +40,42 @@ export function MetadataForm({
   takeoff?: Coordinate | null;
   disabled?: boolean;
 }) {
+  // Owned here rather than inside the picker: the field and the panel are two halves of one
+  // control, and it is the field's events — focus, typing — that open it.
+  const [trigger, setTrigger] = useState<SitePickerTrigger>('none');
+
+  // A live read is offered only when the flight has no takeoff fix of its own — anything
+  // recorded before this existed, or a flight whose fixes were all ineligible.
+  const [livePosition, setLivePosition] = useState<Coordinate | null>(null);
+  const [locating, setLocating] = useState(false);
+  const near = takeoff ?? livePosition;
+
+  const locate = async () => {
+    setLocating(true);
+    try {
+      const position = await readCoarsePosition();
+      setLivePosition(position);
+      // Finding a position is only ever a step towards seeing what is around it.
+      if (position) setTrigger('nearby');
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  // Cheap enough to build for the hint alone, and it keeps the two halves reading from one
+  // description of what is happening rather than each deciding for itself.
+  const hint = siteFieldHint(
+    values.siteSource,
+    sitePickerView({
+      query: values.site,
+      debouncedQuery: values.site,
+      trigger,
+      hasPosition: near !== null,
+      resultCount: 0,
+      fetching: false,
+    }),
+  );
+
   return (
     <Card className="mx-[16px] px-[16px] pt-[4px] pb-[4px]">
       <Input
@@ -54,17 +94,30 @@ export function MetadataForm({
         // Typing replaces a picked name with the pilot's own words, so the provenance
         // goes with it. Leaving a stale source behind would credit a catalogue for a
         // name it never supplied.
-        onChangeText={(site) => onChange({ ...values, site, siteSource: null })}
+        onChangeText={(site) => {
+          // Editing after settling means the answer was not the one they wanted.
+          setTrigger('typing');
+          onChange({ ...values, site, siteSource: null });
+        }}
+        onFocus={() => setTrigger('focus')}
         editable={!disabled}
-        hint="Pick a launch below, or type any name."
+        hint={hint}
+        // The picker below draws the rule for this group; see its `group` style.
+        last
       />
       <SiteSuggestions
         query={values.site}
-        takeoff={takeoff}
+        near={near}
+        trigger={trigger}
+        locating={locating}
         disabled={disabled}
-        onSelect={(site: SiteSuggestion) =>
-          onChange({ ...values, site: site.name, siteSource: site.provider })
-        }
+        onLocate={() => void locate()}
+        onOpen={() => setTrigger('nearby')}
+        onDismiss={() => setTrigger('none')}
+        onSelect={(site: SiteSuggestion) => {
+          setTrigger('none');
+          onChange({ ...values, site: site.name, siteSource: site.provider });
+        }}
       />
       <Input
         label="Notes"

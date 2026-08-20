@@ -64,6 +64,8 @@
     "android:no-bundler": "REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 expo run:android --device --no-bundler",
     "android:release": "cd android && ./gradlew :app:assembleRelease",
     "android:release:install": "adb install -r android/app/build/outputs/apk/release/app-release.apk",
+    "android:reset-data": "adb shell pm clear com.xxvalhallacoderxx.xcmvp",
+    "android:reset-db": "adb shell am force-stop com.xxvalhallacoderxx.xcmvp && adb shell run-as com.xxvalhallacoderxx.xcmvp rm -f files/SQLite/xc-recorder.db files/SQLite/xc-recorder.db-wal files/SQLite/xc-recorder.db-shm",
     "ios": "expo start --ios",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",

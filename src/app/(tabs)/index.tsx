@@ -23,6 +23,7 @@ import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import { recorderService } from '@/recorder/recorder-service';
 import type { FlightSummary, RecorderCapabilities } from '@/recorder/types';
 import { useGetFlightsQuery, useGetFlightTracksQuery, useGetProfileQuery } from '@/store/endpoints';
+import { errorMessage } from '@/lib/format/error-message';
 import type { TrackSegments } from '@/lib/track/types';
 import { setupChecklist, type ChecklistKey } from '@/features/logbook/setup-checklist';
 import {
@@ -330,13 +331,6 @@ export default function LogbookScreen() {
   );
 }
 
-/** RTK Query hands back our serialized `{ message }`, but the type is deliberately open. */
-function errorMessage(error: unknown): string {
-  if (error && typeof error === 'object' && 'message' in error) {
-    return String((error as { message: unknown }).message);
-  }
-  return String(error);
-}
 
 const styles = StyleSheet.create({
   // The tab bar overlays the scroll view, so its height has to be reserved here.

@@ -11,6 +11,7 @@ import { recorderService } from '@/recorder/recorder-service';
 import type { RecorderSnapshot } from '@/recorder/types';
 import { capturePresentation } from '@/features/record/capture-health';
 import { inFlightNotices, type ReadinessAction } from '@/features/record/recorder-presentation';
+import { errorMessage } from '@/lib/format/error-message';
 import { openSystemScreen } from '@/lib/system-settings';
 import { dataApi } from '@/store/endpoints';
 import { useAppDispatch } from '@/store/hooks';
@@ -57,7 +58,7 @@ export default function RecordFlightScreen() {
     try {
       await action();
     } catch (error) {
-      setActionError(messageFrom(error));
+      setActionError(errorMessage(error));
     } finally {
       setBusy(null);
     }
@@ -254,6 +255,3 @@ export default function RecordFlightScreen() {
   return content;
 }
 
-function messageFrom(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}

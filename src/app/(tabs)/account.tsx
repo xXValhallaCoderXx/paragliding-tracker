@@ -15,6 +15,7 @@ import {
   SectionLabel,
 } from '@/components/ui';
 import { accountStats } from '@/features/account/account-identity';
+import { errorMessage } from '@/lib/format/error-message';
 import { cloudOnlySummary, describeSync } from '@/features/account/account-presentation';
 import { useCloudAuth } from '@/features/account/auth-provider';
 import { useCloudSync } from '@/features/account/cloud-sync-provider';
@@ -96,7 +97,7 @@ export default function AccountScreen() {
     } catch (deleteError) {
       // Never optimistically sign out: if the server copy might still exist, the pilot
       // has to be able to try again.
-      setAuthError(deleteError instanceof Error ? deleteError.message : String(deleteError));
+      setAuthError(errorMessage(deleteError));
     } finally {
       setDeleting(false);
     }
@@ -119,7 +120,9 @@ export default function AccountScreen() {
       await updateProfile(patch).unwrap();
       setEditing(false);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : String(saveError));
+      // `.unwrap()` rethrows the serialized `{ message }`, not an Error — an
+      // `instanceof` check here printed "[object Object]" over a real SQLite message.
+      setError(errorMessage(saveError));
     }
   };
 

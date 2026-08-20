@@ -30,6 +30,7 @@ export function Input({
   hint,
   error,
   onSubmitEditing,
+  onFocus,
   returnKeyType,
   className = '',
 }: {
@@ -52,6 +53,9 @@ export function Input({
   /** Replaces the hint and recolours it. Announced to screen readers. */
   error?: string | null;
   onSubmitEditing?: () => void;
+  /** Fires when the field takes focus. Deliberately no `onBlur`: a suggestion list below a
+   * field blurs it before the row's press lands, so closing on blur eats the tap. */
+  onFocus?: () => void;
   returnKeyType?: TextInputProps['returnKeyType'];
   className?: string;
 }) {
@@ -76,6 +80,7 @@ export function Input({
         maxLength={maxLength}
         multiline={multiline}
         onChangeText={onChangeText}
+        onFocus={onFocus}
         onSubmitEditing={onSubmitEditing}
         placeholder={placeholder}
         placeholderTextColor={paper.placeholder}
