@@ -58,6 +58,7 @@ const INITIAL_SNAPSHOT: SyncSnapshot = {
   pendingFlights: 0,
   pendingDeletions: 0,
   cloudOnlyFlights: 0,
+  linkedUserId: null,
   lastError: null,
 };
 
@@ -85,6 +86,16 @@ async function refreshCounts(): Promise<void> {
     publish({ pendingFlights: pending.flights, pendingDeletions: pending.deletions });
   } catch {
     // Counts are cosmetic; never let them fail a cycle.
+  }
+  try {
+    // Read here as well as in runCycle so the value is available from the moment the
+    // provider subscribes. A guest never completes a cycle, and the logbook uses this to
+    // tell "never had an account" apart from "signed out" — getting it late means a
+    // capacity banner briefly accusing a pilot whose flights are all safely backed up.
+    const link = await getCloudLink();
+    publish({ linkedUserId: link.userId });
+  } catch {
+    // Same contract: never fail a cycle over it.
   }
 }
 
@@ -335,6 +346,9 @@ async function runCycle(trigger: SyncTrigger, recorderRecovering: boolean): Prom
   } catch (error) {
     return publish({ phase: 'error', lastError: messageOf(error) });
   }
+  // Published before the gate, because the gate blocks on every guest cycle and the
+  // logbook needs to know whether this phone has ever had an account.
+  publish({ linkedUserId: link.userId });
 
   // Read straight from the database rather than subscribing to recorderService: its
   // subscribe() starts a 1 Hz poll, far too expensive to hold open just to observe state.
@@ -400,7 +414,8 @@ export const cloudSyncEngine: CloudSyncEngine = {
 
   rebindTo: async (userId: string) => {
     await resetCloudLink(userId);
-    publish({ blockedBy: null, lastError: null, cloudOnlyFlights: 0 });
+    // resetCloudLink binds to `userId`, so that is what the snapshot must report.
+    publish({ blockedBy: null, lastError: null, cloudOnlyFlights: 0, linkedUserId: userId });
     await refreshCounts();
   },
 

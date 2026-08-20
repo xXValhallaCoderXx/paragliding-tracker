@@ -48,8 +48,11 @@ features that do not need an account. There is deliberately no `Stack.Protected`
 
 **Auth** is Supabase email one-time codes (`signInWithOtp` + `verifyOtp`). No magic links: email
 clients pre-fetch and burn single-use links. No Apple or Google sign-in: those are third-party
-logins, which would trigger Guideline 4.8's Sign-in-with-Apple obligation. Sessions persist in
-`expo-sqlite/localStorage`, which costs no new dependency and no-ops on web.
+logins, which would trigger Guideline 4.8's Sign-in-with-Apple obligation. Sessions persist in the iOS Keychain and the
+Android Keystore through `expo-secure-store`, chunked because a session exceeds the ~2 KB value
+ceiling, and pinned to `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY` so a token refresh still works while
+the recorder runs with the screen locked. Sessions written by an earlier build are migrated out of
+`expo-sqlite/localStorage` on first read.
 
 **Backup is push-only.** The phone is the source of truth:
 
@@ -95,12 +98,32 @@ pnpm fn:deploy
 pnpm db:test      # pgTAP RLS regression tests
 ```
 
-Two dashboard steps are easy to miss and both are required:
+Two dashboard steps are easy to miss and both are required. The full walkthrough — Namecheap
+DNS, Resend, and every Supabase field — is in [`docs/email-setup.md`](./docs/email-setup.md):
 
-1. Edit the **Magic Link** email template to contain `{{ .Token }}`. Otherwise `signInWithOtp`
-   sends a link, and pilots receive something they cannot use.
-2. Configure **custom SMTP**. The built-in sender is capped at roughly two emails per hour, which
-   makes even solo testing impossible.
+1. Paste **both** templates from `supabase/templates/` into Authentication → Emails: the file
+   `confirm-signup.html` into **Confirm signup**, and `magic-link.html` into **Magic Link**.
+   Editing only one is the bug this project already shipped once. `signInWithOtp` sends
+   **Confirm signup** when the address is new and **Magic Link** when it already exists, so a
+   correct Magic Link template alone leaves every first-time pilot with a link and no code — and
+   the link is useless here, because the client sets `detectSessionInUrl: false` and there is no
+   callback route. `supabase config push` may carry the templates; Supabase documents dashboard
+   templates as the source of truth for hosted projects, so do not rely on it.
+   `src/cloud/__tests__/email-templates.test.ts` guards the repo copies.
+2. Configure **custom SMTP** under Authentication → Emails → SMTP Settings, using the values in
+   `[auth.email.smtp]` in `supabase/config.toml`. The built-in sender is not merely slow at
+   ~2 messages/hour — Supabase "will refuse to deliver messages to addresses that are not part
+   of the project's team", on every plan, with no delivery SLA. It therefore cannot email a
+   pilot at all. This is a launch blocker, not an inconvenience. The project uses **Resend**: host `smtp.resend.com`,
+   port 587, username the literal `resend`, password an API key. Resend requires a verified
+   domain — a subdomain such as `mail.example.com` is what they recommend, and it needs the MX
+   and two TXT (SPF, DKIM) records shown on the domain's Records tab. Use a subdomain, not the
+   root, if the root already receives mail anywhere (Proton, Fastmail, Google): Resend's MX
+   record would replace the one delivering your inbox, and a domain can hold only one `v=spf1`
+   record. A subdomain gives Resend its own MX/SPF/DKIM and leaves the root untouched. Until a domain is
+   verified, Resend's sandbox sender only delivers to your own account address, so a second
+   pilot signing in gets a 403 and no email — indistinguishable, from the outside, from the
+   template bug above.
 
 ### Before submitting to a store
 
@@ -145,8 +168,10 @@ For the first local build, or after a native/configuration change:
 pnpm android
 ```
 
-That command generates the ignored `android/` project when needed, performs an incremental Gradle
-build, installs it on the selected device, and starts Metro. If Metro is already running in another
+That command establishes an ADB reverse tunnel, generates the ignored `android/` project when
+needed, performs an incremental Gradle build, installs it on the selected device, and starts Metro.
+The development URL is forced to `127.0.0.1`, so Expo's `a` shortcut stays on the ADB tunnel instead
+of reopening WSL's unreachable `192.168.x.x` LAN address. If Metro is already running in another
 terminal, avoid starting a second server:
 
 ```bash
@@ -168,22 +193,21 @@ The resulting artifact is `android/app/build/outputs/apk/release/app-release.apk
 the trial; the release APK must launch and record from its embedded JavaScript bundle.
 
 For ordinary TypeScript, React, route, style, and recorder-logic changes, do not rebuild the APK.
-Keep the installed development app and run Metro with Fast Refresh:
+Keep the installed development app and run Metro with Fast Refresh. This default command also
+establishes ADB reverse and uses Expo's documented localhost mode, so pressing `a` is safe:
+
+```bash
+pnpm start
+```
+
+Only use direct LAN mode when WSL mirrored networking is enabled and the phone can actually reach
+WSL's address:
 
 ```bash
 pnpm start:lan
 ```
 
-If the phone cannot reach WSL's LAN address but wireless `adb` is connected, route Metro through
-that connection instead:
-
-```bash
-adb reverse tcp:8081 tcp:8081
-pnpm start
-```
-
-WSL mirrored networking is required for direct LAN access. If it is not active yet, or a firewall
-blocks the phone, use the slower tunnel fallback:
+If wireless ADB is unavailable, use the slower tunnel fallback:
 
 ```bash
 pnpm start:tunnel

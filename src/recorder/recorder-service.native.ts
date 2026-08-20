@@ -913,21 +913,41 @@ class NativeRecorderService implements RecorderService {
     if (!(await Location.hasServicesEnabledAsync())) {
       throw new RecorderError('location_disabled', 'Enable device location services before arming.');
     }
-    const foreground = await Location.requestForegroundPermissionsAsync();
-    if (!foreground.granted || !precisePermission(foreground)) {
+    const granted = await this.requestLocationPermissions();
+    if (granted.foregroundPermission !== 'granted') {
       throw new RecorderError(
         'foreground_permission_denied',
         'Precise foreground location permission is required.',
       );
     }
-    const background = await Location.requestBackgroundPermissionsAsync();
-    if (!background.granted) {
+    if (granted.backgroundPermission !== 'granted') {
       throw new RecorderError(
         'background_permission_denied',
         'Background location permission is required for locked-screen testing.',
       );
     }
-    await this.getCapabilities();
+  }
+
+  /**
+   * The permission prompts on their own, with no arming and no throwing.
+   *
+   * First-run setup needs to ask before the pilot is at launch — the worst possible
+   * moment for Android's two-stage dialog — and then show them what they actually
+   * granted. `ensurePermissions` layers the refusals on top for the arm path.
+   *
+   * Android only shows the background prompt once foreground is granted, so the order
+   * here is load-bearing: asking for "allow all the time" first silently does nothing.
+   */
+  async requestLocationPermissions(): Promise<RecorderCapabilities> {
+    if (!SUPPORTED) return this.getCapabilities();
+    const foreground = await Location.requestForegroundPermissionsAsync().catch(() => null);
+    if (foreground?.granted && precisePermission(foreground)) {
+      await Location.requestBackgroundPermissionsAsync().catch(() => null);
+    }
+    // Re-probe rather than trusting the responses: the pilot may have changed things in
+    // system settings instead, and getCapabilities() is what every readiness row and
+    // snapshot renders from.
+    return this.getCapabilities();
   }
 
   private async attemptSessionRecovery(

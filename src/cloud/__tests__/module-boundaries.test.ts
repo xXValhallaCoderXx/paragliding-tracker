@@ -75,12 +75,63 @@ describe('cloud backup never reaches the capture path', () => {
     // drags expo-sqlite's web worker into the web bundle and breaks
     // `expo export --platform web` — with a stack trace that points at expo-sqlite
     // rather than at the import that caused it. Hence this test.
-    const shared = [...sourceFiles('src/features'), ...sourceFiles('src/app')];
+    // Widened as new top-level directories appear, rather than copied per directory:
+    // one rule means one place to add the next one.
+    const shared = [
+      ...sourceFiles('src/features'),
+      ...sourceFiles('src/app'),
+      ...sourceFiles('src/store'),
+      ...sourceFiles('src/lib'),
+      ...sourceFiles('src/components'),
+    ];
     for (const file of shared) {
       for (const specifier of importsOf(file)) {
         expect({ file, specifier }).not.toMatchObject({
           specifier: expect.stringMatching(/\.native$/),
         });
+      }
+    }
+  });
+
+  it('the store never imports UI, so it cannot become a back door into the domain', () => {
+    // Same rule as the cloud layer. Without it the store is the one place a screen could
+    // reach the recorder through, and the layering that every other rule here protects
+    // would quietly stop meaning anything.
+    for (const file of sourceFiles('src/store')) {
+      for (const specifier of importsOf(file)) {
+        expect({ file, specifier }).not.toMatchObject({
+          specifier: expect.stringContaining('@/features'),
+        });
+        expect({ file, specifier }).not.toMatchObject({
+          specifier: expect.stringContaining('@/components'),
+        });
+        expect({ file, specifier }).not.toMatchObject({ specifier: expect.stringContaining('@/app') });
+      }
+    }
+  });
+
+  it('the store subscribes to nothing, so building it stays free', () => {
+    // Asserted on imports, not on file text: this codebase writes comments *about*
+    // subscribing (three of them), and a grep would fire on the prose.
+    //
+    // Each of the three services is dangerous to hold here for a different reason.
+    // `recorderService.subscribe()` reference-counts a 1 Hz poll that only stops when the
+    // last listener leaves. `cloudAuthService.subscribe()` reaches `getSupabase()`, which
+    // constructs the client that supabase.native.ts keeps lazy on purpose so tests,
+    // `expo export` and unconfigured builds never open a socket. `cloudSyncEngine`
+    // fires two SQLite reads on every subscribe. All three belong in a component effect.
+    for (const file of sourceFiles('src/store')) {
+      for (const specifier of importsOf(file)) {
+        for (const forbidden of [
+          '@/recorder/recorder-service',
+          '@/cloud/auth-service',
+          '@/cloud/sync-engine',
+          '@/cloud/supabase',
+        ]) {
+          expect({ file, specifier }).not.toMatchObject({
+            specifier: expect.stringContaining(forbidden),
+          });
+        }
       }
     }
   });

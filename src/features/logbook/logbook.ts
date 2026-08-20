@@ -66,6 +66,19 @@ export function buildLogbookLayout(flights: FlightSummary[]): LogbookLayout {
 }
 
 /**
+ * The flights the logbook actually lists, which is everything except the open one.
+ *
+ * Derived from the layout rather than re-filtered from the repository array on purpose:
+ * a `processing` flight (metrics still being computed, or permanently stuck because
+ * `listFlights` swallows a finalize failure) is a visible card whose `status` is neither
+ * `completed` nor `partial`. Anything that counts flights by status would tell the pilot
+ * "9 flights" beside 11 cards. Counting the list makes that disagreement impossible.
+ */
+export function savedFlights(layout: LogbookLayout): FlightSummary[] {
+  return layout.sections.flatMap((section) => section.flights);
+}
+
+/**
  * Season totals derived only from finished flights with computed stats.
  * Uses the current calendar year when it has flights, otherwise the most
  * recent year that does, so the card never shows an empty season while the

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Linking, Platform } from 'react-native';
-import * as ExpoLinking from 'expo-linking';
+import { Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { LoadingScreen, UnsupportedScreen } from '@/components/ui';
@@ -12,6 +11,9 @@ import { recorderService } from '@/recorder/recorder-service';
 import type { RecorderSnapshot } from '@/recorder/types';
 import { capturePresentation } from '@/features/record/capture-health';
 import { inFlightNotices, type ReadinessAction } from '@/features/record/recorder-presentation';
+import { openSystemScreen } from '@/lib/system-settings';
+import { dataApi } from '@/store/endpoints';
+import { useAppDispatch } from '@/store/hooks';
 
 type RecorderIntent = 'resume' | 'finalize';
 
@@ -23,6 +25,7 @@ const SAVING_PARTIAL_LABEL = 'Saving partial flight…';
 export default function RecordFlightScreen() {
   const { intent } = useLocalSearchParams<{ intent?: string }>();
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const recorderLifecycle = useRecorderLifecycle();
   const [snapshot, setSnapshot] = useState<RecorderSnapshot | null>(null);
   const [activeFlightId, setActiveFlightId] = useState<string | null>(null);
@@ -66,9 +69,13 @@ export default function RecordFlightScreen() {
       if (!flightId) {
         throw new Error('The flight was saved, but its logbook entry could not be opened.');
       }
+      // The recorder writes flights straight to SQLite, so nothing in the cache knows a
+      // new one exists. This is the single funnel for both save paths — stop() and
+      // finalizeInterrupted() both land here — so one invalidation covers both.
+      dispatch(dataApi.util.invalidateTags([{ type: 'Flight', id: 'LIST' }]));
       router.replace({ pathname: '/flights/[id]', params: { id: flightId, saved } });
     },
-    [router],
+    [dispatch, router],
   );
 
   const startRecording = useCallback(
@@ -76,8 +83,10 @@ export default function RecordFlightScreen() {
       runAction('Starting recorder…', async () => {
         const result = await recorderService.arm();
         setActiveFlightId(result.flightId);
+        // Arming inserts a flight row, which the logbook shows as its open-flight card.
+        dispatch(dataApi.util.invalidateTags([{ type: 'Flight', id: 'LIST' }]));
       }),
-    [runAction],
+    [dispatch, runAction],
   );
 
   const finishRecording = useCallback(
@@ -245,26 +254,6 @@ export default function RecordFlightScreen() {
   }
 
   return content;
-}
-
-async function openSystemScreen(action: ReadinessAction): Promise<void> {
-  if (action === 'open_app_settings') {
-    await ExpoLinking.openSettings();
-    return;
-  }
-  if (Platform.OS !== 'android') {
-    await ExpoLinking.openSettings();
-    return;
-  }
-  const intentAction =
-    action === 'open_location_settings'
-      ? 'android.settings.LOCATION_SOURCE_SETTINGS'
-      : 'android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS';
-  try {
-    await Linking.sendIntent(intentAction);
-  } catch {
-    await ExpoLinking.openSettings();
-  }
 }
 
 function messageFrom(error: unknown): string {

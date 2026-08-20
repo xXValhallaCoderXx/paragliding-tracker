@@ -1,4 +1,7 @@
 import type {
+  AppSettings,
+  AppSettingsPatch,
+  AppSettingsRepository,
   FlightDetail,
   FlightMetadataPatch,
   FlightRepository,
@@ -25,4 +28,9 @@ export const flightRepository: FlightRepository = {
 export const pilotProfileRepository: PilotProfileRepository = {
   getProfile: async (): Promise<PilotProfile> => unsupported(),
   updateProfile: async (_patch: PilotProfilePatch): Promise<PilotProfile> => unsupported(),
+};
+
+export const appSettingsRepository: AppSettingsRepository = {
+  getSettings: async (): Promise<AppSettings> => unsupported(),
+  updateSettings: async (_patch: AppSettingsPatch): Promise<AppSettings> => unsupported(),
 };

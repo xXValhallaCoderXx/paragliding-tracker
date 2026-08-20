@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { Button, Card, Input, LinkButton, Notice } from '@/components/ui';
+import { OTP_LENGTH } from '@/cloud/config';
 import {
   INITIAL_OTP_STATE,
   canResend,
@@ -91,7 +92,7 @@ export function SignInCard({
           onChangeText={setEmailInput}
           editable={!busy}
           error={error}
-          hint="We'll send a 6-digit code. No password, no magic link."
+          hint={`We'll send an ${OTP_LENGTH}-digit code. No password, no magic link.`}
           last
         />
         <Button
@@ -113,8 +114,8 @@ export function SignInCard({
       <Input
         label={`Code sent to ${state.email}`}
         value={code}
-        placeholder="123456"
-        maxLength={6}
+        placeholder="12345678"
+        maxLength={OTP_LENGTH}
         autoCapitalize="none"
         // Lets Android autofill the code straight from the notification, and iOS offer
         // it above the keyboard.
@@ -125,7 +126,7 @@ export function SignInCard({
         onChangeText={(value) => {
           const next = normalizeOtpCode(value);
           setCode(next);
-          if (next.length === 6 && !busy) void verify(next);
+          if (next.length === OTP_LENGTH && !busy) void verify(next);
         }}
         editable={!busy}
         error={error}

@@ -7,6 +7,7 @@ const UNSUPPORTED: SyncSnapshot = {
   pendingFlights: 0,
   pendingDeletions: 0,
   cloudOnlyFlights: 0,
+  linkedUserId: null,
   lastError: null,
 };
 

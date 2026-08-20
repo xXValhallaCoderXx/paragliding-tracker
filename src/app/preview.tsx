@@ -11,26 +11,48 @@ import {
   Input,
   LinkButton,
   ListRow,
+  Meter,
   Notice,
   SectionLabel,
   StateLabel,
   StatusPill,
   TopBar,
 } from '@/components/ui';
+import { OTP_LENGTH } from '@/cloud/config';
 import {
   AccountCard,
 } from '@/features/account/components/account-card';
-import {
-  EMPTY_PILOT_PROFILE_FORM,
-  PilotProfileCard,
-} from '@/features/account/components/pilot-profile-card';
+import { IdentityCard } from '@/features/account/components/identity-card';
+import { igcHeaderPreview } from '@/features/account/account-identity';
 import {
   CloudUnconfiguredNotice,
   SignInCard,
 } from '@/features/account/components/sign-in-card';
 import { MetadataForm } from '@/features/flights/components/metadata-form';
+import {
+  BackupStep,
+  GliderStep,
+  LocationStep,
+  PilotStep,
+  WelcomeStep,
+} from '@/features/onboarding/components/onboarding-overlay';
+import { StepChrome } from '@/features/onboarding/components/step-chrome';
+import { EmptyLogbook } from '@/features/logbook/components/empty-logbook';
+import { SetupChecklistCard } from '@/features/logbook/components/setup-checklist-card';
+import { setupChecklist } from '@/features/logbook/setup-checklist';
+import {
+  GUEST_FLIGHT_CAPACITY,
+  backupSummary,
+  evaluateGuestCapacity,
+  guestCapacityNotice,
+} from '@/features/logbook/guest-capacity';
 import { InstrumentView } from '@/features/record/components/instrument';
-import type { RecorderCapabilities, RecorderSnapshot } from '@/recorder/types';
+import type {
+  FlightSummary,
+  PilotProfile,
+  RecorderCapabilities,
+  RecorderSnapshot,
+} from '@/recorder/types';
 import { fonts, paper } from '@/ui/theme';
 
 /**
@@ -43,7 +65,12 @@ import { fonts, paper } from '@/ui/theme';
  * Sets: `kit` (every primitive and variant), `instrument` (the in-flight recorder view),
  * `account-empty` / `account-profile` (the pilot profile before and after it is filled in),
  * `account-signed-out` / `account-signed-in` / `account-unconfigured` / `account-error`
- * (the backup card in each of its states).
+ * (the backup card in each of its states), and `capacity-near` / `capacity-full` /
+ * `capacity-over` / `capacity-over-blocked` (the guest flight-capacity banner, whose
+ * `over-blocked` variant is the one most likely to ship wrong because it is the only
+ * state with no removable flight to offer), and `setup-welcome` / `setup-pilot` /
+ * `setup-glider` / `setup-location` / `setup-location-granted` / `setup-backup` (the
+ * five first-run steps from design 2a).
  *
  * Delete before handoff — it is a development fixture, not shipped UI.
  */
@@ -191,8 +218,8 @@ function KitPreview() {
           <Input
             label="Code"
             value=""
-            placeholder="123456"
-            maxLength={6}
+            placeholder="12345678"
+            maxLength={OTP_LENGTH}
             keyboardType="number-pad"
             hint="Resend code in 43 s"
             onChangeText={noop}
@@ -282,6 +309,25 @@ function BackupPreview({ state }: { state: AccountBackupState }) {
           <AccountCard email="renate@example.com" busy={false} onSignOut={noop} />
         ) : null}
         {state === 'signed-out' || state === 'error' ? (
+          <Card className="px-[16px] py-[4px]">
+            <ListRow
+              label="Without an account"
+              value={`${GUEST_FLIGHT_CAPACITY} flights`}
+              mono={false}
+              detail={`This phone keeps ${GUEST_FLIGHT_CAPACITY} saved flights. Recording is never blocked and nothing is ever removed for you — past ${GUEST_FLIGHT_CAPACITY}, the logbook asks you to sign in or remove one yourself.`}
+            />
+            <ListRow
+              label="With a free account"
+              value="Unlimited"
+              mono={false}
+              tone="good"
+              showDot
+              detail="Every flight backed up with its stats and its IGC file. Your logbook stays on this phone as well."
+              last
+            />
+          </Card>
+        ) : null}
+        {state === 'signed-out' || state === 'error' ? (
           <SignInCard
             requestOtp={never}
             verifyOtp={never}
@@ -294,33 +340,218 @@ function BackupPreview({ state }: { state: AccountBackupState }) {
   );
 }
 
+const OLDEST_FLIGHT: FlightSummary = {
+  id: 'oldest',
+  recordingSessionId: 'session-oldest',
+  status: 'completed',
+  startedAt: NOW - 240 * 24 * 3_600_000,
+  endedAt: NOW - 240 * 24 * 3_600_000 + 3_600_000,
+  timezoneOffsetMinutes: -120,
+  title: null,
+  site: 'Sopelana',
+  notes: null,
+  takeoffLatitude: 43.38,
+  takeoffLongitude: -3.08,
+  siteSource: 'gps',
+  siteResolvedAt: NOW,
+  createdAt: NOW,
+  updatedAt: NOW,
+  sessionStatus: 'completed',
+  metrics: null,
+};
+
+type SetupSet =
+  | 'welcome'
+  | 'pilot'
+  | 'glider'
+  | 'location'
+  | 'location-granted'
+  | 'backup';
+
+/** Fully-granted permissions, for the "everything allowed" variant of the location step. */
+const GRANTED_CAPABILITIES: RecorderCapabilities = {
+  ...CAPABILITIES,
+  foregroundPermission: 'granted',
+  backgroundPermission: 'granted',
+};
+
+const EMPTY_PROFILE: PilotProfile = {
+  pilotName: null,
+  gliderType: null,
+  gliderId: null,
+  registrationId: null,
+  homeSite: null,
+  homeSiteSource: 'auto',
+  updatedAt: 0,
+  pushedUpdatedAt: null,
+};
+
+/** Design 2b: the logbook of someone who skipped setup, versus one who finished it. */
+function FreshLogbookPreview({ skipped }: { skipped: boolean }) {
+  const noop = () => undefined;
+  const checklist = skipped
+    ? setupChecklist({
+        profile: EMPTY_PROFILE,
+        capabilities: { ...CAPABILITIES, foregroundPermission: 'granted', backgroundPermission: 'granted' },
+      })
+    : null;
+  return (
+    <ScrollView style={styles.kitScreen} contentContainerStyle={styles.kit}>
+      <TopBar title="Logbook" right={<Chip label="preview" tone="muted" />} />
+      {checklist ? (
+        <View style={styles.group}>
+          <SetupChecklistCard checklist={checklist} onSelect={noop} />
+        </View>
+      ) : null}
+      <EmptyLogbook
+        pilotName={skipped ? null : 'Renate Gouveia'}
+        hasSetup={!skipped}
+        onRecord={noop}
+      />
+    </ScrollView>
+  );
+}
+
+function SetupPreview({ set }: { set: SetupSet }) {
+  const noop = () => undefined;
+  const never = async () => undefined;
+  const step = set === 'welcome' ? null : { current: 1, total: 4 };
+  return (
+    <ScrollView style={styles.kitScreen} contentContainerStyle={styles.kit}>
+      {step ? <StepChrome current={step.current} total={step.total} onBack={noop} /> : null}
+      {set === 'welcome' ? (
+        <WelcomeStep acknowledged={false} onAcknowledge={noop} onStart={noop} onSkip={noop} />
+      ) : null}
+      {set === 'pilot' ? (
+        <PilotStep
+          pilotName="Renate Gouveia"
+          registrationId=""
+          onPilotName={noop}
+          onRegistrationId={noop}
+          onContinue={noop}
+          onSkip={noop}
+        />
+      ) : null}
+      {set === 'glider' ? (
+        <GliderStep glider="" onGlider={noop} onContinue={noop} onSkip={noop} />
+      ) : null}
+      {set === 'location' || set === 'location-granted' ? (
+        <LocationStep
+          capabilities={set === 'location-granted' ? GRANTED_CAPABILITIES : null}
+          asking={false}
+          onAsk={noop}
+          onOpenSettings={noop}
+          onContinue={noop}
+        />
+      ) : null}
+      {set === 'backup' ? (
+        <BackupStep
+          auth={{
+            status: 'signed_out',
+            userId: null,
+            email: null,
+            lastError: null,
+            requestOtp: never,
+            verifyOtp: never,
+            signOut: never,
+            deleteAccount: never,
+          }}
+          error={null}
+          onClearError={noop}
+          onDone={noop}
+        />
+      ) : null}
+    </ScrollView>
+  );
+}
+
+function CapacityPreview({ saved, removable }: { saved: number; removable: boolean }) {
+  const noop = () => undefined;
+  const capacity = evaluateGuestCapacity({
+    savedFlights: saved,
+    authStatus: 'signed_out',
+    linkedUserId: null,
+  });
+  const notice = guestCapacityNotice(capacity, removable ? OLDEST_FLIGHT : null);
+  return (
+    <ScrollView style={styles.kitScreen} contentContainerStyle={styles.kit}>
+      <TopBar title="Logbook" right={<Chip label="preview" tone="muted" />} />
+      <Group title={`${saved} of ${capacity.limit} flights`}>
+        {notice ? (
+          <>
+            <Notice tone={notice.tone} title={notice.title}>
+              {notice.body}
+            </Notice>
+            <Button label={notice.primaryLabel} variant="primary" onPress={noop} />
+            {notice.remove ? (
+              <Button label={notice.remove.label} variant="secondary" onPress={noop} />
+            ) : null}
+            {notice.dismissible ? <LinkButton label="Not now" onPress={noop} /> : null}
+          </>
+        ) : (
+          <Text style={styles.cardText}>No banner at this count.</Text>
+        )}
+      </Group>
+    </ScrollView>
+  );
+}
+
+/** Design 2c: the Account screen as a summary, filled in and untouched. */
 function AccountPreview({ filled }: { filled: boolean }) {
   const noop = () => undefined;
+  const profile: PilotProfile = filled
+    ? {
+        ...EMPTY_PROFILE,
+        pilotName: 'Renate Gouveia',
+        gliderType: 'Ozone Rush 6',
+        gliderId: 'D-1234',
+        registrationId: null,
+        homeSite: 'Bukit Bubus',
+      }
+    : EMPTY_PROFILE;
+  const stats = filled
+    ? { flightCount: 6, airtimeMs: 8 * 3_600_000 + 31 * 60_000, sinceLabel: 'AUG 26' }
+    : { flightCount: 0, airtimeMs: 0, sinceLabel: null };
+  const capacity = evaluateGuestCapacity({
+    savedFlights: filled ? 6 : 0,
+    authStatus: 'signed_out',
+    linkedUserId: null,
+  });
+  const backup = backupSummary(capacity);
   return (
     <ScrollView style={styles.kitScreen} contentContainerStyle={styles.kit}>
       <TopBar title="Account" right={<Chip label="preview" tone="muted" />} />
+      <View style={styles.group}>
+        <IdentityCard profile={profile} stats={stats} onEdit={noop} />
+      </View>
+      <Group title="Backup">
+        <Card className="px-[16px] py-[12px]">
+          <Text style={styles.cardText}>{`${backup.headline}${backup.value ? `  ·  ${backup.value}` : ''}`}</Text>
+          {backup.meter ? (
+            <View style={styles.meterWrap}>
+              <Meter value={backup.meter.value} max={backup.meter.max} tone={backup.meter.tone} />
+            </View>
+          ) : null}
+          <Text style={styles.previewNote}>{backup.detail}</Text>
+        </Card>
+      </Group>
       <Group title="Pilot">
-        <PilotProfileCard
-          values={
-            filled
-              ? {
-                  pilotName: 'Renate Gouveia',
-                  gliderType: 'Ozone Rush 6',
-                  gliderId: 'D-1234',
-                  homeSite: 'Sopelana',
-                }
-              : EMPTY_PILOT_PROFILE_FORM
-          }
-          onChange={noop}
-          dirty={filled}
-          saving={false}
-          onSave={noop}
-        />
-        <Disclaimer align="left">
-          {filled
-            ? 'IGC files will record Renate Gouveia flying Ozone Rush 6.'
-            : 'IGC files record the pilot as UNSPECIFIED until you fill this in.'}
-        </Disclaimer>
+        <Card className="px-[16px] py-[4px]">
+          <ListRow label="Pilot name" value={profile.pilotName ?? 'Not set'} mono={false} />
+          <ListRow label="Registration ID" value={profile.registrationId ?? 'Not set'} mono={false} />
+          <ListRow label="Glider" value={profile.gliderType ?? 'Not set'} mono={false} />
+          <ListRow label="Home site" value={profile.homeSite ?? 'Not set'} mono={false}
+            detail="From your flights — picked from where you launch most." last />
+        </Card>
+      </Group>
+      <Group title="How it lands in the file">
+        <Card className="px-[16px] py-[12px]">
+          {igcHeaderPreview(profile).map((line) => (
+            <Text key={line} style={styles.igcLine}>
+              {line}
+            </Text>
+          ))}
+        </Card>
       </Group>
     </ScrollView>
   );
@@ -336,6 +567,18 @@ export default function PreviewRoute() {
   if (set === 'account-signed-in') return <BackupPreview state="signed-in" />;
   if (set === 'account-unconfigured') return <BackupPreview state="unconfigured" />;
   if (set === 'account-error') return <BackupPreview state="error" />;
+  if (set === 'logbook-setup-done') return <FreshLogbookPreview skipped={false} />;
+  if (set === 'logbook-setup-skipped') return <FreshLogbookPreview skipped />;
+  if (set === 'setup-welcome') return <SetupPreview set="welcome" />;
+  if (set === 'setup-pilot') return <SetupPreview set="pilot" />;
+  if (set === 'setup-glider') return <SetupPreview set="glider" />;
+  if (set === 'setup-location') return <SetupPreview set="location" />;
+  if (set === 'setup-location-granted') return <SetupPreview set="location-granted" />;
+  if (set === 'setup-backup') return <SetupPreview set="backup" />;
+  if (set === 'capacity-near') return <CapacityPreview saved={8} removable />;
+  if (set === 'capacity-full') return <CapacityPreview saved={10} removable />;
+  if (set === 'capacity-over') return <CapacityPreview saved={11} removable />;
+  if (set === 'capacity-over-blocked') return <CapacityPreview saved={11} removable={false} />;
   return <KitPreview />;
 }
 
@@ -347,4 +590,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   cardText: { fontFamily: fonts.sans, fontSize: 13.5, color: paper.text },
   cardTextOnDark: { fontFamily: fonts.sans, fontSize: 13.5, color: paper.onDark },
+  meterWrap: { paddingVertical: 9 },
+  previewNote: { fontFamily: fonts.sans, fontSize: 11.5, lineHeight: 16.5, color: paper.text },
+  igcLine: { fontFamily: fonts.mono, fontSize: 11, lineHeight: 16, color: paper.text },
 });

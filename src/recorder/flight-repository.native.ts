@@ -3,6 +3,7 @@ import { File } from 'expo-file-system';
 import {
   completePendingFileDeletion,
   deleteCompletedFlight,
+  getAppSettings,
   getPilotProfile,
   getFlightBySessionId,
   getFlightDetail,
@@ -11,6 +12,7 @@ import {
   listPendingFileDeletions,
   setFlightStatus,
   updateFlightMetadata,
+  updateAppSettings,
   updatePilotProfile,
   upsertFlightMetrics,
 } from './database.native';
@@ -19,6 +21,9 @@ import {
   FLIGHT_METRICS_ALGORITHM_VERSION,
 } from './flight-metrics';
 import type {
+  AppSettings,
+  AppSettingsPatch,
+  AppSettingsRepository,
   FlightDetail,
   FlightMetadataPatch,
   FlightRepository,
@@ -135,4 +140,13 @@ export const flightRepository: FlightRepository = {
 export const pilotProfileRepository: PilotProfileRepository = {
   getProfile: (): Promise<PilotProfile> => getPilotProfile(),
   updateProfile: (patch: PilotProfilePatch): Promise<PilotProfile> => updatePilotProfile(patch),
+};
+
+/**
+ * Kept out of `pilot_profile` on purpose: pushing a profile to the cloud must never be
+ * able to leak whether this person has seen the intro. Separate table, separate facade.
+ */
+export const appSettingsRepository: AppSettingsRepository = {
+  getSettings: (): Promise<AppSettings> => getAppSettings(),
+  updateSettings: (patch: AppSettingsPatch): Promise<AppSettings> => updateAppSettings(patch),
 };

@@ -4,6 +4,7 @@
  * Barrel export so consumers import from one place (`@/components/ui`) regardless of how the
  * files are split. This replaced the single 798-line `flight-ui.tsx`.
  */
+export { Avatar } from './avatar';
 export { BusyRow } from './busy-row';
 export { Button, type ButtonVariant } from './button';
 export { Card } from './card';
@@ -14,6 +15,7 @@ export { Input } from './input';
 export { LinkButton } from './link-button';
 export { ListRow } from './list-row';
 export { LoadingScreen } from './loading-screen';
+export { Meter } from './meter';
 export { Notice } from './notice';
 export { PulseDot } from './pulse-dot';
 export { Screen } from './screen';

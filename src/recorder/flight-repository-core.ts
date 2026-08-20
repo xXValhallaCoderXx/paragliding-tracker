@@ -6,7 +6,7 @@ import type {
   SessionRecord,
 } from './types';
 
-export const LATEST_DATABASE_VERSION = 5;
+export const LATEST_DATABASE_VERSION = 6;
 
 export const EXPECTED_V1_TABLE_COLUMNS = Object.freeze({
   sessions: [
@@ -172,6 +172,22 @@ export const EXPECTED_V5_TABLE_COLUMNS = Object.freeze({
 export const EXPECTED_V5_INDEX_NAMES = Object.freeze([
   'flight_sync_state_retry_order',
   'flight_deletions_retry_order',
+] as const);
+
+export const EXPECTED_V6_TABLE_COLUMNS = Object.freeze({
+  pilot_profile: ['registration_id', 'home_site_source'],
+  flights: ['takeoff_latitude', 'takeoff_longitude', 'site_source', 'site_resolved_at'],
+  app_settings: [
+    'id',
+    'onboarding_state',
+    'onboarding_completed_at',
+    'disclaimer_ack_at',
+    'updated_at',
+  ],
+} as const);
+
+export const EXPECTED_V6_INDEX_NAMES = Object.freeze([
+  'flights_pending_site_resolution',
 ] as const);
 
 export const CREATE_V1_SCHEMA_SQL = `
@@ -431,6 +447,68 @@ export const MIGRATE_V5_SCHEMA_SQL = `
     ON flight_deletions (next_attempt_at, flight_id);
 `;
 
+export const MIGRATE_V6_SCHEMA_SQL = `
+  -- The pilot's federation or licence number. Deliberately a new column rather than a
+  -- reuse of glider_id: that one is the glider's registration and rides in
+  -- HFGIDGLIDERID, while this is a property of the person and rides in
+  -- HFCIDCOMPETITIONID. Conflating them would put a licence number in a glider field.
+  ALTER TABLE pilot_profile ADD COLUMN registration_id TEXT;
+
+  -- 'auto' lets home_site follow wherever the pilot actually launches most. 'manual'
+  -- is a latch: once they set it themselves, derivation must never touch it again.
+  -- Existing rows default to 'auto' because nobody has overridden anything yet.
+  ALTER TABLE pilot_profile ADD COLUMN home_site_source TEXT NOT NULL DEFAULT 'auto'
+    CHECK (home_site_source IN ('auto', 'manual'));
+
+  -- home_site shipped in v5 as a hand-typed field, so anyone who filled it in has
+  -- already overridden it. Without this they would be treated as never having chosen,
+  -- and the first derivation pass would quietly replace their answer with a guess.
+  UPDATE pilot_profile SET home_site_source = 'manual' WHERE id = 1 AND home_site IS NOT NULL;
+
+  -- Denormalised from the first export-eligible fix when the flight is finalized, so
+  -- naming a launch never needs a foreground GPS read. Local only: the cloud flights
+  -- table is unchanged, and raw position evidence is deliberately never uploaded.
+  -- Left NULL for flights recorded before v6; the resolver backfills them lazily
+  -- rather than walking every location_fixes row inside the migration transaction.
+  ALTER TABLE flights ADD COLUMN takeoff_latitude REAL;
+  ALTER TABLE flights ADD COLUMN takeoff_longitude REAL;
+
+  -- NULL means nobody has said anything about this flight's site, and is the resolver's
+  -- work queue. 'gps' means the reverse geocoder named it. 'manual' means the pilot
+  -- typed it, and is what stops the geocoder ever overwriting their words. 'none' is
+  -- the terminal answer for a launch that genuinely has no name — mid-ocean, a blank
+  -- map region, a device with no Geocoder — without which those flights would be
+  -- retried on every pass for the life of the install.
+  ALTER TABLE flights ADD COLUMN site_source TEXT
+    CHECK (site_source IS NULL OR site_source IN ('gps', 'manual', 'none'));
+  ALTER TABLE flights ADD COLUMN site_resolved_at INTEGER;
+
+  -- Every existing flight already has a site the pilot typed, or none at all. Marking
+  -- the typed ones 'manual' now is what makes the resolver's "never overwrite" rule
+  -- true retroactively, instead of only for flights recorded from here on.
+  UPDATE flights SET site_source = 'manual' WHERE site IS NOT NULL;
+
+  -- Drives the resolver's work queue. The takeoff-coordinate clause matters: every
+  -- pre-v6 flight has a NULL site_source, and without it the whole legacy logbook would
+  -- sit in this index forever as work that can never be done.
+  CREATE INDEX flights_pending_site_resolution
+    ON flights (started_at DESC)
+    WHERE site_source IS NULL AND takeoff_latitude IS NOT NULL;
+
+  -- Device-scoped app state that is not the pilot's data and never syncs. Single row,
+  -- same CHECK-based shape as pilot_profile and cloud_link.
+  CREATE TABLE app_settings (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    onboarding_state TEXT NOT NULL DEFAULT 'pending'
+      CHECK (onboarding_state IN ('pending', 'done', 'skipped')),
+    onboarding_completed_at INTEGER,
+    disclaimer_ack_at INTEGER,
+    updated_at INTEGER NOT NULL
+  );
+
+  INSERT INTO app_settings (id, updated_at) VALUES (1, 0);
+`;
+
 export const BACKFILL_FLIGHTS_SQL = `
   INSERT OR IGNORE INTO flights (
     id, recording_session_id, status, started_at, ended_at,
@@ -489,6 +567,10 @@ export function getSchemaMigrationSteps(
   }
   if (version < 5) {
     steps.push({ version: 5, statements: [MIGRATE_V5_SCHEMA_SQL] });
+    version = 5;
+  }
+  if (version < 6) {
+    steps.push({ version: 6, statements: [MIGRATE_V6_SCHEMA_SQL] });
   }
   return steps;
 }
@@ -527,12 +609,31 @@ const PILOT_PROFILE_LIMITS = Object.freeze({
   pilotName: 60,
   gliderType: 60,
   gliderId: 30,
+  registrationId: 30,
   homeSite: 120,
 });
 
 export function normalizePilotProfilePatch(patch: PilotProfilePatch): PilotProfilePatch {
   const normalized: PilotProfilePatch = {};
-  for (const field of ['pilotName', 'gliderType', 'gliderId', 'homeSite'] as const) {
+
+  // Handled before the text fields and deliberately not trimmed or length-checked: it is
+  // an enum backed by a column CHECK, so an unknown value has to fail here rather than
+  // blow up inside the write transaction.
+  if (Object.prototype.hasOwnProperty.call(patch, 'homeSiteSource')) {
+    const source = patch.homeSiteSource;
+    if (source !== 'auto' && source !== 'manual') {
+      throw new TypeError(`homeSiteSource must be 'auto' or 'manual', got ${String(source)}.`);
+    }
+    normalized.homeSiteSource = source;
+  }
+
+  for (const field of [
+    'pilotName',
+    'gliderType',
+    'gliderId',
+    'registrationId',
+    'homeSite',
+  ] as const) {
     if (!Object.prototype.hasOwnProperty.call(patch, field)) continue;
     const value = patch[field];
     if (value !== null && typeof value !== 'string') {

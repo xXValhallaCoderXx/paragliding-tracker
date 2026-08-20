@@ -114,6 +114,14 @@ export interface ExportArtifact {
 
 export interface CaptureService {
   getCapabilities(): Promise<RecorderCapabilities>;
+  /**
+   * Asks for the location permissions the recorder needs, without arming anything.
+   *
+   * Deliberately non-throwing: first-run setup wants to show the pilot what they granted
+   * and let them carry on either way, whereas `arm()` has to refuse. Returns the
+   * capabilities as they stand afterwards.
+   */
+  requestLocationPermissions(): Promise<RecorderCapabilities>;
   arm(): Promise<{ flightId: string; sessionId: string }>;
   stop(): Promise<void>;
   recover(): Promise<RecorderSnapshot>;
@@ -183,6 +191,17 @@ export interface SessionRecoveryProof extends SessionRecoveryAttempt {
   confirmedAt: number;
 }
 
+/**
+ * Where a flight's site name came from.
+ *
+ * `manual` is a latch: it means the pilot typed it, and the reverse geocoder must never
+ * overwrite it. `null` means nobody has said anything yet, which is the resolver's queue.
+ * `none` is the terminal answer for a launch that has no name to find — geocoding
+ * returning no result is a success, and without a value for it the flight would be
+ * retried forever.
+ */
+export type SiteSource = 'gps' | 'manual' | 'none';
+
 export interface FlightRecord {
   id: string;
   recordingSessionId: string;
@@ -193,6 +212,11 @@ export interface FlightRecord {
   title: string | null;
   site: string | null;
   notes: string | null;
+  /** First export-eligible fix, denormalised at finalize so naming a launch needs no GPS read. */
+  takeoffLatitude: number | null;
+  takeoffLongitude: number | null;
+  siteSource: SiteSource | null;
+  siteResolvedAt: number | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -242,11 +266,41 @@ export interface FlightRepository {
  * it is what fills the IGC HFPLTPILOTINCHARGE / HFGTYGLIDERTYPE / HFGIDGLIDERID
  * headers. Cloud backup mirrors it, but never owns it.
  */
+/**
+ * Whether the pilot has been through first-run setup.
+ *
+ * `skipped` is distinct from `done` on purpose: the logbook uses it to decide whether to
+ * offer the "two things before you fly" checklist, which would be noise for someone who
+ * completed setup and simply left a field blank.
+ */
+export type OnboardingState = 'pending' | 'done' | 'skipped';
+
+export interface AppSettings {
+  onboardingState: OnboardingState;
+  onboardingCompletedAt: number | null;
+  /** When the "not a certified flight recorder" notice was acknowledged. */
+  disclaimerAckAt: number | null;
+  updatedAt: number;
+}
+
+export interface AppSettingsPatch {
+  onboardingState?: OnboardingState;
+  onboardingCompletedAt?: number | null;
+  disclaimerAckAt?: number | null;
+}
+
+/** Whether home_site follows the pilot's flights, or was pinned by hand. */
+export type HomeSiteSource = 'auto' | 'manual';
+
 export interface PilotProfile {
   pilotName: string | null;
   gliderType: string | null;
+  /** The glider's own registration. Rides in HFGIDGLIDERID. */
   gliderId: string | null;
+  /** The pilot's licence or federation number. Rides in HFCIDCOMPETITIONID. */
+  registrationId: string | null;
   homeSite: string | null;
+  homeSiteSource: HomeSiteSource;
   updatedAt: number;
   pushedUpdatedAt: number | null;
 }
@@ -255,12 +309,29 @@ export interface PilotProfilePatch {
   pilotName?: string | null;
   gliderType?: string | null;
   gliderId?: string | null;
+  registrationId?: string | null;
   homeSite?: string | null;
+  /**
+   * Set to `manual` when the pilot types a home site themselves. An enum, not free text —
+   * it is validated rather than trimmed, and a bad value throws here instead of hitting
+   * the column CHECK inside a transaction.
+   */
+  homeSiteSource?: HomeSiteSource;
 }
 
 export interface PilotProfileRepository {
   getProfile(): Promise<PilotProfile>;
   updateProfile(patch: PilotProfilePatch): Promise<PilotProfile>;
+}
+
+/**
+ * Device state that is not the pilot's data: whether they have been through setup, and
+ * whether they have acknowledged the "not a certified flight recorder" notice. Never
+ * synced, never exported.
+ */
+export interface AppSettingsRepository {
+  getSettings(): Promise<AppSettings>;
+  updateSettings(patch: AppSettingsPatch): Promise<AppSettings>;
 }
 
 /**

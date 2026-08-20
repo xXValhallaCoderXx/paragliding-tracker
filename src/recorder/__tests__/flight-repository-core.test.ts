@@ -7,6 +7,9 @@ import {
   EXPECTED_V4_TABLE_COLUMNS,
   EXPECTED_V5_INDEX_NAMES,
   EXPECTED_V5_TABLE_COLUMNS,
+  EXPECTED_V6_INDEX_NAMES,
+  EXPECTED_V6_TABLE_COLUMNS,
+  MIGRATE_V6_SCHEMA_SQL,
   LATEST_DATABASE_VERSION,
   MIGRATE_V3_SCHEMA_SQL,
   MIGRATE_V4_SCHEMA_SQL,
@@ -17,15 +20,75 @@ import {
   normalizePilotProfilePatch,
 } from '../flight-repository-core';
 
+describe('pilot profile patch normalization', () => {
+  it('validates homeSiteSource rather than trimming it', () => {
+    // It is an enum backed by a column CHECK. Trimming and length-limiting it would be
+    // meaningless, and a bad value has to fail before the write transaction, not inside it.
+    expect(normalizePilotProfilePatch({ homeSiteSource: 'manual' })).toEqual({
+      homeSiteSource: 'manual',
+    });
+    expect(() =>
+      normalizePilotProfilePatch({ homeSiteSource: 'AUTO' as never }),
+    ).toThrow(/homeSiteSource/);
+  });
+
+  it('carries registrationId through with the text fields', () => {
+    // Guards the silent-drop failure: the field is normalized here, but it also has to be
+    // in PILOT_PROFILE_COLUMNS or the UPDATE never writes it.
+    expect(normalizePilotProfilePatch({ registrationId: '  appi-123  ' })).toEqual({
+      registrationId: 'appi-123',
+    });
+    expect(normalizePilotProfilePatch({ registrationId: '   ' })).toEqual({
+      registrationId: null,
+    });
+  });
+
+  it('leaves untouched fields out entirely, so a partial patch stays partial', () => {
+    expect(normalizePilotProfilePatch({ pilotName: 'Renate' })).toEqual({
+      pilotName: 'Renate',
+    });
+  });
+});
+
 describe('recorder database migration plan', () => {
   it('runs each schema step once for fresh, v1, and v2 databases', () => {
-    expect(LATEST_DATABASE_VERSION).toBe(5);
-    expect(getSchemaMigrationSteps(0, true).map((step) => step.version)).toEqual([1, 2, 3, 4, 5]);
-    expect(getSchemaMigrationSteps(1, false).map((step) => step.version)).toEqual([2, 3, 4, 5]);
-    expect(getSchemaMigrationSteps(2, false).map((step) => step.version)).toEqual([3, 4, 5]);
-    expect(getSchemaMigrationSteps(3, false).map((step) => step.version)).toEqual([4, 5]);
-    expect(getSchemaMigrationSteps(4, false).map((step) => step.version)).toEqual([5]);
-    expect(getSchemaMigrationSteps(5, false)).toEqual([]);
+    expect(LATEST_DATABASE_VERSION).toBe(6);
+    expect(getSchemaMigrationSteps(0, true).map((step) => step.version)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(getSchemaMigrationSteps(1, false).map((step) => step.version)).toEqual([2, 3, 4, 5, 6]);
+    expect(getSchemaMigrationSteps(2, false).map((step) => step.version)).toEqual([3, 4, 5, 6]);
+    expect(getSchemaMigrationSteps(3, false).map((step) => step.version)).toEqual([4, 5, 6]);
+    expect(getSchemaMigrationSteps(4, false).map((step) => step.version)).toEqual([5, 6]);
+    expect(getSchemaMigrationSteps(5, false).map((step) => step.version)).toEqual([6]);
+    expect(getSchemaMigrationSteps(6, false)).toEqual([]);
+  });
+
+  it('adds onboarding state and site provenance in v6', () => {
+    expect(EXPECTED_V6_INDEX_NAMES).toEqual(['flights_pending_site_resolution']);
+    expect(Object.keys(EXPECTED_V6_TABLE_COLUMNS)).toEqual([
+      'pilot_profile',
+      'flights',
+      'app_settings',
+    ]);
+    // registration_id is a new column, not a rename: glider_id still carries the
+    // glider's own registration into HFGIDGLIDERID.
+    expect(EXPECTED_V6_TABLE_COLUMNS.pilot_profile).toContain('registration_id');
+    expect(EXPECTED_V5_TABLE_COLUMNS.pilot_profile).toContain('glider_id');
+  });
+
+  it('marks every pre-v6 flight that already has a site as manually named', () => {
+    // Without this the reverse geocoder would be free to overwrite sites the pilot
+    // typed before v6, because those rows have no provenance recorded.
+    expect(MIGRATE_V6_SCHEMA_SQL).toContain(
+      "UPDATE flights SET site_source = 'manual' WHERE site IS NOT NULL",
+    );
+  });
+
+  it('does not walk location_fixes inside the v6 transaction', () => {
+    // The whole migration runs in one exclusive transaction and a real device holds
+    // hundreds of thousands of fix rows. Takeoff coordinates are backfilled lazily.
+    // Comments are stripped first: the SQL explains that decision in prose.
+    const statements = MIGRATE_V6_SCHEMA_SQL.replace(/--[^\n]*/g, '');
+    expect(statements).not.toContain('location_fixes');
   });
 
   it('adds cloud backup bookkeeping in v5 without touching the recorder tables', () => {

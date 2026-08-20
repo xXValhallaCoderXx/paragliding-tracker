@@ -169,19 +169,25 @@ class SupabaseAuthService implements CloudAuthService {
       // 'email' is the type Supabase documents for the signInWithOtp flow, and it is
       // what an existing user's code verifies against.
       //
-      // A brand-new address takes a different path server-side: signInWithOtp with
-      // shouldCreateUser sends the "Confirm signup" template rather than "Magic Link",
-      // and it is not documented whether the resulting token verifies under 'email' or
-      // only under 'signup'. We could not settle it from the docs, the type definitions,
-      // or by probing /auth/v1/verify (the server checks the token before the type, so
-      // an invalid type is indistinguishable from an invalid token).
+      // A brand-new address takes a different path server-side. That signInWithOtp with
+      // shouldCreateUser sends the "Confirm signup" template rather than "Magic Link" is
+      // now CONFIRMED, not suspected: a first-time sign-in on a real device produced the
+      // stock Confirm-signup body, and Supabase documents it ("when signInWithOtp is used
+      // with new users, the signup confirmation template is deployed"). Both templates
+      // now live in supabase/templates/ and render {{ .Token }}.
+      //
+      // What is still unsettled is whether the resulting token verifies under 'email' or
+      // only under 'signup'. It cannot be probed from outside: /auth/v1/verify checks the
+      // token before the type, so a wrong type is indistinguishable from a wrong code.
       //
       // Getting this wrong would break every first-ever sign-up while working perfectly
       // for the developer's own already-existing account — so rather than guess, fall
       // back to 'signup' once. The cost is one extra request on a mistyped code; the
       // cost of being wrong is nobody can create an account.
       //
-      // Once a real first-time sign-in is confirmed on device, this fallback can go.
+      // The __DEV__ warn below is the diagnostic: watch Metro during a first-time
+      // sign-in. If it fires, the fallback is load-bearing and this comment should say
+      // so permanently. If it never fires, the fallback is dead code and can go.
       const session = await this.verifyOtpAs(normalizedEmail, token, 'email').catch(
         async (firstError: unknown) => {
           if (!isOtpRejection(firstError)) throw firstError;

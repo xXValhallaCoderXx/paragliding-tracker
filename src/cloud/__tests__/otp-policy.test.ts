@@ -1,4 +1,4 @@
-import { CLOUD_CONFIG } from '../config';
+import { CLOUD_CONFIG, OTP_LENGTH } from '../config';
 import {
   canResend,
   isCodeExpired,
@@ -41,16 +41,17 @@ describe('email normalisation and validation', () => {
 
 describe('code normalisation', () => {
   it('accepts a code pasted with the spacing an email client added', () => {
-    expect(normalizeOtpCode('123 456')).toBe('123456');
-    expect(normalizeOtpCode('123-456')).toBe('123456');
-    expect(normalizeOtpCode(' 1 2 3 4 5 6 ')).toBe('123456');
+    expect(normalizeOtpCode('1234 5678')).toBe('12345678');
+    expect(normalizeOtpCode('1234-5678')).toBe('12345678');
+    expect(normalizeOtpCode(' 1 2 3 4 5 6 7 8 ')).toBe('12345678');
   });
 
-  it('drops anything that is not a digit and never exceeds six', () => {
-    expect(normalizeOtpCode('12ab34cd56ef78')).toBe('123456');
-    expect(isCompleteOtpCode('12345')).toBe(false);
-    expect(isCompleteOtpCode('123456')).toBe(true);
-    expect(isCompleteOtpCode('1234567')).toBe(true);
+  it('drops anything that is not a digit and never exceeds the configured length', () => {
+    expect(OTP_LENGTH).toBe(8);
+    expect(normalizeOtpCode('12ab34cd56ef78gh90')).toBe('12345678');
+    expect(isCompleteOtpCode('1234567')).toBe(false);
+    expect(isCompleteOtpCode('12345678')).toBe(true);
+    expect(isCompleteOtpCode('123456789')).toBe(true);
   });
 });
 

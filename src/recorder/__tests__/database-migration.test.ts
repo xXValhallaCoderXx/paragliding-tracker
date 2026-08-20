@@ -18,6 +18,8 @@ import {
   EXPECTED_V4_TABLE_COLUMNS,
   EXPECTED_V5_INDEX_NAMES,
   EXPECTED_V5_TABLE_COLUMNS,
+  EXPECTED_V6_INDEX_NAMES,
+  EXPECTED_V6_TABLE_COLUMNS,
 } from '../flight-repository-core';
 
 jest.mock('expo-sqlite', () => ({
@@ -39,7 +41,7 @@ class StructurallyValidDatabase {
     ),
   ]);
 
-  constructor(userVersion: 2 | 3 | 4 | 5 = 2) {
+  constructor(userVersion: 2 | 3 | 4 | 5 | 6 = 2) {
     this.userVersion = userVersion;
     if (userVersion >= 3) {
       this.applySchema(EXPECTED_V3_TABLE_COLUMNS, EXPECTED_V3_INDEX_NAMES);
@@ -49,6 +51,9 @@ class StructurallyValidDatabase {
     }
     if (userVersion >= 5) {
       this.applySchema(EXPECTED_V5_TABLE_COLUMNS, EXPECTED_V5_INDEX_NAMES);
+    }
+    if (userVersion >= 6) {
+      this.applySchema(EXPECTED_V6_TABLE_COLUMNS, EXPECTED_V6_INDEX_NAMES);
     }
   }
 
@@ -120,6 +125,11 @@ class StructurallyValidDatabase {
       this.applySchema(EXPECTED_V5_TABLE_COLUMNS, EXPECTED_V5_INDEX_NAMES);
       return;
     }
+    if (source.includes('CREATE TABLE app_settings')) {
+      this.trace.push('migrate:v6');
+      this.applySchema(EXPECTED_V6_TABLE_COLUMNS, EXPECTED_V6_INDEX_NAMES);
+      return;
+    }
     const version = source.match(/PRAGMA user_version = (\d+)/)?.[1];
     if (version) {
       this.userVersion = Number(version);
@@ -141,12 +151,12 @@ class StructurallyValidDatabase {
 describe('native database migration ordering', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('accepts a structurally valid v2 database and runs v3, v4 then v5 in order', async () => {
+  it('accepts a structurally valid v2 database and runs v3 through v6 in order', async () => {
     const database = new StructurallyValidDatabase(2);
 
     await migrateDatabase(database as unknown as SQLite.SQLiteDatabase);
 
-    expect(database.userVersion).toBe(5);
+    expect(database.userVersion).toBe(6);
     expect(database.tables.get('sessions')).toContain('last_location_callback_at');
     expect(database.tables.get('sessions')).toContain('manual_stop_at');
     expect(database.tables.has('session_recovery_attempts')).toBe(true);
@@ -163,6 +173,11 @@ describe('native database migration ordering', () => {
     expect(database.trace.indexOf('migrate:v5')).toBeGreaterThan(
       database.trace.indexOf('migrate:v4'),
     );
+    expect(database.trace.indexOf('migrate:v6')).toBeGreaterThan(
+      database.trace.indexOf('migrate:v5'),
+    );
+    expect(database.tables.has('app_settings')).toBe(true);
+    expect(database.tables.get('flights')).toContain('takeoff_latitude');
     expect(database.trace.slice(database.trace.indexOf('migrate:v4') + 1)).toContain(
       'inspect:sessions:v4',
     );
@@ -170,12 +185,12 @@ describe('native database migration ordering', () => {
     expect(SQLite.deleteDatabaseAsync).toHaveBeenCalledTimes(1);
   });
 
-  it('accepts a structurally valid v3 database and adds v4 and v5 only after validating v3', async () => {
+  it('accepts a structurally valid v3 database and adds v4 onward only after validating v3', async () => {
     const database = new StructurallyValidDatabase(3);
 
     await migrateDatabase(database as unknown as SQLite.SQLiteDatabase);
 
-    expect(database.userVersion).toBe(5);
+    expect(database.userVersion).toBe(6);
     expect(database.trace).not.toContain('migrate:v3');
     expect(database.trace.indexOf('migrate:v4')).toBeGreaterThan(
       database.trace.indexOf('inspect:sessions:v3'),
@@ -186,12 +201,12 @@ describe('native database migration ordering', () => {
     expect(SQLite.deleteDatabaseAsync).toHaveBeenCalledTimes(1);
   });
 
-  it('accepts a structurally valid v4 database and adds v5 only after validating v4', async () => {
+  it('accepts a structurally valid v4 database and adds v5 onward only after validating v4', async () => {
     const database = new StructurallyValidDatabase(4);
 
     await migrateDatabase(database as unknown as SQLite.SQLiteDatabase);
 
-    expect(database.userVersion).toBe(5);
+    expect(database.userVersion).toBe(6);
     expect(database.trace).not.toContain('migrate:v3');
     expect(database.trace).not.toContain('migrate:v4');
     // v4's own validation used to live only inside the "already latest" branch. It has
@@ -207,12 +222,51 @@ describe('native database migration ordering', () => {
     expect(SQLite.deleteDatabaseAsync).toHaveBeenCalledTimes(1);
   });
 
-  it('accepts a current v5 database without migrating or taking a backup', async () => {
+  it('accepts a structurally valid v5 database and adds only v6', async () => {
     const database = new StructurallyValidDatabase(5);
 
     await migrateDatabase(database as unknown as SQLite.SQLiteDatabase);
 
-    expect(database.userVersion).toBe(5);
+    expect(database.userVersion).toBe(6);
+    expect(database.trace.filter((entry) => entry.startsWith('migrate:'))).toEqual(['migrate:v6']);
+    expect(database.tables.has('app_settings')).toBe(true);
+    expect(database.tables.get('pilot_profile')).toContain('registration_id');
+    expect(database.indexes).toContain('flights_pending_site_resolution');
+    expect(SQLite.backupDatabaseAsync).toHaveBeenCalledTimes(1);
+    expect(SQLite.deleteDatabaseAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a v6 database whose v6 schema is incomplete', async () => {
+    // The regression guard for the validation ladder itself. Every positive test above
+    // passes whether or not migrateDatabase ever validates V6, because the fake applies
+    // the v6 schema to itself when it sees the migration SQL. Only removing a table the
+    // fake already has can prove the check runs.
+    const database = new StructurallyValidDatabase(6);
+    database.tables.delete('app_settings');
+
+    await expect(
+      migrateDatabase(database as unknown as SQLite.SQLiteDatabase),
+    ).rejects.toThrow(/app_settings/);
+  });
+
+  it('rejects a v5 database whose v5 schema is incomplete, before running v6', async () => {
+    // v5 used to be validated only in the "already latest" branch. Bumping to v6 moved
+    // that branch past it, which would have let a corrupt v5 database migrate unchecked.
+    const database = new StructurallyValidDatabase(5);
+    database.tables.delete('flight_sync_state');
+
+    await expect(
+      migrateDatabase(database as unknown as SQLite.SQLiteDatabase),
+    ).rejects.toThrow(/flight_sync_state/);
+    expect(database.trace).not.toContain('migrate:v6');
+  });
+
+  it('accepts a current v6 database without migrating or taking a backup', async () => {
+    const database = new StructurallyValidDatabase(6);
+
+    await migrateDatabase(database as unknown as SQLite.SQLiteDatabase);
+
+    expect(database.userVersion).toBe(6);
     expect(database.trace).not.toContain('transaction:begin');
     expect(database.trace.filter((entry) => entry.startsWith('migrate:'))).toEqual([]);
     expect(SQLite.backupDatabaseAsync).not.toHaveBeenCalled();

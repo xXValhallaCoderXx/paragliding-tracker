@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useCloudAuth } from '@/features/account/auth-provider';
 import { useCloudSync } from '@/features/account/cloud-sync-provider';
@@ -27,9 +27,15 @@ import {
   TopBar,
   UnsupportedScreen,
 } from '@/components/ui';
-import { flightRepository } from '@/recorder/flight-repository';
 import { recorderService } from '@/recorder/recorder-service';
 import type { ExportArtifact, FlightDetail, FlightMetadataPatch } from '@/recorder/types';
+import {
+  useDeleteFlightMutation,
+  useGetFlightQuery,
+  useGetFlightsQuery,
+  useUpdateFlightMutation,
+} from '@/store/endpoints';
+import { DATA_AVAILABLE } from '@/store/hooks';
 import {
   formatAirtime,
   formatDistance,
@@ -37,61 +43,51 @@ import {
   formatMetres,
   formatThousands,
 } from '@/lib/format/flight-format';
+import { removalGuidance } from '@/features/logbook/guest-capacity';
 import { flightInsight, flightInsightText } from '@/features/logbook/logbook';
 import { fonts, paper } from '@/ui/theme';
 
 export default function FlightDetailScreen() {
-  const { id, saved } = useLocalSearchParams<{ id: string; saved?: string }>();
+  const { id, saved, intent } = useLocalSearchParams<{
+    id: string;
+    saved?: string;
+    intent?: string;
+  }>();
   const router = useRouter();
   const auth = useCloudAuth();
   const sync = useCloudSync();
   // Whether this flight has a copy anywhere but this phone, which changes what the
   // delete confirmation is honestly able to promise.
   const backedUp = auth.status === 'signed_in';
-  const [flight, setFlight] = useState<FlightDetail | null>(null);
   const [form, setForm] = useState<MetadataFormValues>({ title: '', site: '', notes: '' });
-  const [insight, setInsight] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; tone: 'good' | 'danger' } | null>(null);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
 
-  const loadFlight = useCallback(async () => {
-    if (Platform.OS === 'web' || !id) return;
-    setLoading(true);
-    setMessage(null);
-    try {
-      const nextFlight = await flightRepository.getFlight(id);
-      if (!nextFlight) {
-        setFlight(null);
-        setMessage({ text: 'This flight no longer exists on this phone.', tone: 'danger' });
-        return;
-      }
-      setFlight(nextFlight);
-      setForm({
-        title: nextFlight.title ?? '',
-        site: nextFlight.site ?? '',
-        notes: nextFlight.notes ?? '',
-      });
-      try {
-        const all = await flightRepository.listFlights();
-        const found = flightInsight(nextFlight, all);
-        setInsight(found ? flightInsightText(found) : null);
-      } catch {
-        setInsight(null);
-      }
-    } catch (error) {
-      setMessage({ text: messageFrom(error), tone: 'danger' });
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  const skip = !DATA_AVAILABLE || !id;
+  const { data: flight = null, isLoading: loading } = useGetFlightQuery(id!, { skip });
+  // The insight sentence needs the rest of the logbook to rank this flight against. This
+  // used to be a second, serial full-table read on every open; it is now the same cache
+  // entry the logbook already holds, so arriving from the logbook costs nothing.
+  const { data: allFlights } = useGetFlightsQuery(undefined, { skip });
+  const [updateFlight] = useUpdateFlightMutation();
+  const [deleteFlight] = useDeleteFlightMutation();
 
-  useFocusEffect(
-    useCallback(() => {
-      void loadFlight();
-    }, [loadFlight]),
-  );
+  const insight = useMemo(() => {
+    if (!flight || !allFlights) return null;
+    const found = flightInsight(flight, allFlights);
+    return found ? flightInsightText(found) : null;
+  }, [flight, allFlights]);
+
+  // Seed the form from whatever the cache holds, and re-seed if the flight changes
+  // underneath us — a remote pull can rewrite title/site/notes.
+  const [seededId, setSeededId] = useState<string | null>(null);
+  const [seededAt, setSeededAt] = useState<number | null>(null);
+  if (flight && (seededId !== flight.id || seededAt !== flight.updatedAt)) {
+    setSeededId(flight.id);
+    setSeededAt(flight.updatedAt);
+    setForm({ title: flight.title ?? '', site: flight.site ?? '', notes: flight.notes ?? '' });
+  }
 
   const patch = useMemo<FlightMetadataPatch>(
     () => ({
@@ -135,8 +131,9 @@ export default function FlightDetailScreen() {
 
   async function saveDetails() {
     if (!flight) return;
-    await flightRepository.updateFlight(flight.id, patch);
-    await loadFlight();
+    // The mutation invalidates this flight and the list, so the logbook, account and
+    // settings screens all refresh themselves. No manual reload here any more.
+    await updateFlight({ flightId: flight.id, patch }).unwrap();
     setMessage({ text: 'Flight details saved.', tone: 'good' });
     // The edit bumped flights.updated_at, which is what makes it dirty for backup.
     sync.requestSync('post-save');
@@ -172,7 +169,7 @@ export default function FlightDetailScreen() {
           style: 'destructive',
           onPress: () =>
             void runAction('Deleting flight…', async () => {
-              await flightRepository.deleteFlight(flight.id);
+              await deleteFlight(flight.id).unwrap();
               // The delete left a tombstone; push it before the pilot forgets about it.
               sync.requestSync('post-save');
               router.replace('/');
@@ -213,6 +210,9 @@ export default function FlightDetailScreen() {
   const status = detailStatus(flight);
   const savedContext: SavedContext =
     saved === 'stopped' || saved === 'partial' ? (saved as SavedContext) : null;
+  // Only once the flight is actually deletable: pointing a pilot at a delete button the
+  // repository would refuse is the failure the capacity banner exists to avoid.
+  const removing = intent === 'remove' && canDelete ? removalGuidance(flight) : null;
   const heroIsDistance = Boolean(metrics && metrics.trackDistanceMetres > 0);
 
   return (
@@ -225,8 +225,17 @@ export default function FlightDetailScreen() {
 
           <FlightHero flight={flight} status={status} saved={savedContext} insight={insight} />
 
-          {isOpen || isProcessing || metrics?.quality !== 'healthy' || message ? (
+          {isOpen || isProcessing || metrics?.quality !== 'healthy' || message || removing ? (
             <View style={styles.notices}>
+              {removing ? (
+                // The pilot arrived from the logbook's capacity banner. Say why they are
+                // here and point at the export, but never open the delete dialog for
+                // them — an unexpected destructive prompt on arrival is worse than the
+                // banner that sent them.
+                <Notice tone="warning" title={removing.title}>
+                  {removing.body}
+                </Notice>
+              ) : null}
               {isOpen ? (
                 <Notice tone={flight.sessionStatus === 'interrupted' ? 'danger' : 'info'} title="This flight is still open">
                   {flight.sessionStatus === 'interrupted'

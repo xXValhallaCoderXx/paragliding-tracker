@@ -3,26 +3,46 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button, Disclaimer } from '@/components/ui';
 import { fonts, paper } from '@/ui/theme';
 
+/**
+ * The first-flight empty state.
+ *
+ * Two variants, per design 2b. A pilot who completed setup is greeted by name and told
+ * their first entry will fill itself in, because it genuinely will — the wing and the
+ * site are already known. A pilot who skipped setup gets the plainer line, because
+ * promising pre-filled details we do not have would be a lie, and because the checklist
+ * card above is already asking for them.
+ */
 export function EmptyLogbook({
+  pilotName = null,
+  hasSetup = true,
   onRecord,
   disabled = false,
   busyLabel,
 }: {
+  pilotName?: string | null;
+  hasSetup?: boolean;
   onRecord: () => void;
   disabled?: boolean;
   busyLabel?: string | null;
 }) {
+  const title = !hasSetup
+    ? 'No flights yet.'
+    : pilotName
+      ? `Nothing here yet, ${pilotName.split(' ')[0]}.`
+      : 'Your logbook starts with one flight.';
+  const body = !hasSetup
+    ? 'You can record right now — the rest can be filled in when you land.'
+    : hasSetup && pilotName
+      ? 'Hit record on launch and your first entry writes itself — wing, site and times all filled in for you.'
+      : 'Tap record before you launch and stop after you land. The track and its stats stay on this phone — no account, no signal needed.';
   return (
     <View style={styles.wrap}>
       <View style={styles.placeholder} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Text style={styles.placeholderValue}>0:00</Text>
         <Text style={styles.placeholderLabel}>AIRTIME</Text>
       </View>
-      <Text style={styles.title}>Your logbook starts with one flight.</Text>
-      <Text style={styles.body}>
-        Tap record before you launch and stop after you land. The track and its stats stay on this
-        phone — no account, no signal needed.
-      </Text>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.body}>{body}</Text>
       <View style={styles.cta}>
         <Button
           label={busyLabel ?? 'Record your first flight'}

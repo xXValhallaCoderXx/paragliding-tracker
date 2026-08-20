@@ -57,6 +57,10 @@ function unsupported(): never {
 
 export const recorderService: RecorderService = {
   getCapabilities: async () => capabilities,
+  // Nothing to ask for: there is no recorder on web, so this reports the same
+  // permanently-unknown capabilities rather than throwing at a caller that only wants
+  // to render what the pilot granted.
+  requestLocationPermissions: async () => capabilities,
   arm: async () => unsupported(),
   stop: async () => undefined,
   recover: async () => snapshot,

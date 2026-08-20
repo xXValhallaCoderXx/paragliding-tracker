@@ -87,6 +87,13 @@ export interface SyncSnapshot {
   pendingDeletions: number;
   /** Flights the account holds that this device does not. Counted, not downloaded. */
   cloudOnlyFlights: number;
+  /**
+   * `cloud_link.user_id`: the account this device is bound to, or null if it never has
+   * been. Survives sign-out on purpose — it is how the logbook tells a pilot who simply
+   * signed out apart from one who has never had an account, so signing out is not a
+   * capacity cliff.
+   */
+  linkedUserId: string | null;
   lastError: string | null;
 }
 

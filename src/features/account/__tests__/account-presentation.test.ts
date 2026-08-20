@@ -4,10 +4,7 @@ import type { PilotProfile } from '@/recorder/types';
 import {
   cloudOnlySummary,
   describeSync,
-  formToPatch,
   igcHeaderSummary,
-  isProfileDirty,
-  profileToForm,
   relativeSyncTime,
 } from '../account-presentation';
 
@@ -15,7 +12,9 @@ const EMPTY: PilotProfile = {
   pilotName: null,
   gliderType: null,
   gliderId: null,
+  registrationId: null,
   homeSite: null,
+  homeSiteSource: 'auto',
   updatedAt: 0,
   pushedUpdatedAt: null,
 };
@@ -26,46 +25,6 @@ const FILLED: PilotProfile = {
   gliderType: 'Ozone Rush 6',
   updatedAt: 1_760_000_000_000,
 };
-
-describe('profile form mapping', () => {
-  it('renders nulls as empty strings so TextInput stays controlled', () => {
-    expect(profileToForm(EMPTY)).toEqual({
-      pilotName: '',
-      gliderType: '',
-      gliderId: '',
-      homeSite: '',
-    });
-  });
-
-  it('sends every field on save so clearing one writes null rather than being ignored', () => {
-    expect(formToPatch({ pilotName: 'Renate', gliderType: '', gliderId: '', homeSite: '' })).toEqual({
-      pilotName: 'Renate',
-      gliderType: '',
-      gliderId: '',
-      homeSite: '',
-    });
-  });
-});
-
-describe('dirty tracking', () => {
-  it('is clean for an untouched form', () => {
-    expect(isProfileDirty(FILLED, profileToForm(FILLED))).toBe(false);
-    expect(isProfileDirty(EMPTY, profileToForm(EMPTY))).toBe(false);
-  });
-
-  it('notices a real edit in any field', () => {
-    expect(isProfileDirty(FILLED, { ...profileToForm(FILLED), gliderId: 'D-1234' })).toBe(true);
-    expect(isProfileDirty(EMPTY, { ...profileToForm(EMPTY), pilotName: 'R' })).toBe(true);
-  });
-
-  it('ignores whitespace the repository would trim, so Save clears after saving', () => {
-    // Saving "  Renate  " stores "Renate"; without the trim the form would look dirty
-    // forever against its own saved value.
-    expect(isProfileDirty(FILLED, { ...profileToForm(FILLED), pilotName: '  Renate Gouveia  ' })).toBe(
-      false,
-    );
-  });
-});
 
 describe('IGC header summary', () => {
   it('names the placeholder that ships today when nothing is filled in', () => {
@@ -87,6 +46,7 @@ const IDLE: SyncSnapshot = {
   pendingFlights: 0,
   pendingDeletions: 0,
   cloudOnlyFlights: 0,
+  linkedUserId: null,
   lastError: null,
 };
 

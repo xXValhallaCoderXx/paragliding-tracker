@@ -31,6 +31,9 @@ export const SUPABASE_PUBLISHABLE_KEY =
 
 export const cloudConfigured = SUPABASE_URL.length > 0 && SUPABASE_PUBLISHABLE_KEY.length > 0;
 
+/** Must match Authentication -> Sign In / Providers -> Email -> OTP length in Supabase. */
+export const OTP_LENGTH = 8;
+
 export const CLOUD_CONFIG = Object.freeze({
   igcBucket: 'flight-igc',
   /** Flights pushed per cycle. Keeps a first sync of a long logbook incremental. */

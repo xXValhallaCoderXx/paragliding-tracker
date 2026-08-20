@@ -1,8 +1,7 @@
 import type { SyncSnapshot } from '@/cloud/types';
-import type { PilotProfile, PilotProfilePatch } from '@/recorder/types';
+import type { PilotProfile } from '@/recorder/types';
 import type { Tone } from '@/ui/theme';
 
-import type { PilotProfileFormValues } from './components/pilot-profile-card';
 
 /**
  * Pure mapping between the stored profile and the form.
@@ -11,45 +10,15 @@ import type { PilotProfileFormValues } from './components/pilot-profile-card';
  * `testMatch` only picks up `.ts` files.
  */
 
-export function profileToForm(profile: PilotProfile): PilotProfileFormValues {
-  return {
-    pilotName: profile.pilotName ?? '',
-    gliderType: profile.gliderType ?? '',
-    gliderId: profile.gliderId ?? '',
-    homeSite: profile.homeSite ?? '',
-  };
-}
-
-export function formToPatch(values: PilotProfileFormValues): PilotProfilePatch {
-  return {
-    pilotName: values.pilotName,
-    gliderType: values.gliderType,
-    gliderId: values.gliderId,
-    homeSite: values.homeSite,
-  };
-}
-
-/**
- * Whether the form differs from what is stored.
- *
- * Compares against the *rendered* form rather than the raw record so that trailing
- * whitespace the repository would trim away does not count as an edit — otherwise the
- * Save button would never go away after saving " Renate ".
- */
-export function isProfileDirty(
-  profile: PilotProfile,
-  values: PilotProfileFormValues,
-): boolean {
-  const stored = profileToForm(profile);
-  return (
-    stored.pilotName !== values.pilotName.trim() ||
-    stored.gliderType !== values.gliderType.trim() ||
-    stored.gliderId !== values.gliderId.trim() ||
-    stored.homeSite !== values.homeSite.trim()
-  );
-}
-
 /** One-line summary of what the IGC header will say, shown under the form. */
+/**
+ * One line under the pilot rows summarising what an export will say.
+ *
+ * Deliberately mentions only the fields that reach the file. The registration ID is kept
+ * for the pilot's own reference and is never written to an IGC header — there is no
+ * header that means "national licence number", and `HFCIDCOMPETITIONID` means something
+ * else entirely.
+ */
 export function igcHeaderSummary(profile: PilotProfile): string {
   if (!profile.pilotName && !profile.gliderType) {
     return 'IGC files record the pilot as UNSPECIFIED until you fill this in.';

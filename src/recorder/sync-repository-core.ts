@@ -6,7 +6,10 @@ import type {
   FlightStatus,
   FlightSyncCandidate,
   PilotProfile,
+  AppSettings,
+  AppSettingsPatch,
   SessionRecord,
+  SiteSource,
   TrackQuality,
 } from './types';
 
@@ -30,7 +33,9 @@ export interface PilotProfileRow {
   pilot_name: string | null;
   glider_type: string | null;
   glider_id: string | null;
+  registration_id: string | null;
   home_site: string | null;
+  home_site_source: string | null;
   updated_at: number;
   pushed_updated_at: number | null;
 }
@@ -42,18 +47,24 @@ export function mapPilotProfile(row: PilotProfileRow): PilotProfile {
     pilotName: row.pilot_name,
     gliderType: row.glider_type,
     gliderId: row.glider_id,
+    registrationId: row.registration_id,
     homeSite: row.home_site,
+    // Defaulted rather than trusted: a row written before v6 has no value here, and
+    // 'auto' is the only safe reading of "the pilot has never overridden it".
+    homeSiteSource: row.home_site_source === 'manual' ? 'manual' : 'auto',
     updatedAt: row.updated_at,
     pushedUpdatedAt: row.pushed_updated_at,
   };
 }
 
-/** The row the v5 migration seeds, used when a caller reads before any write. */
+/** The row the v5 migration seeds, extended by v6; used when a caller reads before any write. */
 export const EMPTY_PILOT_PROFILE: PilotProfile = Object.freeze({
   pilotName: null,
   gliderType: null,
   gliderId: null,
+  registrationId: null,
   homeSite: null,
+  homeSiteSource: 'auto',
   updatedAt: 0,
   pushedUpdatedAt: null,
 });
@@ -62,8 +73,76 @@ const PILOT_PROFILE_COLUMNS = Object.freeze({
   pilotName: 'pilot_name',
   gliderType: 'glider_type',
   gliderId: 'glider_id',
+  registrationId: 'registration_id',
   homeSite: 'home_site',
+  homeSiteSource: 'home_site_source',
 });
+
+/**
+ * Single-row device state that is not the pilot's data: it never syncs, never appears in
+ * an IGC file, and is deliberately kept out of `pilot_profile` so that pushing a profile
+ * can never leak "has this person seen the intro" to the server.
+ */
+export const APP_SETTINGS_SQL = 'SELECT * FROM app_settings WHERE id = 1';
+
+export interface AppSettingsRow {
+  id: number;
+  onboarding_state: string;
+  onboarding_completed_at: number | null;
+  disclaimer_ack_at: number | null;
+  updated_at: number;
+}
+
+export function mapAppSettings(row: AppSettingsRow): AppSettings {
+  return {
+    // Anything unrecognised reads as 'pending': showing the intro once too often is a
+    // far smaller failure than silently skipping it on a fresh install.
+    onboardingState:
+      row.onboarding_state === 'done' || row.onboarding_state === 'skipped'
+        ? row.onboarding_state
+        : 'pending',
+    onboardingCompletedAt: row.onboarding_completed_at,
+    disclaimerAckAt: row.disclaimer_ack_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export const EMPTY_APP_SETTINGS: AppSettings = Object.freeze({
+  onboardingState: 'pending',
+  onboardingCompletedAt: null,
+  disclaimerAckAt: null,
+  updatedAt: 0,
+});
+
+const APP_SETTINGS_COLUMNS = Object.freeze({
+  onboardingState: 'onboarding_state',
+  onboardingCompletedAt: 'onboarding_completed_at',
+  disclaimerAckAt: 'disclaimer_ack_at',
+});
+
+export async function updateAppSettingsTransaction(
+  transaction: SqlExecutor,
+  patch: AppSettingsPatch,
+  updatedAt: number,
+): Promise<void> {
+  const assignments: string[] = [];
+  const params: unknown[] = [];
+  for (const [field, column] of Object.entries(APP_SETTINGS_COLUMNS) as [
+    keyof typeof APP_SETTINGS_COLUMNS,
+    string,
+  ][]) {
+    if (!Object.prototype.hasOwnProperty.call(patch, field)) continue;
+    assignments.push(`${column} = ?`);
+    params.push(patch[field] ?? null);
+  }
+  if (assignments.length === 0) return;
+  assignments.push('updated_at = ?');
+  params.push(updatedAt);
+  await transaction.runAsync(
+    `UPDATE app_settings SET ${assignments.join(', ')} WHERE id = 1`,
+    ...params,
+  );
+}
 
 /**
  * Applies a normalized patch and stamps `updated_at`.
@@ -182,6 +261,10 @@ export interface FlightSyncCandidateRow {
   title: string | null;
   site: string | null;
   notes: string | null;
+  takeoff_latitude: number | null;
+  takeoff_longitude: number | null;
+  site_source: SiteSource | null;
+  site_resolved_at: number | null;
   created_at: number;
   updated_at: number;
   session_status: SessionRecord['status'];
@@ -275,6 +358,10 @@ export function mapFlightSyncCandidate(row: FlightSyncCandidateRow): FlightSyncC
     title: row.title,
     site: row.site,
     notes: row.notes,
+    takeoffLatitude: row.takeoff_latitude,
+    takeoffLongitude: row.takeoff_longitude,
+    siteSource: row.site_source,
+    siteResolvedAt: row.site_resolved_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     sessionStatus: row.session_status,

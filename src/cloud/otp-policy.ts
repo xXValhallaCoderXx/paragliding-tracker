@@ -1,4 +1,4 @@
-import { CLOUD_CONFIG } from './config';
+import { CLOUD_CONFIG, OTP_LENGTH } from './config';
 
 /**
  * Pure state machine for the email one-time-code flow.
@@ -43,11 +43,11 @@ export function isValidEmail(value: string): boolean {
 
 /** Strips the spaces and dashes people paste in from an email client. */
 export function normalizeOtpCode(value: string): string {
-  return value.replace(/\D+/g, '').slice(0, 6);
+  return value.replace(/\D+/g, '').slice(0, OTP_LENGTH);
 }
 
 export function isCompleteOtpCode(value: string): boolean {
-  return normalizeOtpCode(value).length === 6;
+  return normalizeOtpCode(value).length === OTP_LENGTH;
 }
 
 export function canResend(state: OtpState, now: number): boolean {

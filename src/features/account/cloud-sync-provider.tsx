@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -35,15 +36,28 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
   const recorderLifecycle = useRecorderLifecycle();
   const [snapshot, setSnapshot] = useState<SyncSnapshot>(() => cloudSyncEngine.getSnapshot());
 
-  const recovering = recorderLifecycle.recovering;
   const supported = Platform.OS !== 'web' && cloudConfigured;
+
+  // `recovering` flips false -> true -> false on every app foreground, so closing over it
+  // would give `requestSync` a new identity twice per foreground. That identity is load
+  // bearing: it flows into the context value, and the logbook's focus effect depends on
+  // it, so an unstable one re-runs that effect — and its three database reads — every
+  // time the engine publishes. A ref keeps the value current without touching identity.
+  // Reading a ref inside a callback is fine; only reading one during render is what the
+  // React Compiler rules forbid.
+  const recoveringRef = useRef(recorderLifecycle.recovering);
+  useEffect(() => {
+    recoveringRef.current = recorderLifecycle.recovering;
+  }, [recorderLifecycle.recovering]);
 
   const requestSync = useCallback(
     (trigger: SyncTrigger) => {
       if (!supported) return;
-      void cloudSyncEngine.requestSync(trigger, { recorderRecovering: recovering });
+      void cloudSyncEngine.requestSync(trigger, {
+        recorderRecovering: recoveringRef.current,
+      });
     },
-    [supported, recovering],
+    [supported],
   );
 
   useEffect(() => {

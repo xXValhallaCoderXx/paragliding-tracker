@@ -9,6 +9,8 @@ import {
   EXPECTED_V4_TABLE_COLUMNS,
   EXPECTED_V5_INDEX_NAMES,
   EXPECTED_V5_TABLE_COLUMNS,
+  EXPECTED_V6_INDEX_NAMES,
+  EXPECTED_V6_TABLE_COLUMNS,
   LATEST_DATABASE_VERSION,
   flightStatusForSession,
   getSchemaMigrationSteps,
@@ -48,15 +50,22 @@ import {
   mapFlightSyncCandidate,
   mapPilotProfile,
   resetCloudLinkTransaction,
+  updateAppSettingsTransaction,
   updatePilotProfileTransaction,
+  APP_SETTINGS_SQL,
+  EMPTY_APP_SETTINGS,
+  mapAppSettings,
   type CloudLinkRow,
   type FlightDeletionRow,
   type FlightSyncCandidateRow,
+  type AppSettingsRow,
   type PilotProfileRow,
   type RemoteFlightMetadata,
   type RemoteMetadataOutcome,
 } from './sync-repository-core';
 import type {
+  AppSettings,
+  AppSettingsPatch,
   BeginSessionRecoveryAttemptInput,
   CompletionReason,
   ExportArtifact,
@@ -81,6 +90,7 @@ import type {
   SessionRecoveryProof,
   SessionExportData,
   SessionRecord,
+  SiteSource,
 } from './types';
 
 const DATABASE_NAME = 'xc-recorder.db';
@@ -247,9 +257,14 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
     await validateExpectedIndexes(database, EXPECTED_V4_INDEX_NAMES);
   }
 
-  if (currentVersion === LATEST_DATABASE_VERSION) {
+  if (currentVersion >= 5) {
     await validateExpectedSchema(database, EXPECTED_V5_TABLE_COLUMNS);
     await validateExpectedIndexes(database, EXPECTED_V5_INDEX_NAMES);
+  }
+
+  if (currentVersion === LATEST_DATABASE_VERSION) {
+    await validateExpectedSchema(database, EXPECTED_V6_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V6_INDEX_NAMES);
     await assertDatabaseIntegrity(database);
     return;
   }
@@ -287,6 +302,8 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
     await validateExpectedIndexes(database, EXPECTED_V4_INDEX_NAMES);
     await validateExpectedSchema(database, EXPECTED_V5_TABLE_COLUMNS);
     await validateExpectedIndexes(database, EXPECTED_V5_INDEX_NAMES);
+    await validateExpectedSchema(database, EXPECTED_V6_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V6_INDEX_NAMES);
     await assertDatabaseIntegrity(database);
     if (backupName) await SQLite.deleteDatabaseAsync(backupName);
   } catch (error) {
@@ -387,6 +404,10 @@ interface FlightRow {
   title: string | null;
   site: string | null;
   notes: string | null;
+  takeoff_latitude: number | null;
+  takeoff_longitude: number | null;
+  site_source: SiteSource | null;
+  site_resolved_at: number | null;
   created_at: number;
   updated_at: number;
 }
@@ -422,6 +443,10 @@ function mapFlight(row: FlightRow): FlightRecord {
     title: row.title,
     site: row.site,
     notes: row.notes,
+    takeoffLatitude: row.takeoff_latitude,
+    takeoffLongitude: row.takeoff_longitude,
+    siteSource: row.site_source,
+    siteResolvedAt: row.site_resolved_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -1461,6 +1486,26 @@ export async function updatePilotProfile(
     }
     const row = await database.getFirstAsync<PilotProfileRow>(PILOT_PROFILE_SQL);
     return row ? mapPilotProfile(row) : EMPTY_PILOT_PROFILE;
+  });
+}
+
+export async function getAppSettings(): Promise<AppSettings> {
+  const database = await openDatabase();
+  const row = await database.getFirstAsync<AppSettingsRow>(APP_SETTINGS_SQL);
+  return row ? mapAppSettings(row) : EMPTY_APP_SETTINGS;
+}
+
+export async function updateAppSettings(
+  patch: AppSettingsPatch,
+  updatedAt = Date.now(),
+): Promise<AppSettings> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      await updateAppSettingsTransaction(transaction, patch, updatedAt);
+    });
+    const row = await database.getFirstAsync<AppSettingsRow>(APP_SETTINGS_SQL);
+    return row ? mapAppSettings(row) : EMPTY_APP_SETTINGS;
   });
 }
 

@@ -1,7 +1,77 @@
-# Minimal config so `supabase link` / `db push` / `test db` work from this repo.
+# Config so `supabase link` / `db push` / `test db` work from this repo, and so the auth
+# settings that sign-in depends on are reviewable in a diff instead of living only in a
+# dashboard nobody remembers to check.
+#
 # The project id is set by `supabase link --project-ref <ref>`.
 project_id = "xc-mvp"
 
 [db]
 port = 54322
 major_version = 17
+
+[auth]
+enabled = true
+# The app never receives a session through a URL: the client sets detectSessionInUrl =
+# false and there is no callback route. site_url exists only because GoTrue requires one.
+site_url = "xcmvp://"
+additional_redirect_urls = []
+enable_signup = true
+# No anonymous sessions. A signed-out pilot is a first-class state handled entirely on
+# the device; a server-side anonymous user would buy nothing and cost rate limit.
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+# Double opt-in stays on: it is what makes signInWithOtp issue a signup token for a new
+# address, which is the flow verifyOtp's 'email' -> 'signup' fallback covers.
+enable_confirmations = true
+double_confirm_changes = true
+otp_length = 8
+# 3600 s is the GoTrue default and is mirrored by CLOUD_CONFIG.otpExpiryMs in
+# src/cloud/config.ts. Change both or neither.
+otp_expiry = 3600
+# Matches CLOUD_CONFIG.otpResendCooldownMs, which drives the resend countdown in the UI.
+max_frequency = "60s"
+
+# Both templates render {{ .Token }} and contain no link at all. See the files themselves
+# for why. HOSTED PROJECTS DO NOT READ THESE: Supabase applies dashboard templates in the
+# cloud and treats config.toml templates as local-development only. The files are the
+# canonical copy; Authentication -> Emails is where they get applied. Paste BOTH.
+[auth.email.template.confirmation]
+subject = "Your Flight Log sign-in code"
+content_path = "./supabase/templates/confirm-signup.html"
+
+[auth.email.template.magic_link]
+subject = "Your Flight Log sign-in code"
+content_path = "./supabase/templates/magic-link.html"
+
+# Supabase's built-in sender is not an option here at any price: besides the ~2 messages
+# per hour, it refuses to deliver to any address that is not a member of the project team,
+# on every plan tier. It can never email a real pilot.
+#
+# Resend, whose SMTP username is the literal string "resend" and whose password is an API
+# key. Port 587 is STARTTLS; 465 is implicit TLS if a network blocks 587.
+#
+# admin_email MUST be on a domain verified in Resend. The sandbox sender
+# onboarding@resend.dev can only deliver to the address on your own Resend account — the
+# moment a second pilot signs in they get a 403 and no email at all, which would look
+# exactly like the bug we just fixed. See README "Two dashboard steps".
+#
+# As with the templates, HOSTED PROJECTS DO NOT READ THIS: apply it under Authentication
+# -> Emails -> SMTP Settings. This block is the reviewable record of what is set there,
+# and what `supabase start` uses locally.
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 587
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "env(SMTP_ADMIN_EMAIL)"
+sender_name = "Flight Log"
+
+[auth.rate_limit]
+# The default of 2/hour exists to stop abuse of the shared built-in sender. With custom
+# SMTP it only stops pilots signing in.
+email_sent = 30
+token_verifications = 30
+sign_in_sign_ups = 30

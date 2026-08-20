@@ -1,0 +1,12 @@
+<!--
+  Sent by signInWithOtp() when the address already exists.
+
+  Despite the name Supabase gives this template, it must not contain a magic link: the app
+  verifies a typed 8-digit code via verifyOtp() and has no route that could receive a
+  callback. See confirm-signup.html for the full reasoning; both templates must stay in
+  sync, and editing only one leaves half the pilots broken.
+-->
+<h2>Your Flight Log sign-in code</h2>
+<p>Enter this code in the app to finish signing in:</p>
+<p style="font-size:32px;letter-spacing:6px;font-family:monospace"><strong>{{ .Token }}</strong></p>
+<p>It expires shortly and can only be used once. If you didn't ask for it, ignore this email.</p>

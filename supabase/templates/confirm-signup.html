@@ -1,0 +1,19 @@
+<!--
+  Sent by signInWithOtp() when the address has never been used before.
+
+  This is the template that broke sign-in for every new pilot: Supabase reaches for
+  "Confirm signup" rather than "Magic Link" whenever shouldCreateUser creates the user,
+  and the stock body contains {{ .ConfirmationURL }} and nothing else. The app has no
+  callback route and is built with detectSessionInUrl: false, so a link is not merely
+  unhelpful — it is unusable.
+
+  Deliberately contains no <a href> at all. A link would also be pre-fetched by corporate
+  mail scanners, burning the single-use token before the pilot ever reads the message.
+
+  Keep this identical in spirit to magic-link.html: from the pilot's side, signing up and
+  signing in are one action. supabase/../__tests__/email-templates.test.ts enforces the rules.
+-->
+<h2>Your Flight Log sign-in code</h2>
+<p>Enter this code in the app to finish signing in:</p>
+<p style="font-size:32px;letter-spacing:6px;font-family:monospace"><strong>{{ .Token }}</strong></p>
+<p>It expires shortly and can only be used once. If you didn't ask for it, ignore this email.</p>
