@@ -34,8 +34,6 @@ export interface PilotProfileRow {
   glider_type: string | null;
   glider_id: string | null;
   registration_id: string | null;
-  home_site: string | null;
-  home_site_source: string | null;
   updated_at: number;
   pushed_updated_at: number | null;
 }
@@ -48,10 +46,6 @@ export function mapPilotProfile(row: PilotProfileRow): PilotProfile {
     gliderType: row.glider_type,
     gliderId: row.glider_id,
     registrationId: row.registration_id,
-    homeSite: row.home_site,
-    // Defaulted rather than trusted: a row written before v6 has no value here, and
-    // 'auto' is the only safe reading of "the pilot has never overridden it".
-    homeSiteSource: row.home_site_source === 'manual' ? 'manual' : 'auto',
     updatedAt: row.updated_at,
     pushedUpdatedAt: row.pushed_updated_at,
   };
@@ -63,8 +57,6 @@ export const EMPTY_PILOT_PROFILE: PilotProfile = Object.freeze({
   gliderType: null,
   gliderId: null,
   registrationId: null,
-  homeSite: null,
-  homeSiteSource: 'auto',
   updatedAt: 0,
   pushedUpdatedAt: null,
 });
@@ -74,8 +66,6 @@ const PILOT_PROFILE_COLUMNS = Object.freeze({
   gliderType: 'glider_type',
   gliderId: 'glider_id',
   registrationId: 'registration_id',
-  homeSite: 'home_site',
-  homeSiteSource: 'home_site_source',
 });
 
 /**
@@ -264,7 +254,6 @@ export interface FlightSyncCandidateRow {
   takeoff_latitude: number | null;
   takeoff_longitude: number | null;
   site_source: SiteSource | null;
-  site_resolved_at: number | null;
   created_at: number;
   updated_at: number;
   session_status: SessionRecord['status'];
@@ -361,7 +350,6 @@ export function mapFlightSyncCandidate(row: FlightSyncCandidateRow): FlightSyncC
     takeoffLatitude: row.takeoff_latitude,
     takeoffLongitude: row.takeoff_longitude,
     siteSource: row.site_source,
-    siteResolvedAt: row.site_resolved_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     sessionStatus: row.session_status,
@@ -464,8 +452,19 @@ WHERE flight_id = ?`;
  * `changes === 0` means the local row was newer or equal, which is also what stops the
  * echo loop after a push bumps the server's own `updated_at`.
  */
+/**
+ * `site_source` is rewritten alongside `site`, never left as it was.
+ *
+ * Provenance is not pushed, so a name arriving from another device carries none this
+ * device can vouch for. Leaving the old value would attach a catalogue's credit — and its
+ * licence — to a string that may have been typed by hand on a different phone.
+ */
 export const APPLY_REMOTE_FLIGHT_METADATA_SQL = `UPDATE flights
-SET title = ?, site = ?, notes = ?, updated_at = ?
+SET title = ?,
+    site = ?,
+    site_source = CASE WHEN ? IS NULL THEN NULL ELSE 'manual' END,
+    notes = ?,
+    updated_at = ?
 WHERE id = ? AND updated_at < ?`;
 
 export interface RemoteFlightMetadata {
@@ -499,6 +498,8 @@ export async function applyRemoteFlightMetadataTransaction(
   const result = await transaction.runAsync(
     APPLY_REMOTE_FLIGHT_METADATA_SQL,
     remote.title,
+    remote.site,
+    // Bound twice: once for the column, once for the CASE that derives its provenance.
     remote.site,
     remote.notes,
     remote.clientUpdatedAt,

@@ -34,15 +34,9 @@ export function identityName(profile: PilotProfile): string {
   return profile.pilotName?.trim() || 'Add your name';
 }
 
-/**
- * "Ozone Rush 6 · Bukit Bubus". Drops whichever half is missing rather than showing a
- * dangling separator, and returns null when neither is set.
- */
+/** The pilot's glider, or null when they have not named one. */
 export function identitySubtitle(profile: PilotProfile): string | null {
-  const parts = [profile.gliderType?.trim(), profile.homeSite?.trim()].filter(
-    (part): part is string => Boolean(part),
-  );
-  return parts.length > 0 ? parts.join(' · ') : null;
+  return profile.gliderType?.trim() || null;
 }
 
 export interface AccountStats {

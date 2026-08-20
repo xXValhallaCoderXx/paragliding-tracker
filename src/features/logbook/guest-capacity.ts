@@ -62,7 +62,7 @@ export interface GuestCapacityInput {
 
 function exemptionFor(input: GuestCapacityInput): CapExemption | null {
   // Ordered most-fundamental-cause-first, the same way evaluateSyncGate reads.
-  if (input.authStatus === 'unsupported' || input.authStatus === 'unconfigured') {
+  if (input.authStatus === 'unconfigured') {
     return 'unavailable';
   }
   if (input.authStatus === 'restoring') return 'unknown';

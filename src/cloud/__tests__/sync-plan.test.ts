@@ -14,7 +14,6 @@ const NOW = 1_760_000_000_000;
 
 const READY: SyncGateInput = {
   configured: true,
-  platformSupported: true,
   authStatus: 'signed_in',
   sessionUserId: 'user-1',
   linkedUserId: 'user-1',
@@ -71,11 +70,8 @@ describe('sync gate', () => {
   });
 
   it('reports the most fundamental blocker rather than an incidental one', () => {
-    // A signed-out pilot on an unsupported platform should be told the platform is the
+    // A signed-out pilot in an unconfigured build should be told configuration is the
     // problem; a signed-out pilot who is also throttled should be told they are signed out.
-    expect(
-      evaluateSyncGate({ ...READY, platformSupported: false, configured: false, authStatus: 'signed_out' }),
-    ).toEqual({ run: false, reason: 'unsupported' });
     expect(evaluateSyncGate({ ...READY, configured: false, authStatus: 'signed_out' })).toEqual({
       run: false,
       reason: 'unconfigured',
@@ -86,7 +82,7 @@ describe('sync gate', () => {
   });
 
   it('treats every non-signed-in auth status as signed out', () => {
-    for (const status of ['restoring', 'signed_out', 'unconfigured', 'unsupported'] as const) {
+    for (const status of ['restoring', 'signed_out', 'unconfigured'] as const) {
       expect(evaluateSyncGate({ ...READY, authStatus: status })).toMatchObject({ run: false });
     }
     // A signed_in status with no user id is incoherent and must not run either.

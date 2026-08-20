@@ -16,6 +16,8 @@ export const paper = {
   cardAlt: '#F1E8D8',
   border: '#E2D9C8',
   hairline: '#EFE7D6',
+  /** The chart-plate graticule. Deliberately darker than `border`, which is too pale to read as a grid. */
+  grid: '#DFD2B7',
   ink: '#16130F',
   text: '#5B534A',
   muted: '#8B8177',

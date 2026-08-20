@@ -2,14 +2,12 @@
  * Cloud backup domain vocabulary.
  *
  * Shared and platform-free, mirroring `src/recorder/types.ts`. Nothing here imports a
- * native module, so the web bundle can typecheck and build against it.
+ * native module.
  */
 
 export type CloudAuthStatus =
-  /** Web. Cloud backup is a mobile-app feature, like the recorder itself. */
-  | 'unsupported'
   /** No EXPO_PUBLIC_SUPABASE_* in this build. A first-class UI state, never a crash. */
-  | 'unconfigured'
+  'unconfigured'
   /** Reading a stored session off disk. */
   | 'restoring'
   | 'signed_out'
@@ -24,7 +22,6 @@ export interface AuthSnapshot {
 
 export type CloudFailureCode =
   | 'not_configured'
-  | 'unsupported_platform'
   | 'offline'
   | 'rate_limited'
   | 'invalid_code'
@@ -68,7 +65,6 @@ export type SyncTrigger = 'foreground' | 'logbook-focus' | 'manual' | 'post-save
 export type SyncPhase = 'idle' | 'syncing' | 'error' | 'blocked';
 
 export type SyncBlockReason =
-  | 'unsupported'
   | 'unconfigured'
   | 'signed_out'
   /** This device's logbook is already backed up to a different account. */

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import { LoadingScreen, UnsupportedScreen } from '@/components/ui';
+import { LoadingScreen } from '@/components/ui';
 import { InstrumentView } from '@/features/record/components/instrument';
 import { InterruptedView } from '@/features/record/components/interrupted';
 import { PreflightView } from '@/features/record/components/preflight';
@@ -34,7 +34,6 @@ export default function RecordFlightScreen() {
   const intentHandled = useRef(false);
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
     let mounted = true;
     const unsubscribe = recorderService.subscribe((nextSnapshot) => {
       if (!mounted) return;
@@ -175,7 +174,6 @@ export default function RecordFlightScreen() {
 
   const notices = useMemo(() => (snapshot ? inFlightNotices(snapshot) : []), [snapshot]);
 
-  if (Platform.OS === 'web') return <UnsupportedScreen />;
   if (!snapshot || !recorderLifecycle.ready) {
     return <LoadingScreen label="Opening recorder…" />;
   }

@@ -62,7 +62,6 @@ export function OnboardingOverlay() {
 
   /** Persists whatever the pilot typed. Blank fields are simply not written. */
   const saveProfile = useCallback(async () => {
-    if (Platform.OS === 'web') return;
     const patch = {
       ...(pilotName.trim() ? { pilotName: pilotName.trim() } : {}),
       ...(registrationId.trim() ? { registrationId: registrationId.trim() } : {}),
@@ -311,7 +310,7 @@ export function BackupStep({
         <Notice tone="good" title="Signed in">
           Your flights will back up automatically from now on.
         </Notice>
-      ) : auth.status === 'unconfigured' || auth.status === 'unsupported' ? (
+      ) : auth.status === 'unconfigured' ? (
         <Notice tone="info" title="Backup is not set up in this build">
           Flights still record and stay on this phone.
         </Notice>

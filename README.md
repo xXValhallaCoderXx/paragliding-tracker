@@ -22,7 +22,6 @@ recorder carried on a flight.
 - Evidence-based cold-launch recovery with Resume and Save Partial paths.
 - Deterministic unsigned IGC and adjacent diagnostic JSON artifacts.
 - Native share-sheet export and automated feasibility tests.
-- A buildable unsupported-platform page on web.
 - An optional pilot profile that works offline and fills the IGC pilot and glider headers.
 - Optional email one-time-code sign-in and push-only cloud backup of flights and IGC files.
 
@@ -227,12 +226,11 @@ pnpm validate:deps
 pnpm dlx expo-doctor@latest
 pnpm exec expo export --platform android --output-dir dist/android
 pnpm exec expo export --platform ios --output-dir dist/ios
-pnpm exec expo export --platform web --output-dir dist/web
 ```
 
-The web export is not cosmetic: it is what catches a shared component importing a platform-split
-`.native` module, which would otherwise only fail at build time with a stack trace pointing at
-expo-sqlite rather than at the offending import.
+The app explicitly supports only Android and iOS. There is no browser build or hosted web app.
+The web-accessible privacy policy and account-deletion page required by the stores are separate
+legal pages opened from the native app; `expo-web-browser` remains for that purpose.
 
 ## References
 

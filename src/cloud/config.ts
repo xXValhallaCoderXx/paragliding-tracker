@@ -1,10 +1,9 @@
 /**
  * Cloud backup configuration.
  *
- * Pure and platform-free: the web bundle imports this too, so nothing here may
- * reach for a native module. `cloudConfigured` being false is a first-class UI
- * state, never a crash — that is what keeps `pnpm test` and all three
- * `expo export` targets green in a checkout with no .env.local.
+ * Pure and platform-free: nothing here reaches for a native module. `cloudConfigured`
+ * being false is a first-class UI state, never a crash — that keeps tests and native
+ * bundles green in a checkout with no .env.local.
  */
 
 // Written as full static member expressions on purpose. babel-preset-expo only

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -13,7 +13,6 @@ import {
   Notice,
   Screen,
   SectionLabel,
-  UnsupportedScreen,
 } from '@/components/ui';
 import { accountStats } from '@/features/account/account-identity';
 import { cloudOnlySummary, describeSync } from '@/features/account/account-presentation';
@@ -42,7 +41,6 @@ import { buildLogbookLayout } from '@/features/logbook/logbook';
 import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import type { FlightSummary, PilotProfilePatch } from '@/recorder/types';
 import { useGetFlightsQuery, useGetProfileQuery, useUpdateProfileMutation } from '@/store/endpoints';
-import { DATA_AVAILABLE } from '@/store/hooks';
 import { fonts, paper, TAB_BAR_HEIGHT } from '@/ui/theme';
 
 /**
@@ -78,7 +76,7 @@ export default function AccountScreen() {
   // Both come from the same cache the logbook fills, so opening Account after the logbook
   // costs nothing. The flights are only decoration here — the stats row and the meter —
   // so an unavailable read degrades to an empty logbook rather than an error.
-  const skip = !DATA_AVAILABLE || !recorderLifecycle.ready;
+  const skip = !recorderLifecycle.ready;
   const { data: profile = null, isLoading: loading } = useGetProfileQuery(undefined, { skip });
   const { data: flights = EMPTY_FLIGHTS } = useGetFlightsQuery(undefined, { skip });
   const [updateProfile, { isLoading: saving }] = useUpdateProfileMutation();
@@ -124,8 +122,6 @@ export default function AccountScreen() {
       setError(saveError instanceof Error ? saveError.message : String(saveError));
     }
   };
-
-  if (Platform.OS === 'web') return <UnsupportedScreen />;
 
   const stats = accountStats(flights);
   // Counts the cards the logbook renders, via the same layout, so this meter and the
@@ -206,7 +202,7 @@ export default function AccountScreen() {
                 <Text style={styles.backupDetail}>{backup.detail}</Text>
               </View>
 
-              {auth.status === 'unconfigured' || auth.status === 'unsupported' ? (
+              {auth.status === 'unconfigured' ? (
                 <CloudUnconfiguredNotice />
               ) : null}
 
@@ -259,16 +255,6 @@ export default function AccountScreen() {
               <PilotRow
                 label="Glider"
                 value={profile.gliderType}
-                onPress={() => setEditing(true)}
-              />
-              <PilotRow
-                label="Home site"
-                value={profile.homeSite}
-                detail={
-                  profile.homeSiteSource === 'auto'
-                    ? 'From your flights — picked from where you launch most.'
-                    : null
-                }
                 onPress={() => setEditing(true)}
                 last
               />

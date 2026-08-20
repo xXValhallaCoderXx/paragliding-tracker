@@ -107,7 +107,6 @@ pnpm validate:deps
 pnpm dlx expo-doctor@latest
 pnpm exec expo export --platform android --output-dir dist/android
 pnpm exec expo export --platform ios --output-dir dist/ios
-pnpm exec expo export --platform web --output-dir dist/web
 ```
 
 Current results:
@@ -121,7 +120,6 @@ Current results:
 | Expo Doctor | Pass | 21/21 checks on 2026-08-17 |
 | Android JS bundle | Pass | Hermes bundle exported to `dist/android` on 2026-08-17 |
 | iOS JS bundle | Pass | Hermes bundle exported to `dist/ios`; compilation only, no reliability claim |
-| Web static bundle | Pass | Unsupported-platform route exported to `dist/web` |
 | Android internal release APK | Pass | Embedded `index.js` bundle, 111,165,091 bytes, SHA-256 `315de38d159a70bb604cc5dbb0dff3810d55a423c2ef18a93ec95525c6f58155` |
 
 Automated tests cover valid/invalid and repeated state actions, transactional callback insertion,

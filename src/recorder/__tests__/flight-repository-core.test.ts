@@ -21,17 +21,6 @@ import {
 } from '../flight-repository-core';
 
 describe('pilot profile patch normalization', () => {
-  it('validates homeSiteSource rather than trimming it', () => {
-    // It is an enum backed by a column CHECK. Trimming and length-limiting it would be
-    // meaningless, and a bad value has to fail before the write transaction, not inside it.
-    expect(normalizePilotProfilePatch({ homeSiteSource: 'manual' })).toEqual({
-      homeSiteSource: 'manual',
-    });
-    expect(() =>
-      normalizePilotProfilePatch({ homeSiteSource: 'AUTO' as never }),
-    ).toThrow(/homeSiteSource/);
-  });
-
   it('carries registrationId through with the text fields', () => {
     // Guards the silent-drop failure: the field is normalized here, but it also has to be
     // in PILOT_PROFILE_COLUMNS or the UPDATE never writes it.
@@ -52,18 +41,23 @@ describe('pilot profile patch normalization', () => {
 
 describe('recorder database migration plan', () => {
   it('runs each schema step once for fresh, v1, and v2 databases', () => {
-    expect(LATEST_DATABASE_VERSION).toBe(6);
-    expect(getSchemaMigrationSteps(0, true).map((step) => step.version)).toEqual([1, 2, 3, 4, 5, 6]);
-    expect(getSchemaMigrationSteps(1, false).map((step) => step.version)).toEqual([2, 3, 4, 5, 6]);
-    expect(getSchemaMigrationSteps(2, false).map((step) => step.version)).toEqual([3, 4, 5, 6]);
-    expect(getSchemaMigrationSteps(3, false).map((step) => step.version)).toEqual([4, 5, 6]);
-    expect(getSchemaMigrationSteps(4, false).map((step) => step.version)).toEqual([5, 6]);
-    expect(getSchemaMigrationSteps(5, false).map((step) => step.version)).toEqual([6]);
-    expect(getSchemaMigrationSteps(6, false)).toEqual([]);
+    expect(LATEST_DATABASE_VERSION).toBe(7);
+    expect(getSchemaMigrationSteps(0, true).map((step) => step.version)).toEqual([
+      1, 2, 3, 4, 5, 6, 7,
+    ]);
+    expect(getSchemaMigrationSteps(1, false).map((step) => step.version)).toEqual([2, 3, 4, 5, 6, 7]);
+    expect(getSchemaMigrationSteps(2, false).map((step) => step.version)).toEqual([3, 4, 5, 6, 7]);
+    expect(getSchemaMigrationSteps(3, false).map((step) => step.version)).toEqual([4, 5, 6, 7]);
+    expect(getSchemaMigrationSteps(4, false).map((step) => step.version)).toEqual([5, 6, 7]);
+    expect(getSchemaMigrationSteps(5, false).map((step) => step.version)).toEqual([6, 7]);
+    expect(getSchemaMigrationSteps(6, false).map((step) => step.version)).toEqual([7]);
+    expect(getSchemaMigrationSteps(7, false)).toEqual([]);
   });
 
   it('adds onboarding state and site provenance in v6', () => {
-    expect(EXPECTED_V6_INDEX_NAMES).toEqual(['flights_pending_site_resolution']);
+    // No index: the partial index existed for a background resolver that was never
+    // built, and naming a site is now something the pilot does on the flight screen.
+    expect(EXPECTED_V6_INDEX_NAMES).toEqual([]);
     expect(Object.keys(EXPECTED_V6_TABLE_COLUMNS)).toEqual([
       'pilot_profile',
       'flights',
@@ -75,12 +69,26 @@ describe('recorder database migration plan', () => {
     expect(EXPECTED_V5_TABLE_COLUMNS.pilot_profile).toContain('glider_id');
   });
 
-  it('marks every pre-v6 flight that already has a site as manually named', () => {
-    // Without this the reverse geocoder would be free to overwrite sites the pilot
-    // typed before v6, because those rows have no provenance recorded.
+  it('keeps the takeoff coordinate, which is what makes a launch nameable later', () => {
+    expect(EXPECTED_V6_TABLE_COLUMNS.flights).toEqual([
+      'takeoff_latitude',
+      'takeoff_longitude',
+      'site_source',
+    ]);
+  });
+
+  it('records that anything already named was named by hand', () => {
+    // site_source only distinguishes 'picked' from 'manual'. A site that predates the
+    // picker cannot have been picked, so it is manual by definition.
     expect(MIGRATE_V6_SCHEMA_SQL).toContain(
       "UPDATE flights SET site_source = 'manual' WHERE site IS NOT NULL",
     );
+    expect(MIGRATE_V6_SCHEMA_SQL).toContain("IN ('paraglidingearth', 'osm', 'manual')");
+  });
+
+  it('has no home site anywhere: sites belong to flights, not to the pilot', () => {
+    expect(MIGRATE_V6_SCHEMA_SQL).not.toContain('home_site');
+    expect(EXPECTED_V5_TABLE_COLUMNS.pilot_profile).not.toContain('home_site');
   });
 
   it('does not walk location_fixes inside the v6 transaction', () => {
@@ -199,7 +207,7 @@ describe('pilot profile metadata', () => {
       gliderId: null,
     });
     expect(normalizePilotProfilePatch({})).toEqual({});
-    expect(normalizePilotProfilePatch({ homeSite: null })).toEqual({ homeSite: null });
+    expect(normalizePilotProfilePatch({ gliderType: null })).toEqual({ gliderType: null });
   });
 
   it('enforces the IGC-friendly length limits after trimming', () => {

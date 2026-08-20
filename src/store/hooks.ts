@@ -7,6 +7,3 @@ import type { AppDispatch, RootState } from './index';
  */
 export const useAppDispatch = useDispatch.withTypes<AppDispatch>();
 export const useAppSelector = useSelector.withTypes<RootState>();
-
-/** Re-exported so screens have one import for the store's hooks and its guards. */
-export { DATA_AVAILABLE } from './query-fn';

@@ -11,6 +11,8 @@ import {
   EXPECTED_V5_TABLE_COLUMNS,
   EXPECTED_V6_INDEX_NAMES,
   EXPECTED_V6_TABLE_COLUMNS,
+  EXPECTED_V7_INDEX_NAMES,
+  EXPECTED_V7_TABLE_COLUMNS,
   LATEST_DATABASE_VERSION,
   flightStatusForSession,
   getSchemaMigrationSteps,
@@ -262,9 +264,18 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
     await validateExpectedIndexes(database, EXPECTED_V5_INDEX_NAMES);
   }
 
-  if (currentVersion === LATEST_DATABASE_VERSION) {
+  if (currentVersion >= 6) {
     await validateExpectedSchema(database, EXPECTED_V6_TABLE_COLUMNS);
     await validateExpectedIndexes(database, EXPECTED_V6_INDEX_NAMES);
+  }
+
+  // Each version validates in its own `>=` block rather than only in the terminal branch.
+  // Folding the newest version into the `=== LATEST` check leaves the one below it verified
+  // by nothing on a database that is about to be migrated past it — which is exactly how v6
+  // shipped unchecked.
+  if (currentVersion === LATEST_DATABASE_VERSION) {
+    await validateExpectedSchema(database, EXPECTED_V7_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V7_INDEX_NAMES);
     await assertDatabaseIntegrity(database);
     return;
   }
@@ -304,6 +315,8 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
     await validateExpectedIndexes(database, EXPECTED_V5_INDEX_NAMES);
     await validateExpectedSchema(database, EXPECTED_V6_TABLE_COLUMNS);
     await validateExpectedIndexes(database, EXPECTED_V6_INDEX_NAMES);
+    await validateExpectedSchema(database, EXPECTED_V7_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V7_INDEX_NAMES);
     await assertDatabaseIntegrity(database);
     if (backupName) await SQLite.deleteDatabaseAsync(backupName);
   } catch (error) {
@@ -407,7 +420,6 @@ interface FlightRow {
   takeoff_latitude: number | null;
   takeoff_longitude: number | null;
   site_source: SiteSource | null;
-  site_resolved_at: number | null;
   created_at: number;
   updated_at: number;
 }
@@ -446,7 +458,6 @@ function mapFlight(row: FlightRow): FlightRecord {
     takeoffLatitude: row.takeoff_latitude,
     takeoffLongitude: row.takeoff_longitude,
     siteSource: row.site_source,
-    siteResolvedAt: row.site_resolved_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -1003,6 +1014,91 @@ export async function getFlightMetrics(
   return row ? mapFlightMetrics(row) : null;
 }
 
+/**
+ * The stored track row, as strings.
+ *
+ * Encoding and decoding deliberately happen a layer up, in `flight-repository.native.ts`.
+ * This module is reachable from the headless location task's import graph, and keeping it
+ * ignorant of `@/lib/track` is what stops the drawing code being evaluated in a GPS callback.
+ */
+export interface FlightTrackRow {
+  flight_id: string;
+  segments: string;
+  algorithm_version: number;
+  computed_at: number;
+}
+
+export async function getFlightTrackRow(flightId: string): Promise<FlightTrackRow | null> {
+  const database = await openDatabase();
+  const row = await database.getFirstAsync<FlightTrackRow>(
+    'SELECT * FROM flight_tracks WHERE flight_id = ?',
+    flightId,
+  );
+  return row ?? null;
+}
+
+/**
+ * Every stored track in one read.
+ *
+ * One query for the whole logbook rather than a hook per card: the list screen already
+ * mounts every card at once, and a per-card read would turn one scan of small rows into N
+ * round trips through the write queue.
+ */
+export async function listFlightTrackRows(): Promise<FlightTrackRow[]> {
+  const database = await openDatabase();
+  return database.getAllAsync<FlightTrackRow>('SELECT * FROM flight_tracks');
+}
+
+export async function upsertFlightTrack(row: FlightTrackRow): Promise<void> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.runAsync(
+      `INSERT INTO flight_tracks (flight_id, segments, algorithm_version, computed_at)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(flight_id) DO UPDATE SET
+         segments = excluded.segments,
+         algorithm_version = excluded.algorithm_version,
+         computed_at = excluded.computed_at`,
+      row.flight_id,
+      row.segments,
+      row.algorithm_version,
+      row.computed_at,
+    );
+  });
+}
+
+/** Just the columns a track needs, in recorded order. */
+export interface TrackFixRow {
+  source_timestamp: number;
+  sequence: number;
+  latitude: number;
+  longitude: number;
+  mocked: number;
+}
+
+/**
+ * Coordinates and nothing else, for re-deriving a track.
+ *
+ * The only read in the app that wants position without the rest of the evidence.
+ * `getSessionExportData` would do the job, but it pulls all fifteen columns of every fix
+ * plus every pressure sample and every event — a heavyweight export path, invoked on
+ * explicit user action, and far too much to pay for redrawing one plate.
+ *
+ * `location_fixes_source_order` satisfies the ordering, so there is no temp B-tree sort. It
+ * is not a covering index and should not be widened into one: ~10 800 rows of extra index
+ * per flight is a large permanent cost for a read that happens once.
+ */
+export async function listSessionTrackFixes(sessionId: string): Promise<TrackFixRow[]> {
+  const database = await openDatabase();
+  return database.getAllAsync<TrackFixRow>(
+    `SELECT source_timestamp, sequence, latitude, longitude, mocked
+     FROM location_fixes
+     WHERE session_id = ?
+     ORDER BY source_timestamp, sequence`,
+    sessionId,
+  );
+}
+
 export async function listFlights(): Promise<FlightSummary[]> {
   const database = await openDatabase();
   const [flightRows, metricRows] = await Promise.all([
@@ -1074,6 +1170,13 @@ export async function updateFlightMetadata(
       assignments.push(`${field} = ?`);
       params.push(normalized[field] ?? null);
     }
+    // Provenance rides with the name, never on its own. Clearing the site clears it too:
+    // a flight with no name has nothing to have a source for, and leaving a stale
+    // 'picked' behind would later be read as "this name came from a site database".
+    if (Object.prototype.hasOwnProperty.call(normalized, 'site')) {
+      assignments.push('site_source = ?');
+      params.push(normalized.site === null ? null : (normalized.siteSource ?? 'manual'));
+    }
 
     if (assignments.length > 0) {
       const result = await database.runAsync(
@@ -1126,6 +1229,33 @@ export async function upsertFlightMetrics(metrics: FlightMetricsRecord): Promise
       metrics.maxSourceGapMs,
       metrics.quality,
       metrics.computedAt,
+    );
+  });
+}
+
+/**
+ * Denormalises where the flight actually launched from.
+ *
+ * Written once at finalize rather than derived on demand: naming a launch weeks later
+ * would otherwise mean re-reading every fix of that flight, and the coordinate never
+ * changes once the session is closed.
+ *
+ * Idempotent, and deliberately not part of `setFlightStatus` — a re-finalize (a metrics
+ * algorithm bump, a repaired `processing` flight) must not disturb `updated_at` here,
+ * because that is what marks a flight dirty for backup.
+ */
+export async function setFlightTakeoff(input: {
+  flightId: string;
+  latitude: number;
+  longitude: number;
+}): Promise<void> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    await database.runAsync(
+      'UPDATE flights SET takeoff_latitude = ?, takeoff_longitude = ? WHERE id = ?',
+      input.latitude,
+      input.longitude,
+      input.flightId,
     );
   });
 }
@@ -1216,6 +1346,8 @@ export async function deleteCompletedFlight(
         row.recording_session_id,
       );
       await transaction.runAsync('DELETE FROM flight_metrics WHERE flight_id = ?', flightId);
+      // Same RESTRICT foreign key as flight_metrics, so it has to go before flights.
+      await transaction.runAsync('DELETE FROM flight_tracks WHERE flight_id = ?', flightId);
       // Tombstone before the row disappears, so a later sync can push the delete
       // instead of the next pull resurrecting the flight from the server. The sync
       // state row holds a RESTRICT foreign key, so it must go before flights.

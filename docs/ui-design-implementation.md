@@ -66,17 +66,15 @@ open flight (in progress / needs attention), unsaved-changes guard, export busy,
 ## Verification
 
 - `pnpm typecheck`, `pnpm lint` (including the React Compiler rules), `pnpm test`,
-  `pnpm validate:deps`, Expo Doctor, and Android/iOS/web exports pass.
-- Visual fidelity was checked by rendering every state with fixture data through
-  react-native-web and headless Chromium at 392 px width. It was not checked on the phone: the
-  installed artifact is the release APK, the device was locked, and no emulator is available.
-  Verify on the physical Samsung through the development client before standalone acceptance.
+  `pnpm validate:deps`, Expo Doctor, and Android/iOS exports pass.
+- Visual fidelity must be checked on the physical Samsung through the development client before
+  standalone acceptance.
 
 ## Structure (2026-08-18)
 
 ```
 src/
-  app/                    routes only — (tabs)/index = logbook, record, flights/[id], preview
+  app/                    routes only — (tabs)/index = logbook, record, flights/[id], settings
   components/ui/          shared kit, one file per component + barrel index.ts
   features/               one slice per route segment
     logbook/{components,logbook.ts,__tests__}
@@ -88,11 +86,5 @@ src/
 global.css                @theme token source of truth
 ```
 
-Rule: **feature folder name == route segment**, so a future `/settings` route gets
-`src/features/settings/`.
-
-`src/app/preview.tsx` is the visual-QA fixture route. It is deliberately **committed** — the
-previous version was deleted after use and had to be rewritten from scratch, and it is the only
-way to see components on this machine (no Android emulator; the product routes short-circuit to
-`UnsupportedScreen` on web). Serve with `expo start --port 8091` and shoot with
-`dist/visual/shot.sh <name> 392x1600 <set>`; sets are `kit`, `instrument`, `instrument-degraded`.
+Rule: **feature folder name == route segment**. If `/settings` grows beyond route composition,
+its feature logic belongs in `src/features/settings/`.

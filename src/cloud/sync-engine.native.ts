@@ -146,7 +146,7 @@ async function pushProfile(userId: string): Promise<void> {
         pilot_name: profile.pilotName,
         glider_type: profile.gliderType,
         glider_id: profile.gliderId,
-        home_site: profile.homeSite,
+        registration_id: profile.registrationId,
         client_updated_at: profile.updatedAt,
       },
       { onConflict: 'id' },
@@ -267,7 +267,7 @@ async function pushFlights(userId: string, now: number): Promise<void> {
 async function pullProfile(userId: string): Promise<void> {
   const { data, error } = await getSupabase()
     .from('profiles')
-    .select('pilot_name, glider_type, glider_id, home_site, client_updated_at')
+    .select('pilot_name, glider_type, glider_id, registration_id, client_updated_at')
     .eq('id', userId)
     .maybeSingle();
   if (error) throw error;
@@ -281,7 +281,7 @@ async function pullProfile(userId: string): Promise<void> {
       pilotName: data.pilot_name,
       gliderType: data.glider_type,
       gliderId: data.glider_id,
-      homeSite: data.home_site,
+      registrationId: data.registration_id,
     },
     data.client_updated_at,
   );
@@ -356,7 +356,6 @@ async function runCycle(trigger: SyncTrigger, recorderRecovering: boolean): Prom
 
   const gate = evaluateSyncGate({
     configured: cloudConfigured,
-    platformSupported: Platform.OS !== 'web',
     authStatus: auth.status,
     sessionUserId: auth.userId,
     linkedUserId: link.userId,

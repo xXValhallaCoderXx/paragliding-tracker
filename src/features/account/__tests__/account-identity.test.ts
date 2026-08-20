@@ -18,8 +18,6 @@ function profile(overrides: Partial<PilotProfile> = {}): PilotProfile {
     gliderType: null,
     gliderId: null,
     registrationId: null,
-    homeSite: null,
-    homeSiteSource: 'auto',
     updatedAt: 0,
     pushedUpdatedAt: null,
     ...overrides,
@@ -59,7 +57,6 @@ function flight(overrides: Partial<FlightSummary> & { id: string }): FlightSumma
     takeoffLatitude: null,
     takeoffLongitude: null,
     siteSource: null,
-    siteResolvedAt: null,
     createdAt: startedAt,
     updatedAt: startedAt,
     sessionStatus: 'completed',
@@ -96,19 +93,14 @@ describe('identityName', () => {
 });
 
 describe('identitySubtitle', () => {
-  it('joins glider and home site', () => {
-    expect(
-      identitySubtitle(profile({ gliderType: 'Ozone Rush 6', homeSite: 'Bukit Bubus' })),
-    ).toBe('Ozone Rush 6 · Bukit Bubus');
-  });
-
-  it('never leaves a dangling separator', () => {
+  it('is the glider', () => {
     expect(identitySubtitle(profile({ gliderType: 'Ozone Rush 6' }))).toBe('Ozone Rush 6');
-    expect(identitySubtitle(profile({ homeSite: 'Bukit Bubus' }))).toBe('Bukit Bubus');
   });
 
   it('is null when there is nothing to say', () => {
+    // Sites are per-flight now; the profile has no home site to fall back to.
     expect(identitySubtitle(profile())).toBeNull();
+    expect(identitySubtitle(profile({ gliderType: '   ' }))).toBeNull();
   });
 });
 

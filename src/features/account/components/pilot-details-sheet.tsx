@@ -19,7 +19,6 @@ export interface PilotDetailsValues {
   pilotName: string;
   registrationId: string;
   gliderType: string;
-  homeSite: string;
 }
 
 export function valuesFromProfile(profile: PilotProfile): PilotDetailsValues {
@@ -27,7 +26,6 @@ export function valuesFromProfile(profile: PilotProfile): PilotDetailsValues {
     pilotName: profile.pilotName ?? '',
     registrationId: profile.registrationId ?? '',
     gliderType: profile.gliderType ?? '',
-    homeSite: profile.homeSite ?? '',
   };
 }
 
@@ -63,7 +61,6 @@ export function PilotDetailsSheet({
     setValues(valuesFromProfile(profile));
   }
 
-  const homeSiteChanged = values.homeSite.trim() !== (profile.homeSite ?? '');
   const preview = igcHeaderPreview({
     ...profile,
     pilotName: values.pilotName.trim() || null,
@@ -75,10 +72,6 @@ export function PilotDetailsSheet({
       pilotName: values.pilotName,
       registrationId: values.registrationId,
       gliderType: values.gliderType,
-      homeSite: values.homeSite,
-      // Typing a home site is the pilot claiming it. Latching the source here is what
-      // stops the site resolver ever replacing their answer with a guess.
-      ...(homeSiteChanged ? { homeSiteSource: 'manual' as const } : {}),
     });
   };
 
@@ -134,21 +127,9 @@ export function PilotDetailsSheet({
                 maxLength={60}
                 editable={!saving}
                 onChangeText={(gliderType) => setValues({ ...values, gliderType })}
-              />
-              <Input
-                label={
-                  profile.homeSiteSource === 'auto' && !homeSiteChanged
-                    ? 'Home site — auto'
-                    : 'Home site'
-                }
-                value={values.homeSite}
-                placeholder="Where you launch most"
-                maxLength={120}
-                editable={!saving}
-                onChangeText={(homeSite) => setValues({ ...values, homeSite })}
-                hint="Picked from where you launch most. Override it if you'd rather it stayed put."
                 last
               />
+
             </Card>
 
             <View style={styles.previewBlock}>

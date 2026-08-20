@@ -18,34 +18,43 @@ import { MetadataForm, type MetadataFormValues } from '@/features/flights/compon
 import {
   BusyRow,
   Button,
-  Card,
-  ListRow,
   LoadingScreen,
   Notice,
   Screen,
   SectionLabel,
   TopBar,
-  UnsupportedScreen,
 } from '@/components/ui';
 import { recorderService } from '@/recorder/recorder-service';
 import type { ExportArtifact, FlightDetail, FlightMetadataPatch } from '@/recorder/types';
 import {
   useDeleteFlightMutation,
   useGetFlightQuery,
+  useGetFlightTrackQuery,
   useGetFlightsQuery,
   useUpdateFlightMutation,
 } from '@/store/endpoints';
-import { DATA_AVAILABLE } from '@/store/hooks';
 import {
   formatAirtime,
-  formatDistance,
+  formatDistanceParts,
   formatGroundSpeed,
   formatMetres,
   formatThousands,
 } from '@/lib/format/flight-format';
 import { removalGuidance } from '@/features/logbook/guest-capacity';
-import { flightInsight, flightInsightText } from '@/features/logbook/logbook';
+import { flightInsight, flightInsightText, isFlightProcessing } from '@/features/logbook/logbook';
+import { StatGrid } from '@/features/flights/components/stat-grid';
+import { TrackPlate } from '@/features/flights/components/track-plate';
+import {
+  trackPlateAccessibilityLabel,
+  trackPlateLabels,
+  trackPlateState,
+} from '@/features/flights/track-presentation';
+import { straightLineMetres } from '@/lib/track/stats';
+import type { TrackSegments } from '@/lib/track/types';
 import { fonts, paper } from '@/ui/theme';
+
+/** Stable identity, so a default `[]` does not invalidate the plate memo every render. */
+const EMPTY_TRACK: TrackSegments = [];
 
 export default function FlightDetailScreen() {
   const { id, saved, intent } = useLocalSearchParams<{
@@ -59,13 +68,22 @@ export default function FlightDetailScreen() {
   // Whether this flight has a copy anywhere but this phone, which changes what the
   // delete confirmation is honestly able to promise.
   const backedUp = auth.status === 'signed_in';
-  const [form, setForm] = useState<MetadataFormValues>({ title: '', site: '', notes: '' });
+  const [form, setForm] = useState<MetadataFormValues>({
+    title: '',
+    site: '',
+    notes: '',
+    siteSource: null,
+  });
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; tone: 'good' | 'danger' } | null>(null);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
 
-  const skip = !DATA_AVAILABLE || !id;
+  const skip = !id;
   const { data: flight = null, isLoading: loading } = useGetFlightQuery(id!, { skip });
+  // Its own cache entry, so editing a title does not re-read and re-parse the geometry.
+  // This is also the only read that derives a track for a flight recorded before the plate
+  // existed, or whose stored shape is at an older algorithm version.
+  const { data: track = EMPTY_TRACK } = useGetFlightTrackQuery(id!, { skip });
   // The insight sentence needs the rest of the logbook to rank this flight against. This
   // used to be a second, serial full-table read on every open; it is now the same cache
   // entry the logbook already holds, so arriving from the logbook costs nothing.
@@ -86,7 +104,12 @@ export default function FlightDetailScreen() {
   if (flight && (seededId !== flight.id || seededAt !== flight.updatedAt)) {
     setSeededId(flight.id);
     setSeededAt(flight.updatedAt);
-    setForm({ title: flight.title ?? '', site: flight.site ?? '', notes: flight.notes ?? '' });
+    setForm({
+      title: flight.title ?? '',
+      site: flight.site ?? '',
+      notes: flight.notes ?? '',
+      siteSource: flight.siteSource,
+    });
   }
 
   const patch = useMemo<FlightMetadataPatch>(
@@ -94,12 +117,19 @@ export default function FlightDetailScreen() {
       title: optionalText(form.title),
       site: optionalText(form.site),
       notes: optionalText(form.notes),
+      siteSource: optionalText(form.site) === null ? null : form.siteSource,
     }),
     [form],
   );
+  // siteSource is compared too: picking a launch whose name matches what was already
+  // typed changes only the provenance, and without this the Save button would never
+  // appear and the credit would never be recorded.
   const dirty = Boolean(
     flight &&
-      (patch.title !== flight.title || patch.site !== flight.site || patch.notes !== flight.notes),
+      (patch.title !== flight.title ||
+        patch.site !== flight.site ||
+        patch.notes !== flight.notes ||
+        (patch.siteSource ?? null) !== flight.siteSource),
   );
 
   function leaveDetail() {
@@ -179,7 +209,6 @@ export default function FlightDetailScreen() {
     );
   }
 
-  if (Platform.OS === 'web') return <UnsupportedScreen />;
   if (loading && !flight) return <LoadingScreen label="Opening flight…" />;
 
   if (!flight) {
@@ -201,7 +230,7 @@ export default function FlightDetailScreen() {
     metrics?.durationMs ??
     (flight.endedAt === null ? null : Math.max(0, flight.endedAt - flight.startedAt));
   const isOpen = flight.sessionStatus === 'recording' || flight.sessionStatus === 'interrupted';
-  const isProcessing = !isOpen && (flight.status === 'processing' || !metrics);
+  const isProcessing = !isOpen && isFlightProcessing(flight);
   const isFinished = flight.status === 'completed' || flight.status === 'partial';
   const hasTrack = Boolean(metrics && metrics.fixCount > 0 && metrics.quality !== 'no_track');
   const canExportIgc = isFinished && hasTrack;
@@ -215,6 +244,12 @@ export default function FlightDetailScreen() {
   const removing = intent === 'remove' && canDelete ? removalGuidance(flight) : null;
   const heroIsDistance = Boolean(metrics && metrics.trackDistanceMetres > 0);
 
+  const plateState = trackPlateState(flight, track);
+  const plateLabels = trackPlateLabels(flight);
+  const straightLine = straightLineMetres(track);
+  const distanceParts = formatDistanceParts(metrics?.trackDistanceMetres ?? null);
+  const straightParts = formatDistanceParts(straightLine);
+
   return (
     <Screen>
       <KeyboardAvoidingView
@@ -222,6 +257,20 @@ export default function FlightDetailScreen() {
         style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <TopBar onBack={leaveDetail} backLabel="Back to logbook" />
+
+          {/*
+            Full bleed, above everything. The ScrollView carries no horizontal padding of
+            its own — every child sets its own — so the plate reaches both edges without
+            anything else moving.
+          */}
+          <TrackPlate
+            segments={track}
+            variant="hero"
+            state={plateState}
+            takeoffLabel={plateLabels.takeoff}
+            landingLabel={plateLabels.landing}
+            describe={(plate) => trackPlateAccessibilityLabel(flight, plate)}
+          />
 
           <FlightHero flight={flight} status={status} saved={savedContext} insight={insight} />
 
@@ -277,20 +326,42 @@ export default function FlightDetailScreen() {
             </View>
           ) : null}
 
-          <Card className="mx-[16px] mt-[14px] px-[16px]">
-            {heroIsDistance ? (
-              <ListRow label="Airtime" value={durationMs === null ? '—' : formatAirtime(durationMs)} />
-            ) : (
-              <ListRow label="Track distance" value={formatDistance(metrics?.trackDistanceMetres ?? null)} />
-            )}
-            <ListRow label="Max altitude" value={formatMetres(metrics?.maxGpsAltitude ?? null)} />
-            <ListRow label="Min altitude" value={formatMetres(metrics?.minGpsAltitude ?? null)} />
-            <ListRow label="Max ground speed" value={formatGroundSpeed(metrics?.maxGroundSpeed ?? null)} />
-            <ListRow label="GPS fixes" value={metrics ? formatThousands(metrics.fixCount) : '—'} last />
-          </Card>
+          {/*
+            The hero already shows whichever of airtime and distance is the headline, so the
+            grid takes the other one. Six cells either way, and nothing is stated twice.
+          */}
+          <StatGrid
+            cells={[
+              heroIsDistance
+                ? { label: 'Airtime', value: durationMs === null ? '—' : formatAirtime(durationMs) }
+                : {
+                    label: 'Track distance',
+                    value: distanceParts?.value ?? '—',
+                    unit: distanceParts?.unit ?? null,
+                  },
+              // Launch to landing, which is not the same number as distance flown — a day
+              // spent on one ridge can fly fifty kilometres and land where it started.
+              {
+                label: 'Straight line',
+                value: straightParts?.value ?? '—',
+                unit: straightParts?.unit ?? null,
+              },
+              { label: 'Max altitude', value: formatMetres(metrics?.maxGpsAltitude ?? null) },
+              { label: 'Min altitude', value: formatMetres(metrics?.minGpsAltitude ?? null) },
+              { label: 'Max ground speed', value: formatGroundSpeed(metrics?.maxGroundSpeed ?? null) },
+              { label: 'GPS fixes', value: metrics ? formatThousands(metrics.fixCount) : '—' },
+            ]}
+          />
 
           <SectionLabel className="px-[18px] pt-[20px] pb-[8px]">About this flight</SectionLabel>
           <MetadataForm
+            // Where this flight actually launched, so the nearby list is about the launch
+            // rather than about wherever the phone happens to be days later.
+            takeoff={
+              flight.takeoffLatitude !== null && flight.takeoffLongitude !== null
+                ? { latitude: flight.takeoffLatitude, longitude: flight.takeoffLongitude }
+                : null
+            }
             values={form}
             onChange={setForm}
             dirty={dirty}

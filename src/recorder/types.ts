@@ -1,3 +1,5 @@
+import type { TrackSegments } from '../lib/track/types';
+
 export type RecorderState =
   | 'idle'
   | 'arming'
@@ -194,13 +196,14 @@ export interface SessionRecoveryProof extends SessionRecoveryAttempt {
 /**
  * Where a flight's site name came from.
  *
- * `manual` is a latch: it means the pilot typed it, and the reverse geocoder must never
- * overwrite it. `null` means nobody has said anything yet, which is the resolver's queue.
- * `none` is the terminal answer for a launch that has no name to find — geocoding
- * returning no result is a success, and without a value for it the flight would be
- * retried forever.
+ * Which catalogue the site name came from, and therefore which licence it falls under —
+ * ParaglidingEarth is CC BY-SA 3.0, OpenStreetMap is ODbL, and `manual` is the pilot's
+ * own words, which carry neither. `null` means the flight is unnamed.
+ *
+ * The reader is the attribution line: crediting a source for a name the pilot typed
+ * themselves would be a claim this app cannot substantiate.
  */
-export type SiteSource = 'gps' | 'manual' | 'none';
+export type SiteSource = 'paraglidingearth' | 'osm' | 'manual';
 
 export interface FlightRecord {
   id: string;
@@ -216,7 +219,6 @@ export interface FlightRecord {
   takeoffLatitude: number | null;
   takeoffLongitude: number | null;
   siteSource: SiteSource | null;
-  siteResolvedAt: number | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -250,6 +252,11 @@ export interface FlightMetadataPatch {
   title?: string | null;
   site?: string | null;
   notes?: string | null;
+  /**
+   * Where the site name came from. Set alongside `site`, never on its own — a provenance
+   * with no name to describe would be meaningless.
+   */
+  siteSource?: SiteSource | null;
 }
 
 export interface FlightRepository {
@@ -257,6 +264,14 @@ export interface FlightRepository {
   getFlight(flightId: string): Promise<FlightDetail | null>;
   updateFlight(flightId: string, patch: FlightMetadataPatch): Promise<FlightDetail>;
   deleteFlight(flightId: string): Promise<void>;
+  /**
+   * Every stored track, keyed by flight. Reads only — the logbook never derives, because
+   * doing so would mean re-reading the fixes of every un-backfilled flight before the list
+   * could paint.
+   */
+  listTracks(): Promise<Record<string, TrackSegments>>;
+  /** One flight's track, derived and stored on a miss. */
+  getTrack(flightId: string): Promise<TrackSegments>;
 }
 
 /**
@@ -289,9 +304,6 @@ export interface AppSettingsPatch {
   disclaimerAckAt?: number | null;
 }
 
-/** Whether home_site follows the pilot's flights, or was pinned by hand. */
-export type HomeSiteSource = 'auto' | 'manual';
-
 export interface PilotProfile {
   pilotName: string | null;
   gliderType: string | null;
@@ -299,8 +311,6 @@ export interface PilotProfile {
   gliderId: string | null;
   /** The pilot's licence or federation number. Rides in HFCIDCOMPETITIONID. */
   registrationId: string | null;
-  homeSite: string | null;
-  homeSiteSource: HomeSiteSource;
   updatedAt: number;
   pushedUpdatedAt: number | null;
 }
@@ -310,13 +320,6 @@ export interface PilotProfilePatch {
   gliderType?: string | null;
   gliderId?: string | null;
   registrationId?: string | null;
-  homeSite?: string | null;
-  /**
-   * Set to `manual` when the pilot types a home site themselves. An enum, not free text —
-   * it is validated rather than trimmed, and a bad value throws here instead of hitting
-   * the column CHECK inside a transaction.
-   */
-  homeSiteSource?: HomeSiteSource;
 }
 
 export interface PilotProfileRepository {

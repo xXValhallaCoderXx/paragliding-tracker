@@ -1,13 +1,8 @@
 /*
- * Tailwind entry point. Compiled to a native stylesheet by react-native-css via Metro, and to
- * real CSS for react-native-web.
+ * Tailwind entry point. Compiled to a native stylesheet by react-native-css via Metro.
  *
- * The modular @import form (rather than `@tailwind` directives) is what NativeWind v5
- * recommends for react-native-web compatibility, which this project depends on for visual QA.
- *
- * `tailwindcss/preflight.css` is deliberately NOT imported: it is a DOM reset, react-native-web
- * already normalises, and adding it would shift every existing baseline in dist/visual/. If it
- * is ever wanted, add it in a dedicated commit alongside a screenshot re-baseline.
+ * The modular @import form is the NativeWind v5 entry format. Preflight is a DOM reset and is
+ * intentionally omitted from this native app.
  */
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css";
@@ -46,7 +41,7 @@
    * Deliberately NOT named sans/serif/mono: `nativewind/theme` redefines --font-sans,
    * --font-serif and --font-mono in a :root block per platform (on Android they become
    * SystemAndroid / sans-serif / monospace), which would silently override these at runtime on
-   * device while still looking correct on web.
+   * device.
    */
   --font-body: Archivo_400Regular;
   --font-body-medium: Archivo_500Medium;
@@ -81,6 +76,7 @@
   --color-card-alt: #f1e8d8;
   --color-border: #e2d9c8;
   --color-hairline: #efe7d6;
+  --color-grid: #dfd2b7;
   --color-ink: #16130f;
   --color-body: #5b534a;
   --color-muted: #8b8177;

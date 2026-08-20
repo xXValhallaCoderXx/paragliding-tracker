@@ -1,12 +1,13 @@
 import type {
   CompletionReason,
+  SiteSource,
   FlightMetadataPatch,
   FlightStatus,
   PilotProfilePatch,
   SessionRecord,
 } from './types';
 
-export const LATEST_DATABASE_VERSION = 6;
+export const LATEST_DATABASE_VERSION = 7;
 
 export const EXPECTED_V1_TABLE_COLUMNS = Object.freeze({
   sessions: [
@@ -134,7 +135,6 @@ export const EXPECTED_V5_TABLE_COLUMNS = Object.freeze({
     'pilot_name',
     'glider_type',
     'glider_id',
-    'home_site',
     'updated_at',
     'pushed_updated_at',
   ],
@@ -175,8 +175,8 @@ export const EXPECTED_V5_INDEX_NAMES = Object.freeze([
 ] as const);
 
 export const EXPECTED_V6_TABLE_COLUMNS = Object.freeze({
-  pilot_profile: ['registration_id', 'home_site_source'],
-  flights: ['takeoff_latitude', 'takeoff_longitude', 'site_source', 'site_resolved_at'],
+  pilot_profile: ['registration_id'],
+  flights: ['takeoff_latitude', 'takeoff_longitude', 'site_source'],
   app_settings: [
     'id',
     'onboarding_state',
@@ -186,9 +186,13 @@ export const EXPECTED_V6_TABLE_COLUMNS = Object.freeze({
   ],
 } as const);
 
-export const EXPECTED_V6_INDEX_NAMES = Object.freeze([
-  'flights_pending_site_resolution',
-] as const);
+export const EXPECTED_V6_INDEX_NAMES = Object.freeze([] as const);
+
+export const EXPECTED_V7_TABLE_COLUMNS = Object.freeze({
+  flight_tracks: ['flight_id', 'segments', 'algorithm_version', 'computed_at'],
+} as const);
+
+export const EXPECTED_V7_INDEX_NAMES = Object.freeze([] as const);
 
 export const CREATE_V1_SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS sessions (
@@ -387,7 +391,6 @@ export const MIGRATE_V5_SCHEMA_SQL = `
     pilot_name TEXT,
     glider_type TEXT,
     glider_id TEXT,
-    home_site TEXT,
     updated_at INTEGER NOT NULL,
     pushed_updated_at INTEGER
   );
@@ -454,16 +457,6 @@ export const MIGRATE_V6_SCHEMA_SQL = `
   -- HFCIDCOMPETITIONID. Conflating them would put a licence number in a glider field.
   ALTER TABLE pilot_profile ADD COLUMN registration_id TEXT;
 
-  -- 'auto' lets home_site follow wherever the pilot actually launches most. 'manual'
-  -- is a latch: once they set it themselves, derivation must never touch it again.
-  -- Existing rows default to 'auto' because nobody has overridden anything yet.
-  ALTER TABLE pilot_profile ADD COLUMN home_site_source TEXT NOT NULL DEFAULT 'auto'
-    CHECK (home_site_source IN ('auto', 'manual'));
-
-  -- home_site shipped in v5 as a hand-typed field, so anyone who filled it in has
-  -- already overridden it. Without this they would be treated as never having chosen,
-  -- and the first derivation pass would quietly replace their answer with a guess.
-  UPDATE pilot_profile SET home_site_source = 'manual' WHERE id = 1 AND home_site IS NOT NULL;
 
   -- Denormalised from the first export-eligible fix when the flight is finalized, so
   -- naming a launch never needs a foreground GPS read. Local only: the cloud flights
@@ -473,27 +466,18 @@ export const MIGRATE_V6_SCHEMA_SQL = `
   ALTER TABLE flights ADD COLUMN takeoff_latitude REAL;
   ALTER TABLE flights ADD COLUMN takeoff_longitude REAL;
 
-  -- NULL means nobody has said anything about this flight's site, and is the resolver's
-  -- work queue. 'gps' means the reverse geocoder named it. 'manual' means the pilot
-  -- typed it, and is what stops the geocoder ever overwriting their words. 'none' is
-  -- the terminal answer for a launch that genuinely has no name — mid-ocean, a blank
-  -- map region, a device with no Geocoder — without which those flights would be
-  -- retried on every pass for the life of the install.
+  -- Which catalogue this flight's site name came from, because the two carry different
+  -- licences: ParaglidingEarth is CC BY-SA 3.0 and OpenStreetMap is ODbL. 'manual' is
+  -- the pilot's own words and carries neither.
+  --
+  -- Deliberately not a bare 'picked': a provenance nothing reads is write-only state,
+  -- and this one has a reader — the attribution line. A blanket credit would claim
+  -- attribution this app cannot substantiate for a name the pilot typed themselves.
   ALTER TABLE flights ADD COLUMN site_source TEXT
-    CHECK (site_source IS NULL OR site_source IN ('gps', 'manual', 'none'));
-  ALTER TABLE flights ADD COLUMN site_resolved_at INTEGER;
+    CHECK (site_source IS NULL OR site_source IN ('paraglidingearth', 'osm', 'manual'));
 
-  -- Every existing flight already has a site the pilot typed, or none at all. Marking
-  -- the typed ones 'manual' now is what makes the resolver's "never overwrite" rule
-  -- true retroactively, instead of only for flights recorded from here on.
+  -- Anything already named was named by hand, by definition.
   UPDATE flights SET site_source = 'manual' WHERE site IS NOT NULL;
-
-  -- Drives the resolver's work queue. The takeoff-coordinate clause matters: every
-  -- pre-v6 flight has a NULL site_source, and without it the whole legacy logbook would
-  -- sit in this index forever as work that can never be done.
-  CREATE INDEX flights_pending_site_resolution
-    ON flights (started_at DESC)
-    WHERE site_source IS NULL AND takeoff_latitude IS NOT NULL;
 
   -- Device-scoped app state that is not the pilot's data and never syncs. Single row,
   -- same CHECK-based shape as pilot_profile and cloud_link.
@@ -538,6 +522,39 @@ export interface SchemaMigrationStep {
   statements: readonly string[];
 }
 
+export const MIGRATE_V7_SCHEMA_SQL = `
+  -- The flight's shape, simplified once at finalize and drawn from here forever after.
+  --
+  -- A side table rather than a column on flights, and the reason is not size. A column
+  -- would land on FlightRecord, which FlightSyncCandidate extends, putting raw position
+  -- evidence one autocomplete away from flightRow() in the sync engine. Local only, like
+  -- takeoff_latitude: the cloud flights table is unchanged, and raw position evidence is
+  -- deliberately never uploaded.
+  --
+  -- It also keeps the cache honest. Editing a title invalidates the whole flight list, and
+  -- with a column that would re-read and re-parse the geometry of every flight in the
+  -- logbook to redraw one word.
+  CREATE TABLE flight_tracks (
+    flight_id TEXT PRIMARY KEY NOT NULL REFERENCES flights(id) ON DELETE RESTRICT,
+
+    -- JSON: an array of continuous segments, each a flat [lat, lon, lat, lon, ...] at five
+    -- decimal places. Segments rather than one array because a recording gap has to draw
+    -- as a break — a single polyline across a ten-minute dropout draws a straight line the
+    -- pilot never flew, which is exactly the claim this plate must not make.
+    --
+    -- '[]' means the simplifier ran and found nothing usable. The row's presence, not its
+    -- contents, is what records that it ran at all.
+    segments TEXT NOT NULL,
+
+    -- Mirrors flight_metrics.algorithm_version. Bumping it re-derives every stored track
+    -- lazily on next open, instead of needing a migration that walks location_fixes inside
+    -- a transaction.
+    algorithm_version INTEGER NOT NULL,
+
+    computed_at INTEGER NOT NULL
+  );
+`;
+
 export function getSchemaMigrationSteps(
   currentVersion: number,
   isNewDatabase: boolean,
@@ -571,6 +588,10 @@ export function getSchemaMigrationSteps(
   }
   if (version < 6) {
     steps.push({ version: 6, statements: [MIGRATE_V6_SCHEMA_SQL] });
+    version = 6;
+  }
+  if (version < 7) {
+    steps.push({ version: 7, statements: [MIGRATE_V7_SCHEMA_SQL] });
   }
   return steps;
 }
@@ -585,10 +606,25 @@ export function flightStatusForSession(
 
 const METADATA_LIMITS = Object.freeze({ title: 120, site: 120, notes: 4_000 });
 
+/** Mirrors the column CHECK, so the two cannot drift. */
+const SITE_SOURCES: readonly SiteSource[] = ['paraglidingearth', 'osm', 'manual'];
+
 export function normalizeFlightMetadataPatch(
   patch: FlightMetadataPatch,
 ): FlightMetadataPatch {
   const normalized: FlightMetadataPatch = {};
+
+  // An enum backed by a column CHECK, so an unknown value has to fail here rather than
+  // inside the write transaction. Trimming it would be meaningless.
+  if (Object.prototype.hasOwnProperty.call(patch, 'siteSource')) {
+    const source = patch.siteSource;
+    if (source !== null && (source === undefined || !SITE_SOURCES.includes(source))) {
+      throw new TypeError(
+        `siteSource must be one of ${SITE_SOURCES.join(', ')} or null, got ${String(source)}.`,
+      );
+    }
+    normalized.siteSource = source;
+  }
   for (const field of ['title', 'site', 'notes'] as const) {
     if (!Object.prototype.hasOwnProperty.call(patch, field)) continue;
     const value = patch[field];
@@ -610,29 +646,16 @@ const PILOT_PROFILE_LIMITS = Object.freeze({
   gliderType: 60,
   gliderId: 30,
   registrationId: 30,
-  homeSite: 120,
 });
 
 export function normalizePilotProfilePatch(patch: PilotProfilePatch): PilotProfilePatch {
   const normalized: PilotProfilePatch = {};
-
-  // Handled before the text fields and deliberately not trimmed or length-checked: it is
-  // an enum backed by a column CHECK, so an unknown value has to fail here rather than
-  // blow up inside the write transaction.
-  if (Object.prototype.hasOwnProperty.call(patch, 'homeSiteSource')) {
-    const source = patch.homeSiteSource;
-    if (source !== 'auto' && source !== 'manual') {
-      throw new TypeError(`homeSiteSource must be 'auto' or 'manual', got ${String(source)}.`);
-    }
-    normalized.homeSiteSource = source;
-  }
 
   for (const field of [
     'pilotName',
     'gliderType',
     'gliderId',
     'registrationId',
-    'homeSite',
   ] as const) {
     if (!Object.prototype.hasOwnProperty.call(patch, field)) continue;
     const value = patch[field];

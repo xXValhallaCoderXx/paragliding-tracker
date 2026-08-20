@@ -1,13 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import {
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import {
@@ -18,7 +10,6 @@ import {
   Notice,
   Screen,
   SectionLabel,
-  UnsupportedScreen,
 } from '@/components/ui';
 import { EmptyLogbook } from '@/features/logbook/components/empty-logbook';
 import { SetupChecklistCard } from '@/features/logbook/components/setup-checklist-card';
@@ -31,8 +22,8 @@ import { useCloudSync } from '@/features/account/cloud-sync-provider';
 import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import { recorderService } from '@/recorder/recorder-service';
 import type { FlightSummary, RecorderCapabilities } from '@/recorder/types';
-import { useGetFlightsQuery, useGetProfileQuery } from '@/store/endpoints';
-import { DATA_AVAILABLE } from '@/store/hooks';
+import { useGetFlightsQuery, useGetFlightTracksQuery, useGetProfileQuery } from '@/store/endpoints';
+import type { TrackSegments } from '@/lib/track/types';
 import { setupChecklist, type ChecklistKey } from '@/features/logbook/setup-checklist';
 import {
   countSavedFlights,
@@ -45,6 +36,9 @@ import { fonts, paper, TAB_BAR_HEIGHT } from '@/ui/theme';
 
 /** Stable identity: a fresh `[]` default would break every memo that depends on it. */
 const EMPTY_FLIGHTS: FlightSummary[] = [];
+
+/** Stable identity, so a default `{}` does not remount every thumbnail on each render. */
+const EMPTY_TRACKS: Record<string, TrackSegments> = {};
 
 export default function LogbookScreen() {
   const router = useRouter();
@@ -59,7 +53,7 @@ export default function LogbookScreen() {
 
   // The recorder writes flights outside Redux, and recovery can flip a session's status,
   // so these stay skipped until the lifecycle says the database is settled.
-  const skip = !DATA_AVAILABLE || !recorderLifecycle.ready || recorderLifecycle.recovering;
+  const skip = !recorderLifecycle.ready || recorderLifecycle.recovering;
   const {
     data: flights = EMPTY_FLIGHTS,
     isLoading,
@@ -69,6 +63,12 @@ export default function LogbookScreen() {
     refetch,
   } = useGetFlightsQuery(undefined, { skip });
   const { data: profile = null } = useGetProfileQuery(undefined, { skip });
+  // One read for the whole list rather than a hook per card, and its own cache entry so
+  // editing a flight's title does not re-read and re-parse every flight's geometry.
+  const { data: tracks = EMPTY_TRACKS, refetch: refetchTracks } = useGetFlightTracksQuery(
+    undefined,
+    { skip },
+  );
   // Not cached, deliberately: capabilities describe system settings the pilot may have
   // changed while away, so focus is the right trigger. A TTL cache here would still say
   // "denied" immediately after the first-run wizard granted location.
@@ -100,16 +100,17 @@ export default function LogbookScreen() {
       // during recorder startup/recovery, and the query starts by itself once `skip`
       // becomes false, so there is nothing to refetch yet.
       if (!skip) void refetch();
-      if (Platform.OS !== 'web') {
-        void recorderService
-          .getCapabilities()
-          .then(setCapabilities)
-          .catch(() => setCapabilities(null));
-      }
+      // The same trigger, for a different reason: opening a flight derives its track if it
+      // had none, so this is what makes the thumbnail appear on the way back.
+      if (!skip) void refetchTracks();
+      void recorderService
+        .getCapabilities()
+        .then(setCapabilities)
+        .catch(() => setCapabilities(null));
       // Cheapest reliable post-flight trigger: the recorder navigates here after a save.
       // Subscribing to recorderService instead would start its 1 Hz poll permanently.
       requestSync('logbook-focus');
-    }, [refetch, requestSync, skip]),
+    }, [refetch, refetchTracks, requestSync, skip]),
   );
 
   const layout = useMemo(() => buildLogbookLayout(flights), [flights]);
@@ -132,8 +133,6 @@ export default function LogbookScreen() {
     () => guestCapacityNotice(capacity, oldestRemovableFlight(layout)),
     [capacity, layout],
   );
-
-  if (Platform.OS === 'web') return <UnsupportedScreen />;
 
   const recorderBusy = !recorderLifecycle.ready || recorderLifecycle.recovering;
   const openFlight = layout.open;
@@ -295,6 +294,7 @@ export default function LogbookScreen() {
                 <FlightCard
                   key={flight.id}
                   flight={flight}
+                  track={tracks[flight.id]}
                   onPress={() =>
                     router.push({ pathname: '/flights/[id]', params: { id: flight.id } })
                   }

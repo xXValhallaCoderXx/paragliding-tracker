@@ -20,6 +20,17 @@ function migrationSql(): string {
     .join('\n');
 }
 
+/** Columns a later migration added with `alter table public.<name> add column`. */
+function alterAddedColumns(sql: string, table: string): Set<string> {
+  const pattern = new RegExp(
+    `alter table public\\.${table}\\s+add column(?: if not exists)? ([a-z_][a-z0-9_]*)`,
+    'gi',
+  );
+  const found = new Set<string>();
+  for (const match of sql.matchAll(pattern)) found.add(match[1]!.toLowerCase());
+  return found;
+}
+
 /** Column names from a `create table public.<name> ( ... );` block. */
 function tableColumns(sql: string, table: string): Set<string> {
   const start = sql.indexOf(`create table public.${table} (`);
@@ -63,11 +74,58 @@ describe('client push payload matches the server schema', () => {
     expect(keys.filter((key) => !columns.has(key))).toEqual([]);
   });
 
+  it('never sends raw position evidence, whatever gets added to a flight row', () => {
+    // FlightSyncCandidate extends FlightSummary extends FlightRecord, so anything added as
+    // a column on the local flights table appears on the object handed to flightRow() and
+    // is one autocomplete away from being uploaded. That is why the simplified track lives
+    // in flight_tracks and the launch coordinate stays local — and this is what keeps the
+    // rule a test rather than a comment on the migration.
+    const forbidden = /track|segment|latitude|longitude|point|fix/;
+    expect(flightRowKeys().filter((key) => forbidden.test(key))).toEqual([
+      // The flight's total path length. A scalar the pilot already sees on the card, not a
+      // position: it says how far, never where.
+      'track_distance_metres',
+      'fix_count',
+    ]);
+  });
+
   it('every column the app writes to profiles exists on the table', () => {
-    const columns = tableColumns(sql, 'profiles');
-    for (const column of ['id', 'pilot_name', 'glider_type', 'glider_id', 'home_site', 'client_updated_at']) {
+    const columns = new Set([
+      ...tableColumns(sql, 'profiles'),
+      // Columns added by a later migration. `tableColumns` only parses `create table`
+      // blocks, so an `alter table ... add column` is invisible to it — which is exactly
+      // why an already-applied migration must never be edited in place.
+      ...alterAddedColumns(sql, 'profiles'),
+    ]);
+    for (const column of [
+      'id',
+      'pilot_name',
+      'glider_type',
+      'glider_id',
+      'registration_id',
+      'client_updated_at',
+    ]) {
       expect({ column, present: columns.has(column) }).toEqual({ column, present: true });
     }
+  });
+
+  it('every profile field the client holds is actually pushed', () => {
+    // The inverse of the test above, and the one that was missing: that one proves the
+    // server has somewhere to put what we send, this one proves we send everything we
+    // hold. registration_id was held locally for a whole feature without ever being
+    // pushed, so a pilot lost their licence number on device change and nothing said so.
+    const engine = readFileSync(join('src', 'cloud', 'sync-engine.native.ts'), 'utf8');
+    const held = ['pilotName', 'gliderType', 'gliderId', 'registrationId'];
+    expect(held.filter((field) => !engine.includes(`profile.${field}`))).toEqual([]);
+  });
+
+  it('drops home_site by migration rather than by editing the applied one', () => {
+    // The linked project already ran 20260818120000. Editing it would leave the column
+    // live, the repo claiming otherwise, and `db diff` reporting drift forever.
+    expect(sql).toMatch(/alter table public\.profiles\s+drop column if exists home_site/i);
+    expect(readFileSync(join('src', 'cloud', 'sync-engine.native.ts'), 'utf8')).not.toContain(
+      'home_site',
+    );
   });
 
   it('the IGC columns updated after upload exist', () => {

@@ -29,6 +29,24 @@ function importsOf(file: string): string[] {
   );
 }
 
+/**
+ * Imports that survive compilation.
+ *
+ * `import type` is erased by the TypeScript transform and creates no runtime edge, so it
+ * cannot pull a module into a bundle or a headless callback. That distinction matters for
+ * the leaf rules below, where the concern is specifically what gets *evaluated* — a shared
+ * helper naming a recorder type is not the cycle that would drag supabase-js into a GPS
+ * batch.
+ */
+function runtimeImportsOf(file: string): string[] {
+  const source = readFileSync(file, 'utf8')
+    .replace(/\bimport\s+type\b[\s\S]*?from\s+'[^']+';/g, '')
+    .replace(/\bexport\s+type\b[\s\S]*?from\s+'[^']+';/g, '');
+  return [...source.matchAll(/from\s+'([^']+)'|import\s*\(\s*'([^']+)'/g)].map(
+    (match) => match[1] ?? match[2]!,
+  );
+}
+
 describe('cloud backup never reaches the capture path', () => {
   it('no recorder module imports the cloud layer or supabase', () => {
     for (const file of sourceFiles('src/recorder')) {
@@ -52,6 +70,7 @@ describe('cloud backup never reaches the capture path', () => {
       for (const specifier of importsOf(file)) {
         expect(specifier).not.toContain('@supabase/');
         expect(specifier).not.toContain('@/cloud');
+        expect(specifier).not.toContain('@/sites');
         if (!specifier.startsWith('.')) continue;
         const base = join('src/recorder', specifier.replace(/^\.\//, ''));
         for (const candidate of [`${base}.ts`, `${base}.native.ts`, `${base}.tsx`]) {
@@ -67,30 +86,6 @@ describe('cloud backup never reaches the capture path', () => {
       }
     }
     expect(resolved.size).toBeGreaterThan(1);
-  });
-
-  it('no shared module imports a platform-split .native file directly', () => {
-    // `database.native` and friends resolve per platform through Metro's platform
-    // extensions. Importing one by its explicit `.native` name from a shared component
-    // drags expo-sqlite's web worker into the web bundle and breaks
-    // `expo export --platform web` — with a stack trace that points at expo-sqlite
-    // rather than at the import that caused it. Hence this test.
-    // Widened as new top-level directories appear, rather than copied per directory:
-    // one rule means one place to add the next one.
-    const shared = [
-      ...sourceFiles('src/features'),
-      ...sourceFiles('src/app'),
-      ...sourceFiles('src/store'),
-      ...sourceFiles('src/lib'),
-      ...sourceFiles('src/components'),
-    ];
-    for (const file of shared) {
-      for (const specifier of importsOf(file)) {
-        expect({ file, specifier }).not.toMatchObject({
-          specifier: expect.stringMatching(/\.native$/),
-        });
-      }
-    }
   });
 
   it('the store never imports UI, so it cannot become a back door into the domain', () => {
@@ -118,7 +113,7 @@ describe('cloud backup never reaches the capture path', () => {
     // `recorderService.subscribe()` reference-counts a 1 Hz poll that only stops when the
     // last listener leaves. `cloudAuthService.subscribe()` reaches `getSupabase()`, which
     // constructs the client that supabase.native.ts keeps lazy on purpose so tests,
-    // `expo export` and unconfigured builds never open a socket. `cloudSyncEngine`
+    // native exports and unconfigured builds never open a socket. `cloudSyncEngine`
     // fires two SQLite reads on every subscribe. All three belong in a component effect.
     for (const file of sourceFiles('src/store')) {
       for (const specifier of importsOf(file)) {
@@ -132,6 +127,92 @@ describe('cloud backup never reaches the capture path', () => {
             specifier: expect.stringContaining(forbidden),
           });
         }
+      }
+    }
+  });
+
+  it('the site layer imports nothing from this app', () => {
+    // It is a client for two public catalogues and the pure policy over their answers.
+    // Keeping it self-contained is what lets it be unit-tested with no database, no
+    // native module and no network — and stops it inheriting, say, the cloud layer's
+    // 30-second retry backoff, which would be absurd on a typeahead.
+    for (const file of sourceFiles('src/sites')) {
+      for (const specifier of importsOf(file)) {
+        if (specifier.startsWith('.')) continue;
+        expect({ file, specifier }).not.toMatchObject({
+          specifier: expect.stringContaining('@/'),
+        });
+      }
+    }
+  });
+
+  it('the site layer never uses an abort primitive that does not exist on device', () => {
+    // AbortSignal.timeout() is present in the Node environment jest runs in and absent
+    // from the abort-controller polyfill React Native ships. It would pass every test
+    // here and throw on a phone, so this is the only place that can catch it.
+    //
+    // Comments are stripped first: the code explains in prose why it avoids this, and a
+    // guard that fires on its own justification is a guard nobody keeps.
+    for (const file of sourceFiles('src/sites')) {
+      const code = readFileSync(file, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/[^\n]*/g, '');
+      expect({ file, code }).not.toMatchObject({
+        code: expect.stringContaining('AbortSignal.timeout'),
+      });
+    }
+  });
+
+  it('no recorder module imports the site layer', () => {
+    // Naming a launch is never a capture concern, and the headless GPS task must not
+    // grow an HTTP client.
+    for (const file of sourceFiles('src/recorder')) {
+      for (const specifier of importsOf(file)) {
+        expect({ file, specifier }).not.toMatchObject({
+          specifier: expect.stringContaining('@/sites'),
+        });
+      }
+    }
+  });
+
+  it('the lib layer is a leaf, so every other layer can safely reach into it', () => {
+    // `src/lib/track` is imported by the recorder at finalize, by the logbook for card
+    // thumbnails and by the flight screen for the hero. That only stays safe while it
+    // imports nothing back — otherwise the shared helper becomes the cycle through which
+    // the cloud layer, or supabase, reaches the capture path.
+    //
+    // The headless walk above would not catch it: that walk only follows relative
+    // specifiers, so it checks `@/lib/track/simplify` as a string and never enters it.
+    for (const file of sourceFiles('src/lib')) {
+      for (const specifier of runtimeImportsOf(file)) {
+        for (const forbidden of [
+          '@/cloud',
+          '@/sites',
+          '@/features',
+          '@/components',
+          '@/app',
+          '@/store',
+          '@/recorder',
+          '@/ui',
+          '@supabase/',
+        ]) {
+          expect({ file, specifier }).not.toMatchObject({
+            specifier: expect.stringContaining(forbidden),
+          });
+        }
+      }
+    }
+  });
+
+  it('the track layer is renderer-agnostic, so jest can test every decision it makes', () => {
+    // Jest never collects `.tsx`, which is why every rule the plate applies lives in these
+    // modules rather than in the component. That only holds while they stay importable in
+    // plain node — one `react-native` import and the whole suite needs a mock.
+    for (const file of sourceFiles('src/lib/track')) {
+      for (const specifier of importsOf(file)) {
+        expect({ file, specifier }).not.toMatchObject({ specifier: 'react-native' });
+        expect({ file, specifier }).not.toMatchObject({ specifier: 'react-native-svg' });
+        expect({ file, specifier }).not.toMatchObject({ specifier: 'react' });
       }
     }
   });

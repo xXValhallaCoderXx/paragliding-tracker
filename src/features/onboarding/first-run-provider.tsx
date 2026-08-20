@@ -7,8 +7,6 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Platform } from 'react-native';
-
 import { appSettingsRepository } from '@/recorder/flight-repository';
 
 import {
@@ -39,7 +37,7 @@ export type FirstRunStatus =
   /** Setup has never been completed on this device. */
   | 'required'
   | 'complete'
-  /** Web, or the settings read failed. Never blocks: the logbook renders. */
+  /** The settings read failed. Never blocks: the logbook renders. */
   | 'unavailable';
 
 interface FirstRunValue {
@@ -66,14 +64,11 @@ const FirstRunContext = createContext<FirstRunValue | null>(null);
 const SETTINGS_READ_TIMEOUT_MS = 5_000;
 
 export function FirstRunProvider({ children }: { children: ReactNode }) {
-  const [status, setStatus] = useState<FirstRunStatus>(
-    Platform.OS === 'web' ? 'unavailable' : 'loading',
-  );
+  const [status, setStatus] = useState<FirstRunStatus>('loading');
   const [replayRequested, setReplayRequested] = useState(false);
   const [wizard, setWizard] = useState<OnboardingState>(INITIAL_ONBOARDING_STATE);
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
     let mounted = true;
 
     const timeout = setTimeout(() => {
@@ -117,7 +112,6 @@ export function FirstRunProvider({ children }: { children: ReactNode }) {
     setReplayRequested(false);
     setStatus('complete');
     setWizard(INITIAL_ONBOARDING_STATE);
-    if (Platform.OS === 'web') return;
     try {
       const now = Date.now();
       await appSettingsRepository.updateSettings({

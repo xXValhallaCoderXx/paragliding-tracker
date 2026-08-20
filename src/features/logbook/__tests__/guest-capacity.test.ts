@@ -49,7 +49,6 @@ function flight(overrides: Partial<FlightSummary> & { id: string }): FlightSumma
     takeoffLatitude: null,
     takeoffLongitude: null,
     siteSource: null,
-    siteResolvedAt: null,
     createdAt: startedAt,
     updatedAt: startedAt,
     sessionStatus: 'completed',
@@ -119,12 +118,10 @@ describe('evaluateGuestCapacity', () => {
 
   it('exempts builds that have no cloud configured', () => {
     // Never offer an account a build cannot create.
-    for (const authStatus of ['unconfigured', 'unsupported'] as const) {
-      expect(guest(40, { authStatus })).toMatchObject({
-        level: 'exempt',
-        exemption: 'unavailable',
-      });
-    }
+    expect(guest(40, { authStatus: 'unconfigured' })).toMatchObject({
+      level: 'exempt',
+      exemption: 'unavailable',
+    });
   });
 
   it('prefers the signed-in reason over the linked one', () => {

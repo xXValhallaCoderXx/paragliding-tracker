@@ -19,7 +19,6 @@ import type {
 
 export interface SyncGateInput {
   configured: boolean;
-  platformSupported: boolean;
   authStatus: CloudAuthStatus;
   sessionUserId: string | null;
   /** The account this device's logbook is already bound to, if any. */
@@ -45,7 +44,6 @@ export type SyncGateDecision =
  * out, not that they are throttled).
  */
 export function evaluateSyncGate(input: SyncGateInput): SyncGateDecision {
-  if (!input.platformSupported) return { run: false, reason: 'unsupported' };
   if (!input.configured) return { run: false, reason: 'unconfigured' };
   if (input.authStatus !== 'signed_in' || input.sessionUserId === null) {
     return { run: false, reason: 'signed_out' };

@@ -160,10 +160,23 @@ export function flightInsightText(insight: FlightInsight): string {
   }
 }
 
+/**
+ * A flight that has landed but whose stats are not in yet.
+ *
+ * Both halves matter: `processing` is what the recorder writes at stop, and the missing
+ * metrics catch a flight whose finalize was interrupted — a row that would otherwise show
+ * a confident 0:00. Shared because the logbook card, the flight chips, the detail screen
+ * and the track plate all have to agree on it, and four copies of one condition is three
+ * chances to disagree.
+ */
+export function isFlightProcessing(flight: FlightSummary): boolean {
+  return flight.status === 'processing' || (flight.endedAt !== null && flight.metrics === null);
+}
+
 export function flightChips(flight: FlightSummary): { label: string; tone: ChipTone }[] {
   const chips: { label: string; tone: ChipTone }[] = [];
   const metrics = flight.metrics;
-  if (flight.status === 'processing' || (flight.endedAt !== null && !metrics)) {
+  if (isFlightProcessing(flight)) {
     chips.push({ label: 'Finishing stats', tone: 'muted' });
     return chips;
   }

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
@@ -12,7 +12,6 @@ import {
   Screen,
   SectionLabel,
   TopBar,
-  UnsupportedScreen,
 } from '@/components/ui';
 import {
   ACCOUNT_DELETION_URL,
@@ -28,7 +27,6 @@ import { RECORDER_CONFIG } from '@/recorder/config';
 import { recorderService } from '@/recorder/recorder-service';
 import type { RecorderCapabilities } from '@/recorder/types';
 import { useGetFlightsQuery } from '@/store/endpoints';
-import { DATA_AVAILABLE } from '@/store/hooks';
 import { TAB_BAR_HEIGHT } from '@/ui/theme';
 
 /**
@@ -49,7 +47,7 @@ export default function SettingsScreen() {
   // Gated on `ready` like every other reader. Without it this screen could populate the
   // shared flights cache mid-recovery, and the logbook would then read that entry with
   // `isFetching: false` the instant it unskipped — a stale list presented as settled.
-  const skip = !DATA_AVAILABLE || !recorderLifecycle.ready;
+  const skip = !recorderLifecycle.ready;
   // Shared with the logbook and the account screen rather than read again: this screen
   // only needs a count and a total, and it used to pay for a full table read to get them.
   const { data: flights } = useGetFlightsQuery(undefined, { skip });
@@ -60,15 +58,12 @@ export default function SettingsScreen() {
   const [capabilities, setCapabilities] = useState<RecorderCapabilities | null>(null);
   useFocusEffect(
     useCallback(() => {
-      if (Platform.OS === 'web') return;
       void recorderService
         .getCapabilities()
         .then(setCapabilities)
         .catch(() => setCapabilities(null));
     }, []),
   );
-
-  if (Platform.OS === 'web') return <UnsupportedScreen />;
 
   const flightCount = flights?.length ?? null;
   const airtimeMs =
@@ -158,6 +153,11 @@ export default function SettingsScreen() {
                   : null
               }
               value={privacyPolicyReady ? undefined : 'Not published yet'}
+              mono={false}
+            />
+            <ListRow
+              label="Launch site data"
+              detail="Launches from ParaglidingEarth (CC BY-SA 3.0). Places from OpenStreetMap (ODbL). Both licences require this credit wherever their data is shown."
               mono={false}
             />
             <ListRow

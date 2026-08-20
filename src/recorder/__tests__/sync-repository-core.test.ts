@@ -83,7 +83,6 @@ describe('dirty flight selection', () => {
       takeoff_latitude: 43.38,
       takeoff_longitude: -3.08,
       site_source: 'manual',
-      site_resolved_at: null,
       notes: null,
       created_at: 900,
       updated_at: 6000,
@@ -255,8 +254,23 @@ describe('pilot profile writes', () => {
 
   it('leaves pushed_updated_at alone so an edit simply makes the row dirty again', async () => {
     const transaction = new FakeTransaction();
-    await updatePilotProfileTransaction(transaction, { homeSite: 'Sopelana' }, 555);
+    await updatePilotProfileTransaction(transaction, { gliderType: 'Ozone Rush 6' }, 555);
     expect(transaction.sources()).not.toContain('pushed_updated_at');
+  });
+});
+
+describe('remote metadata', () => {
+  it('never inherits provenance from a site that arrived from another device', () => {
+    // site_source is not pushed, so a name pulled from elsewhere carries none this device
+    // can vouch for. Leaving the old value would credit a catalogue — and attach its
+    // licence — to a string that may have been typed by hand on a different phone.
+    expect(APPLY_REMOTE_FLIGHT_METADATA_SQL).toContain(
+      "site_source = CASE WHEN ? IS NULL THEN NULL ELSE 'manual' END",
+    );
+  });
+
+  it('still only applies to a row the remote edit is newer than', () => {
+    expect(APPLY_REMOTE_FLIGHT_METADATA_SQL).toContain('WHERE id = ? AND updated_at < ?');
   });
 });
 

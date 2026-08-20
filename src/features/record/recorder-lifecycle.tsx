@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState } from 'react-native';
 
 import { recorderService } from '@/recorder/recorder-service';
 
@@ -21,7 +21,6 @@ const RecorderLifecycleContext = createContext<RecorderLifecycleState | null>(nu
 let recoveryInFlight: Promise<void> | null = null;
 
 function recoverRecorderOnce(): Promise<void> {
-  if (Platform.OS === 'web') return Promise.resolve();
   if (!recoveryInFlight) {
     recoveryInFlight = recorderService
       .recover()
@@ -34,12 +33,11 @@ function recoverRecorderOnce(): Promise<void> {
 }
 
 export function RecorderLifecycleProvider({ children }: { children: ReactNode }) {
-  const [ready, setReady] = useState(Platform.OS === 'web');
+  const [ready, setReady] = useState(false);
   const [recovering, setRecovering] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
     let mounted = true;
 
     const recover = async () => {

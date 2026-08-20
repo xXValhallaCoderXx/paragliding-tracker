@@ -25,4 +25,3 @@ export { StatusPill } from './status-pill';
 export { TabGlyph, type TabGlyphShape } from './tab-glyph';
 export { toneColor } from './tone';
 export { TopBar } from './top-bar';
-export { UnsupportedScreen } from './unsupported-screen';

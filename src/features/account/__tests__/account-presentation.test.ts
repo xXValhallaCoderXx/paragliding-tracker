@@ -13,8 +13,6 @@ const EMPTY: PilotProfile = {
   gliderType: null,
   gliderId: null,
   registrationId: null,
-  homeSite: null,
-  homeSiteSource: 'auto',
   updatedAt: 0,
   pushedUpdatedAt: null,
 };

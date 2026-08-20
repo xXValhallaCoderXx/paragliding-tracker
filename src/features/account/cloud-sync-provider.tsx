@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState } from 'react-native';
 
 import { cloudConfigured } from '@/cloud/config';
 import { cloudSyncEngine } from '@/cloud/sync-engine';
@@ -36,7 +36,7 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
   const recorderLifecycle = useRecorderLifecycle();
   const [snapshot, setSnapshot] = useState<SyncSnapshot>(() => cloudSyncEngine.getSnapshot());
 
-  const supported = Platform.OS !== 'web' && cloudConfigured;
+  const enabled = cloudConfigured;
 
   // `recovering` flips false -> true -> false on every app foreground, so closing over it
   // would give `requestSync` a new identity twice per foreground. That identity is load
@@ -52,43 +52,42 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
 
   const requestSync = useCallback(
     (trigger: SyncTrigger) => {
-      if (!supported) return;
+      if (!enabled) return;
       void cloudSyncEngine.requestSync(trigger, {
         recorderRecovering: recoveringRef.current,
       });
     },
-    [supported],
+    [enabled],
   );
 
   useEffect(() => {
-    if (!supported) return;
+    if (!enabled) return;
     return cloudSyncEngine.subscribe(setSnapshot);
-  }, [supported]);
+  }, [enabled]);
 
   useEffect(() => {
-    if (!supported) return;
+    if (!enabled) return;
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') requestSync('foreground');
     });
     return () => subscription.remove();
-  }, [supported, requestSync]);
+  }, [enabled, requestSync]);
 
   // Signing in claims the whole existing logbook, so kick a cycle as soon as it happens.
   const signedInUserId = auth.status === 'signed_in' ? auth.userId : null;
   useEffect(() => {
-    if (!supported || signedInUserId === null) return;
+    if (!enabled || signedInUserId === null) return;
     requestSync('post-sign-in');
-  }, [supported, signedInUserId, requestSync]);
+  }, [enabled, signedInUserId, requestSync]);
 
   const userId = auth.userId;
   const rebindToCurrentAccount = useCallback(async () => {
-    if (!supported || userId === null) return;
-    // Goes through the engine rather than the database directly: `database.native` is a
-    // platform-split module, and importing it from a shared component pulls expo-sqlite's
-    // web worker into the web bundle and breaks `expo export --platform web`.
+    if (!enabled || userId === null) return;
+    // Goes through the engine rather than reaching into the database from a component.
+    // Keeping persistence behind the domain service preserves the provider boundary.
     await cloudSyncEngine.rebindTo(userId);
     requestSync('manual');
-  }, [supported, userId, requestSync]);
+  }, [enabled, userId, requestSync]);
 
   const value = useMemo(
     () => ({ ...snapshot, requestSync, rebindToCurrentAccount }),

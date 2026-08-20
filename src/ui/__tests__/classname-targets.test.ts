@@ -7,9 +7,7 @@ import { join } from 'node:path';
  * silently ignores the prop: no error, no warning, no style.
  *
  * That is how `Screen` once shipped without its `flex: 1` and collapsed every route to zero
- * height on device. It could not be caught by the screenshot harness, because react-native-web
- * renders SafeAreaView as a plain element that *does* accept className, so the web build looked
- * correct while the Android build was blank.
+ * height on device. This structural test catches the mistake before it reaches Android.
  *
  * Anything outside the wrapped set must be registered with `styled()` first (see
  * src/components/ui/screen.tsx).

@@ -43,7 +43,6 @@ function flight(overrides: Partial<FlightSummary> & { id: string }): FlightSumma
     takeoffLatitude: null,
     takeoffLongitude: null,
     siteSource: null,
-    siteResolvedAt: null,
     createdAt: startedAt,
     updatedAt: startedAt,
     sessionStatus: 'completed',

@@ -1,3 +1,4 @@
+import { orderedUsableFixes } from '../lib/track/fixes';
 import { calculateGapStatistics } from './statistics';
 import type { LocationFixRecord, RecorderEventRecord, SessionRecord } from './types';
 
@@ -20,38 +21,6 @@ export interface CalculatedFlightMetrics {
 }
 
 const EARTH_RADIUS_METRES = 6_371_000;
-
-function isUsableCoordinateFix(fix: LocationFixRecord): boolean {
-  return (
-    Number.isFinite(fix.sourceTimestamp) &&
-    Number.isFinite(fix.sequence) &&
-    Number.isFinite(fix.latitude) &&
-    fix.latitude >= -90 &&
-    fix.latitude <= 90 &&
-    Number.isFinite(fix.longitude) &&
-    fix.longitude >= -180 &&
-    fix.longitude <= 180 &&
-    !fix.mocked
-  );
-}
-
-function orderedUsableFixes(
-  session: SessionRecord,
-  fixes: LocationFixRecord[],
-): LocationFixRecord[] {
-  return fixes
-    .filter(
-      (fix) =>
-        fix.sessionId === session.id &&
-        isUsableCoordinateFix(fix) &&
-        fix.sourceTimestamp >= session.startedAt &&
-        (session.endedAt === null || fix.sourceTimestamp <= session.endedAt),
-    )
-    .sort(
-      (left, right) =>
-        left.sourceTimestamp - right.sourceTimestamp || left.sequence - right.sequence,
-    );
-}
 
 function toRadians(degrees: number): number {
   return (degrees * Math.PI) / 180;
@@ -120,7 +89,13 @@ export function calculateFlightMetrics(
   fixes: LocationFixRecord[],
   events: RecorderEventRecord[],
 ): CalculatedFlightMetrics {
-  const usableFixes = orderedUsableFixes(session, fixes);
+  // Session identity stays here: it is a question about which recording a fix belongs to,
+  // not about whether a coordinate is drawable, and the shared predicate has no idea what a
+  // session is.
+  const usableFixes = orderedUsableFixes(
+    fixes.filter((fix) => fix.sessionId === session.id),
+    session,
+  );
   const sessionEvents = events.filter((event) => event.sessionId === session.id);
   const cadence = calculateGapStatistics(
     usableFixes.map((fix) => fix.sourceTimestamp),

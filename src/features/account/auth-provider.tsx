@@ -6,8 +6,6 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Platform } from 'react-native';
-
 import { cloudAuthService, initialAuthSnapshot } from '@/cloud/auth-service';
 import { cloudConfigured } from '@/cloud/config';
 import type { AuthSnapshot } from '@/cloud/types';
@@ -41,7 +39,7 @@ export function CloudAuthProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<AuthSnapshot>(initialAuthSnapshot);
 
   useEffect(() => {
-    if (Platform.OS === 'web' || !cloudConfigured) return;
+    if (!cloudConfigured) return;
     const unsubscribe = cloudAuthService.subscribe(setSnapshot);
     void cloudAuthService.restore();
     return unsubscribe;
