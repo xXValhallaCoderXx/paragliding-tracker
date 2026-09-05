@@ -6,52 +6,16 @@ raw GPS and pressure evidence, summarizes completed flights, replays saved route
 This is an internal test build. It is not a certified flight recorder and must never be the only
 recorder carried on a flight.
 
-## What is implemented
+## Documentation
 
-- An illustrated adventure journal across setup, logbook, preflight, detail, pilot page and
-  Settings, with restrained active instruments and recovery screens. See
-  [`docs/ui-design-implementation.md`](./docs/ui-design-implementation.md).
-- Offline replay at `/flights/[id]/replay`: fixed route grid, synchronized GPS-altitude chart,
-  timestamped telemetry, Play/Pause, scrubbing, ±10-second seeks and 1×/10×/60× speeds.
-- A native Edit flight modal that preserves site suggestions/attribution, protects unsaved changes
-  and closes only after a successful metadata save.
-- Share postcard beneath Replay: Square and Story PNGs with three local scenes, the saved route,
-  flight statistics, an optional caption and pilot signature. No account or photo-library access
-  is required. See [postcard delivery and device checks](./docs/postcard-verification.md).
-- Precise foreground and background location with an Android foreground service.
-- A globally defined TaskManager location callback that writes directly to SQLite.
-- A custom root entry point that registers the location task before Expo Router or any screen code.
-- A repository-pinned Expo TaskManager 57.0.11 patch that keeps Android's synthetic headless timer guard
-  alive until the native task event actually finishes.
-- WAL-backed, foreign-keyed SQLite flight summaries, sessions, fixes, pressure samples, events,
-  and export records.
-- One-second barometer sampling while the JavaScript listener remains active.
-- Evidence-based cold-launch recovery with Resume and Save Partial paths.
-- Deterministic unsigned IGC and adjacent diagnostic JSON artifacts.
-- Native share-sheet export and automated feasibility tests.
-- An optional pilot profile that works offline and fills the IGC pilot and glider headers.
-- Optional email one-time-code sign-in and push-only cloud backup of flights and IGC files.
+- [Project overview](./docs/project-overview.md): current features, backup behavior and limits.
+- [Feature plan and roadmap](./docs/feature-plan.md): finish sharing and replay, then explore
+  friends, flying notifications, shared-flight viewing, geographic maps and 3D.
+- [Email setup](./docs/email-setup.md): hosted sign-in email configuration.
 
-The personal alpha is intentionally narrow: it lists flights recorded on this device, derives a
-small set of track statistics, allows optional title/site/notes, and draws offline route grids.
-There is no geographic map or pan/zoom. Replay preserves timing gaps and missing telemetry;
-completed partial flights are labelled.
-There are no imported or manually created flights. Deletion is permanent after confirmation. The
-logbook's season card and the detail screen's one-line insight are computed only from flights
-stored on this phone.
-
-The UI fonts (Archivo, IBM Plex Mono) and three locally bundled illustrations work offline.
-Postcard capture adds `react-native-view-shot` 5.1.0 and requires a rebuilt development client;
-there is no schema migration. Subsequent postcard UI edits load through Metro. A standalone APK
-needs a new bundled build.
-
-Recording stays available without an account; saved flights are never automatically removed.
-Signing in enables backup but does not prove that files uploaded. Check the pilot page for
-actual sync progress and errors.
-
-Physical reliability is not established by the code or bundle checks. Follow
-[`docs/iteration-1-feasibility.md`](./docs/iteration-1-feasibility.md) and record real-device
-results before treating the recorder as reliable.
+Postcard PNG sharing and offline 2D replay are implemented. Full device acceptance remains
+pending; the roadmap carries the remaining checks. Recording works without an account, and
+backup does not yet restore a logbook onto a new phone. Development and test commands follow.
 
 ## Accounts and cloud backup
 
@@ -72,6 +36,7 @@ the recorder runs with the screen locked. Sessions written by an earlier build a
 
 - Flight facts (status, timestamps, metrics, IGC references) are pushed and never pulled.
 - Only `title`, `site` and `notes` merge back down, last-write-wins on the client clock.
+- Newer pilot profile fields also merge back down; this does not restore recorded flights.
 - A deletion on this phone is pushed; a deletion elsewhere never removes local evidence.
 - Raw fixes and pressure samples are never uploaded — the derived IGC file is the archive.
 - A fresh install does **not** re-download flights. Cloud-only flights are counted and shown.
@@ -79,9 +44,8 @@ the recorder runs with the screen locked. Sessions written by an earlier build a
 **Backup never competes with capture.** `evaluateSyncGate` refuses to run while a session is
 recording, and the dirty-flight query independently excludes anything that is not a completed
 session. No network call happens inside a database transaction, and auth token refresh is stopped
-while the app is backgrounded so a long flight generates no auth traffic. Two independent tests
-guard this: `src/cloud/__tests__/sync-plan.test.ts` and
-`src/cloud/__tests__/module-boundaries.test.ts`.
+while the app is backgrounded. The policy is covered by `src/cloud/__tests__/sync-plan.test.ts`;
+the ESLint rule in `scripts/eslint/architecture.cjs` enforces the dependency boundaries.
 
 ### Layout
 
@@ -283,9 +247,13 @@ verification only generates temporary output and compares it. The Supabase CLI i
 unique ports and SMTP disabled, and remove that project's containers and volumes afterward.
 They do not use the linked project, local credentials or the app's `.env.local`.
 
-See [testing guidance and redesign evidence](docs/testing.md) for behavior ownership, measured
-runtime and the optional `pnpm test:regressions` defect checks. Device and release validation
-remains separate:
+Test observable behavior or a demonstrated regression. Keep one primary owner for each rule;
+avoid cosmetic wording assertions, self-comparisons and large fixtures without a specific purpose.
+`pnpm test:regressions` injects representative defects only into temporary copies and confirms
+that the checks reject them, including missing Docker and generated-type drift.
+
+Device acceptance is tracked in the [feature plan](./docs/feature-plan.md). Dependency and bundle
+checks remain separate:
 
 ```bash
 pnpm validate:deps
@@ -298,16 +266,6 @@ The app explicitly supports only Android and iOS. There is no browser build or h
 The web-accessible privacy policy and account-deletion page required by the stores are separate
 legal pages opened from the native app; `expo-web-browser` remains for that purpose.
 
-## Current milestone and next work
-
-The illustrated journal and offline replay are implemented. Automated verification and physical
-acceptance are tracked separately in [the delivery record](./docs/journal-replay-verification.md).
-The online dependency check currently reports newer SDK 57 patches; the pinned native TaskManager
-patch requires a coordinated upgrade, outside this UI/replay milestone.
-
-**Postcards are next**, followed by cloud restoration, geographic maps, shareable links and
-friends/community. None of those later features is implemented by this milestone.
-
 ## References
 
 - [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/)
@@ -316,5 +274,3 @@ friends/community. None of those later features is implemented by this milestone
 - [Expo SQLite 57](https://docs.expo.dev/versions/v57.0.0/sdk/sqlite/)
 - [Supabase Auth for React Native](https://supabase.com/docs/guides/auth/quickstarts/react-native)
 - [App Store Review Guideline 4.8 and 5.1.1](https://developer.apple.com/app-store/review/guidelines/)
-- [Iteration 1 evidence protocol](./docs/iteration-1-feasibility.md)
-- [UI design implementation notes](./docs/ui-design-implementation.md)
