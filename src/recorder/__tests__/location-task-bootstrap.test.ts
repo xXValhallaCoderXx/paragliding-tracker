@@ -1,36 +1,49 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { LOCATION_TASK_NAME } from '../config';
 
 const projectRoot = process.cwd();
-
-describe('headless location task bootstrap', () => {
-  it('loads the task module before Expo Router from the configured entrypoint', () => {
-    const packageJson = JSON.parse(
-      readFileSync(resolve(projectRoot, 'package.json'), 'utf8'),
-    ) as { main?: string };
-    const entrySource = readFileSync(resolve(projectRoot, 'index.js'), 'utf8');
-    const taskImportIndex = entrySource.indexOf("import './src/recorder/location-task';");
-    const routerImportIndex = entrySource.indexOf("import 'expo-router/entry';");
-
-    expect(packageJson.main).toBe('index.js');
-    expect(taskImportIndex).toBeGreaterThanOrEqual(0);
-    expect(routerImportIndex).toBeGreaterThan(taskImportIndex);
+const mockDefine = jest.fn();
+const mockDatabaseLoaded = jest.fn();
+const mockPersist = jest.fn();
+const mockEvent = jest.fn();
+const mockRouterLoaded = jest.fn();
+let mockDefined = false;
+jest.mock('expo-task-manager', () => ({
+  isTaskDefined: () => mockDefined,
+  defineTask: (...args: unknown[]) => { mockDefined = true; mockDefine(...args); },
+}));
+jest.mock('../database.native', () => {
+  mockDatabaseLoaded();
+  return { persistLocationBatch: mockPersist, getUnfinishedSession: async () => ({ id: 's' }), recordEvent: mockEvent };
+});
+jest.mock('expo-router/entry', () => {
+  mockRouterLoaded(mockDefine.mock.calls.length);
+  return {};
+});
+beforeEach(() => { jest.resetModules(); jest.clearAllMocks(); mockDefined = false; });
+it('executes task registration before the router and loads SQLite only when a callback arrives', async () => {
+  const { main } = JSON.parse(readFileSync(resolve(projectRoot, 'package.json'), 'utf8'));
+  await jest.isolateModulesAsync(async () => {
+    jest.requireActual(resolve(projectRoot, main));
+    expect(mockDefine).toHaveBeenCalledWith(LOCATION_TASK_NAME, expect.any(Function));
+    expect(mockRouterLoaded).toHaveBeenCalledWith(1);
+    expect(mockDatabaseLoaded).not.toHaveBeenCalled();
+    const callback = mockDefine.mock.calls[0][1];
+    const locations = [{ timestamp: 1000 }];
+    await callback({ data: { locations }, executionInfo: { eventId: 'callback-1' } });
+    expect(mockDatabaseLoaded).toHaveBeenCalledTimes(1);
+    expect(mockPersist).toHaveBeenCalledWith({ callbackId: 'callback-1', receivedAt: expect.any(Number), locations });
+    await callback({ error: { code: 1, message: 'GPS unavailable' }, executionInfo: { eventId: 'callback-2' } });
+    expect(mockEvent).toHaveBeenCalledWith('s', 'location_task_error', expect.any(Number), { code: 1, message: 'GPS unavailable', eventId: 'callback-2' });
+    expect(mockPersist).toHaveBeenCalledTimes(1);
   });
-
-  it('defines the task before lazily importing its database dependency', () => {
-    const taskSource = readFileSync(
-      resolve(projectRoot, 'src/recorder/location-task.native.ts'),
-      'utf8',
-    );
-    const definitionIndex = taskSource.indexOf('TaskManager.defineTask');
-    const databaseImportIndex = taskSource.indexOf("import('./database.native')");
-
-    expect(taskSource).not.toMatch(
-      /import\s+[^;]+\s+from\s+['"]\.\/database\.native['"]/,
-    );
-    expect(definitionIndex).toBeGreaterThanOrEqual(0);
-    expect(databaseImportIndex).toBeGreaterThan(definitionIndex);
-  });
+});
+it('does not redefine an installed task or load its database during registration', () => {
+  mockDefined = true;
+  jest.isolateModules(() => { jest.requireActual('../location-task.native'); });
+  expect(mockDefine).not.toHaveBeenCalled(); expect(mockDatabaseLoaded).not.toHaveBeenCalled();
+});
 
   it('keeps Expo TaskManager\'s Android headless timer guard pending', () => {
     const workspaceSource = readFileSync(
@@ -52,4 +65,3 @@ describe('headless location task bootstrap', () => {
     expect(patchSource).toContain('new Promise<void>(() => {})');
     expect(installedSource).toContain('() => () => new Promise(() => { })');
   });
-});
