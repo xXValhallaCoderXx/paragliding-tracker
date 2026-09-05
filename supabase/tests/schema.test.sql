@@ -1,0 +1,23 @@
+begin;
+select no_plan();
+select has_column('public', 'profiles', 'registration_id', 'applied schema includes registration');
+select hasnt_column('public', 'profiles', 'home_site', 'applied schema removes obsolete home site');
+select columns_are('public', 'profiles', array['id','pilot_name','glider_type','glider_id','registration_id','client_updated_at','created_at','updated_at']);
+select hasnt_table('public', 'location_fixes', 'raw GPS stays local');
+select hasnt_table('public', 'pressure_samples', 'raw barometer data stays local');
+select hasnt_table('public', 'events', 'recorder events stay local');
+select hasnt_table('public', 'flight_tracks', 'route geometry stays local');
+select ok((select relrowsecurity from pg_class where oid = 'public.flights'::regclass), 'flight RLS enabled');
+select ok((select relrowsecurity from pg_class where oid = 'public.profiles'::regclass), 'profile RLS enabled');
+insert into auth.users (id,email) values ('33333333-3333-3333-3333-333333333333','constraints@example.com');
+select throws_ok($$update public.profiles set registration_id = repeat('x',31)$$, '23514', null, 'registration length enforced');
+select throws_ok($$update public.profiles set pilot_name = repeat('x',61)$$, '23514', null, 'pilot name length enforced');
+insert into public.flights (id,user_id,recording_session_id,status,started_at,client_created_at,client_updated_at)
+values ('cccccccc-0000-0000-0000-000000000001','33333333-3333-3333-3333-333333333333','cccccccc-0000-0000-0000-000000000001','completed',1000,1000,1000);
+select throws_ok($$update public.flights set ended_at = 999$$, '23514', null, 'flight time order enforced');
+select throws_ok($$update public.flights set title = repeat('x',121)$$, '23514', null, 'title length enforced');
+select throws_ok($$update public.flights set site = repeat('x',121)$$, '23514', null, 'site length enforced');
+select throws_ok($$update public.flights set notes = repeat('x',4001)$$, '23514', null, 'notes length enforced');
+select is((select created_at from public.flights), now(), 'creation uses server time by default');
+select * from finish();
+rollback;

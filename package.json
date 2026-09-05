@@ -72,12 +72,18 @@
     "ios": "expo start --ios",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "jest --runInBand",
+    "test": "node scripts/test.mjs",
     "validate:deps": "expo install --check",
     "db:push": "supabase db push",
     "db:diff": "supabase db diff",
-    "db:test": "pnpm dlx supabase@latest test db",
-    "fn:deploy": "supabase functions deploy delete-account"
+    "db:test": "node scripts/test-db.mjs",
+    "fn:deploy": "supabase functions deploy delete-account",
+    "test:types": "node scripts/test.mjs types",
+    "test:lint": "node scripts/test.mjs lint",
+    "test:unit": "node scripts/test.mjs unit",
+    "test:db": "node scripts/test.mjs db",
+    "db:types": "node scripts/test-db.mjs --update-types",
+    "test:regressions": "node scripts/check-test-regressions.mjs"
   },
   "private": true,
   "engines": {

@@ -106,10 +106,10 @@ an ignored `.env.local` alone would produce a build with no backend. A build wit
 is a supported state — the account screen says backup is unavailable and everything else works.
 
 ```bash
-pnpm dlx supabase@latest link --project-ref <ref>
+pnpm exec supabase link --project-ref <ref>
 pnpm db:push
 pnpm fn:deploy
-pnpm db:test      # pgTAP RLS regression tests
+pnpm db:test      # isolated local pgTAP + generated schema checks (requires Docker)
 ```
 
 Two dashboard steps are easy to miss and both are required. The full walkthrough — Namecheap
@@ -262,10 +262,32 @@ or release builds, but it is not part of the daily Android development loop.
 
 ## Validation
 
+Use Node 24 (`.node-version`), install with `pnpm install --frozen-lockfile`, and start Docker.
+`pnpm test` runs TypeScript, ESLint and its architecture regressions, Jest with real SQLite,
+then pgTAP and generated-type drift checks against a disposable Postgres database. Docker is
+required: an unavailable engine fails the command, and database checks are never skipped.
+
 ```bash
-pnpm typecheck
-pnpm lint
 pnpm test
+pnpm test:unit src/recorder/__tests__/recorder-lifecycle.test.ts
+pnpm test:types
+pnpm test:lint
+pnpm test:db
+pnpm db:types
+```
+
+`test:unit` accepts Jest arguments for focused iteration. `db:test` is an alias for the same
+isolated database runner. `db:types` explicitly updates `src/cloud/database.types.ts`; ordinary
+verification only generates temporary output and compares it. The Supabase CLI is pinned to
+2.116.0. Test runs copy only repository migrations and SQL tests into a temporary project with
+unique ports and SMTP disabled, and remove that project's containers and volumes afterward.
+They do not use the linked project, local credentials or the app's `.env.local`.
+
+See [testing guidance and redesign evidence](docs/testing.md) for behavior ownership, measured
+runtime and the optional `pnpm test:regressions` defect checks. Device and release validation
+remains separate:
+
+```bash
 pnpm validate:deps
 pnpm dlx expo-doctor@latest
 pnpm exec expo export --platform android --output-dir dist/android

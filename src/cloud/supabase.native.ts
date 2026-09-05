@@ -3,9 +3,10 @@ import { AppState, type AppStateStatus } from 'react-native';
 
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, cloudConfigured } from './config';
 import { sessionStorage } from './session-storage';
+import type { Database } from './database.types';
 import { CloudError } from './types';
 
-let client: SupabaseClient | null = null;
+let client: SupabaseClient<Database> | null = null;
 
 /**
  * The Supabase client, constructed on first use.
@@ -14,12 +15,12 @@ let client: SupabaseClient | null = null;
  * `createClient` out of module evaluation, so `pnpm test`, `expo export` and a build
  * with no EXPO_PUBLIC_SUPABASE_* configured never construct a client or open a socket.
  */
-export function getSupabase(): SupabaseClient {
+export function getSupabase(): SupabaseClient<Database> {
   if (!cloudConfigured) {
     throw new CloudError('not_configured', 'Cloud backup is not configured in this build.');
   }
   if (!client) {
-    client = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
         storage: sessionStorage,
         storageKey: 'xc-cloud-session',
@@ -48,7 +49,7 @@ export function getSupabase(): SupabaseClient {
  * Installed once at client construction, not from a React effect, so remounts cannot
  * stack listeners.
  */
-function installAutoRefreshBridge(supabase: SupabaseClient): void {
+function installAutoRefreshBridge(supabase: SupabaseClient<Database>): void {
   const apply = (state: AppStateStatus) => {
     if (state === 'active') supabase.auth.startAutoRefresh();
     else supabase.auth.stopAutoRefresh();

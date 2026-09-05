@@ -10,25 +10,38 @@ const { DatabaseSync, backup } = process.getBuiltinModule('node:sqlite');
 
 export class TestDatabase {
   readonly connection;
+  private transactionActive = false;
+  private assertHandle() {
+    if (this.transactionActive) throw new Error('Use the exclusive transaction handle, not the outer database.');
+  }
   constructor(readonly path = ':memory:') {
     this.connection = new DatabaseSync(path);
     this.connection.exec('PRAGMA foreign_keys = ON; PRAGMA synchronous = OFF');
   }
-  async execAsync(sql: string) { this.connection.exec(sql); }
+  async execAsync(sql: string) { this.assertHandle(); this.connection.exec(sql); }
   async getFirstAsync<T>(sql: string, ...params: unknown[]): Promise<T | null> {
+    this.assertHandle();
     return (this.connection.prepare(sql).get(...params as SQLInputValue[]) as T) ?? null;
   }
   async getAllAsync<T>(sql: string, ...params: unknown[]): Promise<T[]> {
+    this.assertHandle();
     return this.connection.prepare(sql).all(...params as SQLInputValue[]) as T[];
   }
   async runAsync(sql: string, ...params: unknown[]) {
+    this.assertHandle();
     const result = this.connection.prepare(sql).run(...params as SQLInputValue[]);
     return { changes: Number(result.changes), lastInsertRowId: Number(result.lastInsertRowid) };
   }
   async withExclusiveTransactionAsync(task: (transaction: TestDatabase) => Promise<void>) {
+    this.assertHandle();
     this.connection.exec('BEGIN IMMEDIATE');
-    try { await task(this); this.connection.exec('COMMIT'); }
+    // Separate handle: an outer-connection query would escape Expo's exclusive transaction.
+    const transaction: TestDatabase = Object.create(this);
+    transaction.transactionActive = false;
+    this.transactionActive = true;
+    try { await task(transaction); this.connection.exec('COMMIT'); }
     catch (error) { this.connection.exec('ROLLBACK'); throw error; }
+    finally { this.transactionActive = false; }
   }
   async closeAsync() { if (this.connection.isOpen) this.connection.close(); }
   asExpo(): SQLiteDatabase { return this as unknown as SQLiteDatabase; }
