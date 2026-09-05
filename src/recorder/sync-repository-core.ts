@@ -17,7 +17,7 @@ import type {
  * Platform-free bodies for the cloud-backup bookkeeping added in schema v5.
  *
  * Mirrors `repository-core.ts`: the SQL and the mappers live here so they can be
- * exercised against a fake executor in Node, while `database.native.ts` keeps the
+ * exercised against SQLite through an async adapter in Node, while `database.native.ts` keeps the
  * connection, the write serializer and the transaction boundaries.
  *
  * Nothing here writes `sessions`, `location_fixes`, `pressure_samples`, `events`,
