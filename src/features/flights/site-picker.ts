@@ -133,7 +133,11 @@ function emptyMessage(
  */
 export function siteFieldHint(siteSource: string | null, view: SitePickerView): string | null {
   if (view.open) return null;
+  return siteAttribution(siteSource) ?? 'Pick a launch, or type any name.';
+}
+
+export function siteAttribution(siteSource: string | null): string | null {
   if (siteSource === 'paraglidingearth') return 'From ParaglidingEarth (CC BY-SA 3.0)';
   if (siteSource === 'osm') return 'From OpenStreetMap (ODbL)';
-  return 'Pick a launch, or type any name.';
+  return null;
 }

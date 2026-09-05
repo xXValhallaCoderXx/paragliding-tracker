@@ -4,7 +4,7 @@ describe('emptyLogbookChips', () => {
   it('names the glider it will pre-fill', () => {
     expect(emptyLogbookChips({ gliderType: 'Advance Iota 3', locationReady: true })).toEqual([
       { key: 'glider', label: 'ADVANCE IOTA 3', tone: 'muted' },
-      { key: 'site', label: 'SITE FROM GPS', tone: 'muted' },
+      { key: 'site', label: 'CHOOSE YOUR LAUNCH', tone: 'muted' },
       { key: 'location', label: 'LOCATION OK', tone: 'good' },
     ]);
   });

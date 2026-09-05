@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,7 +12,9 @@ import { useCloudAuth } from '@/features/account/auth-provider';
 import { useCloudSync } from '@/features/account/cloud-sync-provider';
 import { EvidenceBlock } from '@/features/flights/components/evidence';
 import { FlightHero, type DetailStatus, type SavedContext } from '@/features/flights/components/hero';
-import { MetadataForm, type MetadataFormValues } from '@/features/flights/components/metadata-form';
+import { MetadataSheet } from '@/features/flights/components/metadata-sheet';
+import { siteAttribution } from '@/features/flights/site-picker';
+import { JournalArt } from '@/components/ui/journal-art';
 import {
   BusyRow,
   Button,
@@ -40,7 +40,6 @@ import {
   formatMetres,
   formatThousands,
 } from '@/lib/format/flight-format';
-import { removalGuidance } from '@/features/logbook/guest-capacity';
 import { errorMessage } from '@/lib/format/error-message';
 import { flightInsight, flightInsightText, isFlightProcessing } from '@/features/logbook/logbook';
 import { StatGrid } from '@/features/flights/components/stat-grid';
@@ -58,29 +57,22 @@ import { fonts, paper } from '@/ui/theme';
 const EMPTY_TRACK: TrackSegments = [];
 
 export default function FlightDetailScreen() {
-  const { id, saved, intent } = useLocalSearchParams<{
+  const { id, saved } = useLocalSearchParams<{
     id: string;
     saved?: string;
-    intent?: string;
   }>();
   const router = useRouter();
   const auth = useCloudAuth();
   const sync = useCloudSync();
-  // Whether this flight has a copy anywhere but this phone, which changes what the
-  // delete confirmation is honestly able to promise.
-  const backedUp = auth.status === 'signed_in';
-  const [form, setForm] = useState<MetadataFormValues>({
-    title: '',
-    site: '',
-    notes: '',
-    siteSource: null,
-  });
+  // Authentication enables sync; it does not prove a flight has uploaded.
+  const signedIn = auth.status === 'signed_in';
+  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; tone: 'good' | 'danger' } | null>(null);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
 
   const skip = !id;
-  const { data: flight = null, isLoading: loading } = useGetFlightQuery(id!, { skip });
+  const { data: flight = null, isLoading: loading, error: loadError, refetch } = useGetFlightQuery(id!, { skip });
   // Its own cache entry, so editing a title does not re-read and re-parse the geometry.
   // This is also the only read that derives a track for a flight recorded before the plate
   // existed, or whose stored shape is at an older algorithm version.
@@ -98,54 +90,9 @@ export default function FlightDetailScreen() {
     return found ? flightInsightText(found) : null;
   }, [flight, allFlights]);
 
-  // Seed the form from whatever the cache holds, and re-seed if the flight changes
-  // underneath us — a remote pull can rewrite title/site/notes.
-  const [seededId, setSeededId] = useState<string | null>(null);
-  const [seededAt, setSeededAt] = useState<number | null>(null);
-  if (flight && (seededId !== flight.id || seededAt !== flight.updatedAt)) {
-    setSeededId(flight.id);
-    setSeededAt(flight.updatedAt);
-    setForm({
-      title: flight.title ?? '',
-      site: flight.site ?? '',
-      notes: flight.notes ?? '',
-      siteSource: flight.siteSource,
-    });
-  }
-
-  const patch = useMemo<FlightMetadataPatch>(
-    () => ({
-      title: optionalText(form.title),
-      site: optionalText(form.site),
-      notes: optionalText(form.notes),
-      siteSource: optionalText(form.site) === null ? null : form.siteSource,
-    }),
-    [form],
-  );
-  // siteSource is compared too: picking a launch whose name matches what was already
-  // typed changes only the provenance, and without this the Save button would never
-  // appear and the credit would never be recorded.
-  const dirty = Boolean(
-    flight &&
-      (patch.title !== flight.title ||
-        patch.site !== flight.site ||
-        patch.notes !== flight.notes ||
-        (patch.siteSource ?? null) !== flight.siteSource),
-  );
-
   function leaveDetail() {
-    const leave = () => {
-      if (router.canGoBack()) router.back();
-      else router.replace('/');
-    };
-    if (!dirty) {
-      leave();
-      return;
-    }
-    Alert.alert('Discard unsaved details?', 'Your recorded track is not affected.', [
-      { text: 'Keep editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: leave },
-    ]);
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
   }
 
   async function runAction(label: string, action: () => Promise<void>) {
@@ -160,7 +107,7 @@ export default function FlightDetailScreen() {
     }
   }
 
-  async function saveDetails() {
+  async function saveDetails(patch: FlightMetadataPatch) {
     if (!flight) return;
     // The mutation invalidates this flight and the list, so the logbook, account and
     // settings screens all refresh themselves. No manual reload here any more.
@@ -190,9 +137,9 @@ export default function FlightDetailScreen() {
     if (!flight) return;
     Alert.alert(
       'Delete this flight permanently?',
-      backedUp
-        ? 'The recorded track, stats, notes, and generated files are removed from this phone, and the backed-up copy is removed from your account. This cannot be undone.'
-        : 'The recorded track, stats, notes, and generated files are removed from this phone. There is no cloud copy, so this cannot be undone.',
+      signedIn
+        ? 'The track, stats, notes and generated files are deleted locally. Deletion of any account copy is queued for sync. This cannot be undone.'
+        : 'The track, stats, notes and generated files are deleted locally. Any account deletion must sync when you reconnect. Export anything you want to keep first.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -217,9 +164,10 @@ export default function FlightDetailScreen() {
       <Screen>
         <TopBar onBack={leaveDetail} backLabel="Back to logbook" title="Flight" />
         <View style={styles.missing}>
-          <Notice tone="danger" title="Flight not found">
-            {message?.text ?? 'This flight is not in the logbook any more.'}
+          <Notice tone="danger" title={loadError ? 'Could not open flight' : 'Flight not found'}>
+            {loadError ? errorMessage(loadError) : 'This flight is not in the logbook any more.'}
           </Notice>
+          {loadError ? <Button label="Try again" variant="primary" onPress={() => void refetch()} /> : null}
           <Button label="Back to logbook" variant="dark" onPress={() => router.replace('/')} />
         </View>
       </Screen>
@@ -234,15 +182,13 @@ export default function FlightDetailScreen() {
   const isProcessing = !isOpen && isFlightProcessing(flight);
   const isFinished = flight.status === 'completed' || flight.status === 'partial';
   const hasTrack = Boolean(metrics && metrics.fixCount > 0 && metrics.quality !== 'no_track');
-  const canExportIgc = isFinished && hasTrack;
-  const canExportDiagnostics = isFinished;
-  const canDelete = isFinished;
+  const canReview = isFinished && !isOpen && !isProcessing;
+  const canExportIgc = canReview && hasTrack;
+  const canExportDiagnostics = canReview;
+  const canDelete = canReview;
   const status = detailStatus(flight);
   const savedContext: SavedContext =
     saved === 'stopped' || saved === 'partial' ? (saved as SavedContext) : null;
-  // Only once the flight is actually deletable: pointing a pilot at a delete button the
-  // repository would refuse is the failure the capacity banner exists to avoid.
-  const removing = intent === 'remove' && canDelete ? removalGuidance(flight) : null;
   const heroIsDistance = Boolean(metrics && metrics.trackDistanceMetres > 0);
 
   const plateState = trackPlateState(flight, track);
@@ -253,17 +199,11 @@ export default function FlightDetailScreen() {
 
   return (
     <Screen>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <TopBar onBack={leaveDetail} backLabel="Back to logbook" />
 
-          {/*
-            Full bleed, above everything. The ScrollView carries no horizontal padding of
-            its own — every child sets its own — so the plate reaches both edges without
-            anything else moving.
-          */}
+          <FlightHero flight={flight} status={status} saved={savedContext} insight={insight} />
+          <View style={styles.route}>
           <TrackPlate
             segments={track}
             variant="hero"
@@ -273,19 +213,16 @@ export default function FlightDetailScreen() {
             describe={(plate) => trackPlateAccessibilityLabel(flight, plate)}
           />
 
-          <FlightHero flight={flight} status={status} saved={savedContext} insight={insight} />
+          </View>
+          {canReview ? (
+            <View style={styles.actions}>
+              <Button label="Replay flight" variant="primary" size="xl" disabled={Boolean(busy)}
+                onPress={() => router.push({ pathname: '/flights/[id]/replay', params: { id: flight.id } })} />
+            </View>
+          ) : null}
 
-          {isOpen || isProcessing || metrics?.quality !== 'healthy' || message || removing ? (
+          {isOpen || isProcessing || metrics?.quality !== 'healthy' || message ? (
             <View style={styles.notices}>
-              {removing ? (
-                // The pilot arrived from the logbook's capacity banner. Say why they are
-                // here and point at the export, but never open the delete dialog for
-                // them — an unexpected destructive prompt on arrival is worse than the
-                // banner that sent them.
-                <Notice tone="warning" title={removing.title}>
-                  {removing.body}
-                </Notice>
-              ) : null}
               {isOpen ? (
                 <Notice tone={flight.sessionStatus === 'interrupted' ? 'danger' : 'info'} title="This flight is still open">
                   {flight.sessionStatus === 'interrupted'
@@ -354,26 +291,15 @@ export default function FlightDetailScreen() {
             ]}
           />
 
-          <SectionLabel className="px-[18px] pt-[20px] pb-[8px]">About this flight</SectionLabel>
-          <MetadataForm
-            // Keyed on the flight so the picker starts shut for each one. Without it, a
-            // route reused between two flights would carry the previous flight's
-            // opened/settled state onto the next.
-            key={flight.id}
-            // Where this flight actually launched, so the nearby list is about the launch
-            // rather than about wherever the phone happens to be days later.
-            takeoff={
-              flight.takeoffLatitude !== null && flight.takeoffLongitude !== null
-                ? { latitude: flight.takeoffLatitude, longitude: flight.takeoffLongitude }
-                : null
-            }
-            values={form}
-            onChange={setForm}
-            dirty={dirty}
-            saving={busy === 'Saving details…'}
-            disabled={Boolean(busy) && busy !== 'Saving details…'}
-            onSave={() => void runAction('Saving details…', saveDetails)}
-          />
+          <View style={styles.journalNote}>
+            <SectionLabel>From your journal</SectionLabel>
+            <Text style={styles.notes}>{flight.notes?.trim() || 'A place for the moments the instruments missed.'}</Text>
+            {flight.siteSource === 'paraglidingearth' || flight.siteSource === 'osm' ? (
+              <Text style={styles.actionsNote}>{siteAttribution(flight.siteSource)}</Text>
+            ) : null}
+            <Button label="Edit flight" disabled={Boolean(busy)} onPress={() => setEditing(true)} />
+          </View>
+          {savedContext ? <View style={styles.actions}><JournalArt scene="landing" height={140} /></View> : null}
 
           <SectionLabel className="px-[18px] pt-[20px] pb-[8px]">Recording integrity</SectionLabel>
           <EvidenceBlock
@@ -393,16 +319,18 @@ export default function FlightDetailScreen() {
                   ? 'Preparing IGC…'
                   : canExportIgc
                     ? 'Share unsigned IGC file'
-                    : isProcessing
-                      ? 'IGC available once stats are done'
-                      : 'No GPS track to export'
+                    : isOpen
+                      ? 'IGC available after saving flight'
+                      : isProcessing
+                        ? 'IGC available once stats are done'
+                        : 'No GPS track to export'
               }
-              variant="primary"
+              variant="secondary"
               size="lg"
               busy={busy === 'Preparing IGC…'}
               disabled={!canExportIgc || Boolean(busy)}
               onPress={() => void runAction('Preparing IGC…', () => exportAndShare('igc'))}
-              accessibilityHint="Opens the Android share sheet with the unsigned IGC file"
+              accessibilityHint="Opens the share sheet with the unsigned IGC file"
             />
             <Text style={styles.actionsNote}>
               Unsigned IGC — fine for your own archive or another app, not valid for competition
@@ -410,16 +338,16 @@ export default function FlightDetailScreen() {
             </Text>
           </View>
 
-          {busy && busy !== 'Saving details…' && busy !== 'Preparing IGC…' ? (
+          {busy && busy !== 'Preparing IGC…' ? (
             <BusyRow label={busy} />
           ) : null}
 
           <View style={styles.dangerZone}>
             <Text style={styles.dangerTitle}>Delete flight</Text>
             <Text style={styles.dangerBody}>
-              {backedUp
-                ? 'Permanently removes the recording from this phone and from your account. There is no other copy to recover it from.'
-                : 'Permanently removes the local recording from this phone. There is no cloud copy to recover it from.'}
+              {signedIn
+                ? 'Removes the local recording and queues deletion of any account copy. Export anything you want to keep first.'
+                : 'Removes the local recording. If previously backed up, deletion must sync when you reconnect.'}
             </Text>
             <Button
               label={canDelete ? 'Delete flight permanently' : isOpen ? 'Cannot delete an open flight' : 'Cannot delete while processing'}
@@ -429,7 +357,7 @@ export default function FlightDetailScreen() {
             />
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      {editing ? <MetadataSheet key={flight.id} flight={flight} onClose={() => setEditing(false)} onSave={saveDetails} /> : null}
     </Screen>
   );
 }
@@ -444,14 +372,10 @@ function detailStatus(flight: FlightDetail): DetailStatus {
   return { label: 'Good track', tone: 'good' };
 }
 
-function optionalText(value: string): string | null {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  route: { margin: 18, overflow: 'hidden', borderRadius: 22 },
+  journalNote: { margin: 18, padding: 20, borderRadius: 22, backgroundColor: paper.card, gap: 14 },
+  notes: { fontFamily: fonts.sans, fontSize: 16, lineHeight: 25, color: paper.text },
   content: { paddingBottom: 40 },
   missing: { padding: 16, gap: 12 },
   notices: { marginHorizontal: 16, marginTop: 10, gap: 8 },

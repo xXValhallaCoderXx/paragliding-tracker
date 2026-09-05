@@ -74,7 +74,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <TopBar onBack={() => router.back()} title="Settings" />
+      <TopBar onBack={() => router.canGoBack() ? router.back() : router.replace('/')} title="Settings" />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.block}>
           <SectionLabel>Recorder</SectionLabel>
@@ -127,9 +127,9 @@ export default function SettingsScreen() {
           <SectionLabel>Setup</SectionLabel>
           <Card className="px-[16px] py-[4px]">
             <ListRow
-              label="Replay setup"
+              label="Review setup"
               detail="Walk through the first-run questions again. Nothing is reset."
-              action={{ label: 'Start', onPress: firstRun.restartSetup }}
+              action={{ label: 'Review', onPress: firstRun.restartSetup }}
               last
             />
           </Card>
@@ -179,7 +179,7 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.block}>
-          <SectionLabel>Version</SectionLabel>
+          <SectionLabel>App details</SectionLabel>
           <Card className="px-[16px] py-[4px]">
             {/* From expo-constants rather than expo-application: the version in app.json is
                 what we need, and it costs no extra native module. */}
@@ -207,5 +207,5 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   content: { paddingBottom: 40 + TAB_BAR_HEIGHT },
-  block: { paddingHorizontal: 18, paddingTop: 10, gap: 10 },
+  block: { paddingHorizontal: 18, paddingTop: 22, gap: 12 },
 });

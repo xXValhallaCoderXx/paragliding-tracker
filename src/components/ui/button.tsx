@@ -67,7 +67,7 @@ export function Button({
       onPress={onPress}
       // The pressed state comes from Pressable's render-prop, which className cannot express.
       style={({ pressed }) => (pressed && !inactive ? { opacity: 0.72 } : null)}
-      className={`flex-row items-center justify-center border border-transparent px-[16px] ${
+      className={`flex-row items-center justify-center border border-transparent px-[16px] py-[10px] ${
         SIZE[size].box
       } ${SURFACE[variant]} ${
         variant === 'primary' && size === 'xl' ? 'shadow-[0_6px_18px_rgba(217,89,31,0.34)]' : ''
@@ -81,7 +81,7 @@ export function Button({
           }`}
         />
       ) : null}
-      <Text className={`font-body-semi ${SIZE[size].text} ${LABEL[variant]}`} numberOfLines={1}>
+      <Text className={`shrink text-center font-body-semi ${SIZE[size].text} ${LABEL[variant]}`}>
         {label}
       </Text>
     </Pressable>

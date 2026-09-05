@@ -4,20 +4,24 @@ import { Pressable, Text } from 'react-native';
 export function LinkButton({
   label,
   onPress,
+  disabled = false,
   className = '',
 }: {
   label: string;
   onPress: () => void;
+  disabled?: boolean;
   className?: string;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       hitSlop={8}
       onPress={onPress}
-      style={({ pressed }) => (pressed ? { opacity: 0.72 } : null)}
-      className={`min-h-[40px] justify-center ${className}`}>
+      style={({ pressed }) => (disabled ? { opacity: 0.45 } : pressed ? { opacity: 0.72 } : null)}
+      className={`min-h-[44px] justify-center ${className}`}>
       <Text className="font-body-medium text-[12.5px] text-thermal">{label}</Text>
     </Pressable>
   );

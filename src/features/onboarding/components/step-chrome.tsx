@@ -56,11 +56,11 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 18,
   },
-  back: { width: 26, height: 26, alignItems: 'center', justifyContent: 'center' },
+  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.5 },
   chevron: { fontFamily: fonts.sans, fontSize: 24, lineHeight: 26, color: paper.ink },
   track: { flex: 1, flexDirection: 'row', gap: 5 },
-  segment: { flex: 1, height: 3, borderRadius: 2, backgroundColor: paper.border },
+  segment: { flex: 1, height: 5, borderRadius: 3, backgroundColor: paper.border },
   segmentDone: { backgroundColor: paper.thermal },
   count: {
     fontFamily: fonts.mono,

@@ -1,90 +1,100 @@
-# UI design implementation notes
+# Illustrated flight journal and offline replay
 
-Status as of 2026-08-18: the three routes were restyled to the "field notebook" design.
-Recorder, database, headless-task, repository, and root recovery code are unchanged.
+Current implementation, 2026-09-05. Physical Android acceptance remains pending; see
+[verification and backlog](./journal-replay-verification.md).
 
-## Source
+## Visual language
 
-- Claude Design project "MVP app UI design", file `XC Tracker UI.dc.html` (with `support.js`
-  and `uploads/xc-tracker-mvp-screens.md`):
-  <https://claude.ai/design/p/1b347570-d36c-443c-86a4-421df6e66287?file=XC+Tracker+UI.dc.html>
-- Direction: warm paper screens throughout, Archivo + IBM Plex Mono, thermal `#D9591F`,
-  altitude `#1F5F6B`, paper `#F4EFE6`.
-- The design originally paired these with a near-black instrument mode for the in-flight
-  recorder. That was removed on 2026-08-18 in favour of one consistent theme; `StatusPill` and
-  `HoldToStop`, which had no paper styling at all, were repainted onto the same soft/border
-  pairs `Chip` and `Notice` use.
-- Colour tokens are `@theme` variables in `src/global.css`, mirrored in `src/ui/theme.ts` for
-  the few runtime JS reads. `src/ui/__tests__/theme-css.test.ts` fails if the two drift.
-- The shared kit is `src/components/ui/` (one file per component, barrel `index.ts`), styled
-  with NativeWind `className`. It replaced the single 798-line `src/components/flight-ui.tsx`.
+Warm ivory (`#F7F3E8`), forest ink (`#203F36`), burnt-orange actions (`#B74E29`), blue
+altitude (`#356C88`), rounded journal cards and generous spacing. Archivo and IBM Plex Mono
+remain the installed fonts. `src/ui/theme.ts` and `src/global.css` share tested tokens.
+Font family names carry their weights; do not add `fontWeight` to those families.
 
-Fonts load at runtime with `expo-font` (`useFonts`) from `@expo-google-fonts/archivo` and
-`@expo-google-fonts/ibm-plex-mono` in `src/app/_layout.tsx`. Only the seven used weights are
-imported, so no native rebuild is required for the design work itself. Custom families carry the
-weight in their name; styles never combine `fontFamily` with `fontWeight`.
+Three generated gouache landscapes are bundled in `assets/images/journal/`: flight above
+mountain ridges, canopy at launch, and landing valley. [Prompts and provenance](../assets/images/journal/README.md)
+record the built-in image-generation tool used. `JournalArt` is decorative and excluded from
+screen-reader navigation. Artwork is separate from every GPS route plot. Assets add about 7.2 MB
+before packaging compression and work offline.
 
-## Screen mapping
+## Screens
 
-| Design | Route | What it became |
-| --- | --- | --- |
-| S1 Logbook | `/` (`src/app/(tabs)/index.tsx`) | Season card derived from local finished flights, month-grouped cards, pinned card for the single unfinished flight (recording: neutral; interrupted: attention with Resume / Save partial), empty state, loading, error/retry, Record FAB, disclaimer. |
-| S2 Pre-flight | `/record` idle/completed | Readiness rows from `RecorderSnapshot.capabilities` and power state (location, permissions, barometer, battery/optimization) with plain-language consequences; blocked states link to Android settings; manual-start note; Start (or "Start anyway" / "Ask for permission again"). |
-| S3 Recording | `/record` arming/recording/stopping | Instrument view: state pill (only "REC" pulses, and only while capture is verifiably healthy), phone-sensors/battery badge, airtime, GPS altitude, ground speed, capture evidence line, degraded cards (stale, recovering, not running, low battery, recorder errors), hold-to-stop, saving and retry-save states. |
-| S4 Save flight | `/flights/[id]?saved=stopped\|partial` | The recorder navigates to the flight detail after a save; the hero shows the fresh-save (or partial-save) banner and the optional title/site/notes fields sit directly below. |
-| S5 Flight detail | `/flights/[id]` | Story-order hero (distance when a track exists, else airtime), one honest logbook insight, date/time in the recorded timezone, stat rows, metadata form, collapsed "How this was recorded" evidence block with diagnostics export, unsigned IGC share, permanent delete. |
-| Recovery states | `/record` interrupted | Attention screen with recorded airtime, fixes, last fix time and altitude; Resume and Save Partial both retained; explains the 20-second recovery deadline. |
-| S6 Instruments & connections | — | Not implemented: BLE vario, XContest account, units, storage usage are unsupported. The recorder-version and unsigned-IGC facts appear in the detail evidence block instead. |
-| S7 Pilot & season | — | Not implemented as a route. The season totals card on the logbook is the supported subset (derived locally, non-interactive). |
-| Share card | — | Not implemented: needs track rendering and image capture, both unsupported. |
+| Surface | Current behavior |
+| --- | --- |
+| Setup overlay | Illustrated welcome, acknowledgment, numbered steps, Back/Skip, optional pilot/glider/account setup, location and notification actions. Permission copy describes requirements without promising uninterrupted capture. |
+| `/` | Personal journal heading, illustrated local season totals, dated entries with full-width routes, pinned unfinished flight, setup checklist, dismissible backup invitation and Record. No guest flight limit or prompts to remove old flights. |
+| `/record`, preflight | Launch illustration and readiness checklist. Existing blocked/degraded states, permission requests, system settings and Start remain. |
+| `/record`, active/recovery | Solid instrument surfaces, large numbers, capture-health distinctions, hold-to-stop, retry save, Resume and Save Partial. No decorative illustration. |
+| `/flights/[id]` | Title/site/date, route, statistics, personal insight and notes. Replay flight is primary for finished, non-processing flights. Edit flight opens a native modal. IGC, collapsed recording evidence, diagnostics and confirmed deletion remain secondary. |
+| `/flights/[id]/replay` | Offline route, moving pilot, start/end markers, GPS-altitude chart, elapsed time/altitude/speed, scrubber, ±10 seconds, Play/Pause and 1×/10×/60×. |
+| `/account` | Illustrated pilot page, identity, glider and local totals above separate backup/auth controls. Sign-in, restoring, unavailable, mismatch, error, sign-out and account deletion states remain. |
+| `/settings` | Grouped notebook rows. Review setup reopens setup; technical version/runtime/schema rows are under App details. |
 
-## Feature-mapping rules applied
+The app remains metric, Android first, and compatible with iOS. Two-tab navigation is unchanged.
+Button labels, checklist rows and replay readouts can wrap for narrow screens and larger text.
+These accommodations still need physical accessibility and keyboard acceptance.
 
-- Working controls only for supported features (recording, resume/finalize, metadata, unsigned
-  IGC, diagnostics, delete, Android settings deep links).
-- Unsupported features are omitted rather than faked: no map, track thumbnail, chart, climb
-  rate, vario/BLE source, weather, equipment, XContest, uploads, share image, accounts, cloud.
-- No "Coming later" placeholders were needed; nothing essential to the composition depended on
-  an unsupported feature once the map plates were removed.
-- The persistent `TEST_BUILD_WARNING` stays on every recorder state; the logbook and empty state
-  carry the longer "not a certified flight recorder" sentence.
-- Interrupted, stale, recovering and not-running states never use the healthy REC styling.
-- Active or processing flights cannot be deleted; deletion copy stays explicit that it is
-  permanent with no cloud copy.
-- Copy avoids reliability claims that the physical evidence gate has not established.
+## Metadata editor
 
-## States covered
+`MetadataSheet` mounts a fresh draft on every open. A remote metadata refresh cannot replace an
+active draft. Saving patches only edited fields, preserving concurrent changes to untouched fields.
+Site name and attribution are updated together. Cancel and Android Back share a discard confirmation. Save locks fields and close
+actions, prevents repeat submissions, displays errors inside the modal, and closes only after
+`updateFlight` succeeds. Site suggestions, takeoff coordinates and catalogue attribution remain.
+Successful saves request sync through the existing flow. The editor does not write track samples.
 
-Logbook: loading, empty, list, error/retry, recovering recorder, recording pinned, interrupted
-pinned, processing card, partial card, gaps card, no-track card.
-Recorder: ready, degraded (no barometer, low battery, battery optimization), blocked (services off,
-permissions denied, Expo Go), starting GPS, recording, GPS stale, recovering, not running, saving,
-retry save, interrupted (with and without a failed resume), start/resume/finalize errors.
-Detail: loading, missing/deleted, fresh save, partial save, processing, partial, gaps, no track,
-open flight (in progress / needs attention), unsaved-changes guard, export busy, delete busy.
+Open/processing restrictions on replay, export and deletion remain. Metadata editing retains its
+existing availability. Delete copy describes local removal and queued cloud deletion. Signing in
+is never presented as proof that an upload completed.
 
-## Verification
+## Replay implementation
 
-- `pnpm typecheck`, `pnpm lint` (including the React Compiler rules), `pnpm test`,
-  `pnpm validate:deps`, Expo Doctor, and Android/iOS exports pass.
-- Visual fidelity must be checked on the physical Samsung through the development client before
-  standalone acceptance.
+- `FlightRepository.getReplay` calls the async SQLite reader in `src/recorder/replay-repository-core.ts`.
+  Only the selected flight/session header and required GPS columns are read. Pressure, diagnostic
+  events and thumbnail caches are not loaded by this query. No schema migration, native dependency,
+  cloud API or recorder-service change is required.
+- The existing `(session_id, source_timestamp, sequence)` index supports the bounded query.
+  Invalid/mocked coordinates are excluded. Source timestamps sort deterministically; the highest
+  usable sequence wins duplicates. Nonfinite/missing altitude and negative/nonfinite/missing speed
+  remain unavailable instead of becoming zero.
+- Bounds are saved session start/end, capped by a saved manual stop; endpoints are inclusive.
+  Replay retains subsecond timestamps and original timing. Partial flights are labelled.
+  Missing/open/processing/invalid-bound recordings and fewer than two distinct usable timestamps
+  have explanatory states.
+- Interpolation is limited to **15 seconds or less**. Longer gaps and time outside the available
+  fixes show no moving marker or telemetry. Exact fixes at gap edges retain their values.
+  Missing altitude breaks only the chart.
+- `src/lib/replay/geometry.ts` makes one fixed projection for route and pilot. Static paths are
+  memoized per data/view change. Route simplification uses bounded chunks with sub-unit tolerance;
+  altitude envelopes retain first/last/min/max per horizontal pixel within each continuous run.
+  Gaps and isolated samples remain visible. Animation uses binary search and projected interpolation
+  without rebuilding paths or accessing SQLite.
+- `getFlightReplay` has its own RTK Query tag and `keepUnusedDataFor: 0`. Only the focused screen
+  subscribes. Leaving unmounts both the query hook and player, releasing their sample references
+  as well as the Redux entry; reopening starts paused at the
+  beginning. Metadata never invalidates replay. Successful deletion does; failed deletion preserves
+  it. Responses arriving after unsubscribe are also released.
 
-## Structure (2026-08-18)
+## Playback lifecycle and accessibility
 
-```
-src/
-  app/                    routes only — (tabs)/index = logbook, record, flights/[id], settings
-  components/ui/          shared kit, one file per component + barrel index.ts
-  features/               one slice per route segment
-    logbook/{components,logbook.ts,__tests__}
-    record/{components,recorder-presentation.ts,capture-health.ts,recorder-lifecycle.tsx}
-    flights/{components,flight-detail.ts}
-  lib/                    cross-cutting helpers (format/, use-stable-animated-value)
-  recorder/               domain layer — sqlite, service, igc, metrics (no React)
-  ui/theme.ts             TS mirror of the palette for runtime JS reads
-global.css                @theme token source of truth
-```
+Local playback uses `performance.now()`, opening **paused at 60×**. Scrubbing and seeking pause
+and leave it paused. Reaching the end stops it; Play again restarts. Screen blur, AppState
+background/inactive and Android interaction blur pause. Returning never resumes automatically.
 
-Rule: **feature folder name == route segment**. If `/settings` grows beyond route composition,
-its feature logic belongs in `src/features/settings/`.
+Android Back and visible Back use `dismissTo` to reach the selected flight detail; a directly
+opened replay replaces itself with that detail. Swipe-back is disabled on this screen to keep
+that destination consistent. The timeline exposes native adjustable accessibility actions in
+ten-second steps and elapsed/total time. Native text supplies telemetry without continuous live
+announcements. Start/end markers have different shapes. Reduced motion disables decorative pulses,
+navigation and flight/pilot-editor transitions, and steps user-started replay at 4 Hz; otherwise drawing
+updates are capped at 30 Hz.
+
+## References consulted
+
+- [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/)
+- [Expo SQLite 57 async reads](https://docs.expo.dev/versions/v57.0.0/sdk/sqlite/)
+- [Expo Router 57 navigation](https://docs.expo.dev/versions/v57.0.0/sdk/router/)
+- [React Native AppState change, blur and focus](https://reactnative.dev/docs/appstate)
+
+The earlier notebook styling came from the Claude Design project
+[MVP app UI design](https://claude.ai/design/p/1b347570-d36c-443c-86a4-421df6e66287?file=XC+Tracker+UI.dc.html).
+This document describes the current journal milestone, not that earlier design's unsupported screens.

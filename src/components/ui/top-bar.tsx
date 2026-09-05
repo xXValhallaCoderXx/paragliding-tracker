@@ -22,7 +22,7 @@ export function TopBar({
             hitSlop={10}
             onPress={onBack}
             style={({ pressed }) => (pressed ? { opacity: 0.72 } : null)}
-            className="h-[38px] w-[38px] items-center justify-center rounded-[19px] border border-border bg-card">
+            className="h-[44px] w-[44px] items-center justify-center rounded-[19px] border border-border bg-card">
             <Text className="mt-[-2px] font-body-semi text-[21px] leading-[24px] text-ink">‹</Text>
           </Pressable>
         ) : null}

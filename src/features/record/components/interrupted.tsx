@@ -65,7 +65,7 @@ export function InterruptedView({
             Recording stopped before you pressed stop — the app may have been closed, or GPS went
             quiet for longer than the recovery window.{' '}
             {snapshot.fixCount > 0
-              ? `Everything up to ${lastFixLabel ?? 'the last fix'} is safe on this phone: ${recorded} and ${fixes}.`
+              ? `This phone has data up to ${lastFixLabel ?? 'the last fix'}: ${recorded} and ${fixes}.`
               : 'No valid GPS fix was recorded before it stopped.'}
           </Text>
         </View>
@@ -148,8 +148,8 @@ const styles = StyleSheet.create({
   body: { fontFamily: fonts.sans, fontSize: 13, lineHeight: 20, color: paper.text },
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 },
   stat: { width: '50%' },
-  statLabel: { fontFamily: fonts.sansSemi, fontSize: 9.5, letterSpacing: 1.4, color: 'rgba(255,252,246,0.5)' },
-  statValue: { fontFamily: fonts.monoSemi, fontSize: 19, color: paper.onDark, marginTop: 2 },
+  statLabel: { fontFamily: fonts.sansSemi, fontSize: 9.5, letterSpacing: 1.4, color: paper.onDarkMuted },
+  statValue: { fontFamily: fonts.monoSemi, fontSize: 24, color: paper.onDark, marginTop: 2 },
   statNote: {
     fontFamily: fonts.sans,
     fontSize: 10.5,

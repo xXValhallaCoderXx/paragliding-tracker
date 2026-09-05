@@ -41,7 +41,7 @@ export function ListRow({
   return (
     <View
       className={`gap-[4px] py-[13px] ${last ? '' : 'border-b border-b-hairline'}`}>
-      <View className="flex-row items-center justify-between gap-[10px]">
+      <View className="flex-row flex-wrap items-center justify-between gap-[10px]">
         <Text className="shrink font-body-medium text-[13px] text-ink">{label}</Text>
         {value !== undefined ? (
           <View className="shrink flex-row items-center gap-[8px]">
@@ -62,7 +62,7 @@ export function ListRow({
         <LinkButton
           label={`${action.label} ›`}
           onPress={action.onPress}
-          className="mt-[-2px] min-h-[32px]"
+          className="mt-[2px] min-h-[44px]"
         />
       ) : null}
     </View>

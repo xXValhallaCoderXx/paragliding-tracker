@@ -1,3 +1,4 @@
+import type { FlightReplay } from '@/lib/replay/model';
 import {
   appSettingsRepository,
   flightRepository,
@@ -81,6 +82,13 @@ export const dataApi = api.injectEndpoints({
       keepUnusedDataFor: 3_600,
     }),
 
+    getFlightReplay: build.query<FlightReplay, string>({
+      queryFn: (flightId) => read(() => flightRepository.getReplay(flightId)),
+      providesTags: (_result, _error, flightId) => [{ type: 'FlightReplay', id: flightId }],
+      // Raw fixes can be large. Leaving replay releases them; metadata never invalidates them.
+      keepUnusedDataFor: 0,
+    }),
+
     getFlight: build.query<FlightDetail | null, string>({
       queryFn: (flightId) => read(() => flightRepository.getFlight(flightId)),
       providesTags: (_result, _error, flightId) => [{ type: 'Flight' as const, id: flightId }],
@@ -110,10 +118,11 @@ export const dataApi = api.injectEndpoints({
           await flightRepository.deleteFlight(flightId);
           return null;
         }),
-      invalidatesTags: (_result, _error, flightId) => [
+      invalidatesTags: (_result, error, flightId) => error ? [] : [
         { type: 'Flight', id: flightId },
         { type: 'Flight', id: 'LIST' },
         { type: 'FlightTrack', id: flightId },
+        { type: 'FlightReplay', id: flightId },
         { type: 'FlightTrack', id: 'LIST' },
       ],
     }),
@@ -179,6 +188,7 @@ export const {
   useGetFlightQuery,
   useGetFlightTracksQuery,
   useGetFlightTrackQuery,
+  useGetFlightReplayQuery,
   useGetProfileQuery,
   useGetAppSettingsQuery,
   useNearbySitesQuery,

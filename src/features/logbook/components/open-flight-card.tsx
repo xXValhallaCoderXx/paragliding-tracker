@@ -47,7 +47,7 @@ export function OpenFlightCard({
       </Text>
       <Text style={styles.body}>
         {interrupted
-          ? `Recording stopped unexpectedly after starting at ${startedLabel}. Everything captured up to that point is safe on this phone.`
+          ? `Recording stopped unexpectedly after starting at ${startedLabel}. You can resume or save the samples stored on this phone as a partial flight.`
           : `Started at ${startedLabel}. Open the recorder to check GPS health, or to stop and save when you have landed.`}
       </Text>
       <View style={styles.actions}>

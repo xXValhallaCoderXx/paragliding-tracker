@@ -97,7 +97,7 @@ describe('setupChecklist', () => {
   it('explains why each outstanding item matters, and stops once it is done', () => {
     const outstanding = build({ profile: profile(), capabilities: capabilities() })!;
     expect(outstanding.items[1]!.detail).toBe('IGC files say UNSPECIFIED until you do');
-    expect(outstanding.items[2]!.detail).toBe('Pre-fills every flight you save');
+    expect(outstanding.items[2]!.detail).toBe('Used in your IGC exports');
 
     const partly = build({
       profile: profile({ pilotName: 'Renate' }),

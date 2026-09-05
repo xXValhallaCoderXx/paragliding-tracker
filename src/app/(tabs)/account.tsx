@@ -9,7 +9,6 @@ import {
   Disclaimer,
   LinkButton,
   ListRow,
-  Meter,
   Notice,
   Screen,
   SectionLabel,
@@ -32,13 +31,8 @@ import {
 } from '@/features/account/components/sign-in-card';
 import { SyncCard } from '@/features/account/components/sync-card';
 import { PRIVACY_POLICY_URL, privacyPolicyReady } from '@/features/account/legal';
-import {
-  backupSummary,
-  countSavedFlights,
-  evaluateGuestCapacity,
-  GUEST_FLIGHT_CAPACITY,
-} from '@/features/logbook/guest-capacity';
-import { buildLogbookLayout } from '@/features/logbook/logbook';
+import { backupSummary } from '@/features/logbook/backup-invitation';
+import { JournalArt } from '@/components/ui/journal-art';
 import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import type { FlightSummary, PilotProfilePatch } from '@/recorder/types';
 import { useGetFlightsQuery, useGetProfileQuery, useUpdateProfileMutation } from '@/store/endpoints';
@@ -75,7 +69,7 @@ export default function AccountScreen() {
   }, []);
 
   // Both come from the same cache the logbook fills, so opening Account after the logbook
-  // costs nothing. The flights are only decoration here — the stats row and the meter —
+  // costs nothing. The flights supply the local logbook totals,
   // so an unavailable read degrades to an empty logbook rather than an error.
   const skip = !recorderLifecycle.ready;
   const { data: profile = null, isLoading: loading } = useGetProfileQuery(undefined, { skip });
@@ -127,21 +121,14 @@ export default function AccountScreen() {
   };
 
   const stats = accountStats(flights);
-  // Counts the cards the logbook renders, via the same layout, so this meter and the
-  // logbook's banner can never disagree about how full the phone is.
-  const capacity = evaluateGuestCapacity({
-    savedFlights: countSavedFlights(buildLogbookLayout(flights)),
-    authStatus: auth.status,
-    linkedUserId: sync.linkedUserId,
-  });
-  const backup = backupSummary(capacity);
+  const backup = backupSummary(auth.status, sync.linkedUserId);
   const canSignIn = auth.status === 'signed_out';
 
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Account</Text>
+          <Text style={styles.title}>Your pilot page</Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Settings"
@@ -150,6 +137,10 @@ export default function AccountScreen() {
             style={({ pressed }) => [styles.gear, pressed && styles.pressed]}>
             <Text style={styles.gearGlyph}>⚙</Text>
           </Pressable>
+        </View>
+
+        <View style={styles.block}>
+          <JournalArt scene="landing" height={160} />
         </View>
 
         {error ? (
@@ -169,74 +160,6 @@ export default function AccountScreen() {
             <IdentityCard profile={profile} stats={stats} onEdit={() => setEditing(true)} />
           </View>
         )}
-
-        <View style={styles.block}>
-          <SectionLabel>Backup</SectionLabel>
-          {auth.status === 'restoring' ? (
-            <RestoringAccountCard />
-          ) : auth.status === 'signed_in' ? (
-            <>
-              <AccountCard email={auth.email} busy={signingOut} onSignOut={() => void signOut()} />
-              <SyncCard
-                status={describeSync(sync, now)}
-                onSyncNow={() => sync.requestSync('manual')}
-                cloudOnly={cloudOnlySummary(sync)}
-                onUseThisAccount={
-                  sync.blockedBy === 'account_mismatch'
-                    ? () => void sync.rebindToCurrentAccount()
-                    : null
-                }
-              />
-            </>
-          ) : (
-            <>
-              <View style={styles.backupCard}>
-                <View style={styles.backupHeader}>
-                  <Text style={styles.backupHeadline}>{backup.headline}</Text>
-                  {backup.value ? <Text style={styles.backupValue}>{backup.value}</Text> : null}
-                </View>
-                {backup.meter ? (
-                  <Meter
-                    value={backup.meter.value}
-                    max={backup.meter.max}
-                    tone={backup.meter.tone}
-                  />
-                ) : null}
-                <Text style={styles.backupDetail}>{backup.detail}</Text>
-              </View>
-
-              {auth.status === 'unconfigured' ? (
-                <CloudUnconfiguredNotice />
-              ) : null}
-
-              {canSignIn ? (
-                <>
-                  <Card className="px-[16px] py-[4px]">
-                    <ListRow
-                      label="With a free account"
-                      value="Unlimited"
-                      mono={false}
-                      tone="good"
-                      showDot
-                      detail={`Every flight backed up with its stats and its IGC file. Without one, this phone keeps ${GUEST_FLIGHT_CAPACITY}.`}
-                      last
-                    />
-                  </Card>
-                  <SignInCard
-                    requestOtp={auth.requestOtp}
-                    verifyOtp={auth.verifyOtp}
-                    error={authError ?? auth.lastError?.message ?? null}
-                    onClearError={() => setAuthError(null)}
-                  />
-                  <Disclaimer align="left">
-                    No password. We store your email, your flight summaries and your IGC files —
-                    never your raw GPS track.
-                  </Disclaimer>
-                </>
-              ) : null}
-            </>
-          )}
-        </View>
 
         {profile && !loading ? (
           <View style={styles.block}>
@@ -263,11 +186,71 @@ export default function AccountScreen() {
               />
             </Card>
             <Disclaimer align="left">
-              Your name and glider are written into every IGC file you export. Changing them here
-              won&apos;t rewrite flights you&apos;ve already saved.
+              IGC exports use your current name and glider, including when you export an older
+              flight again. Files you have already shared keep their original headers.
             </Disclaimer>
           </View>
         ) : null}
+
+        <View style={styles.block}>
+          <SectionLabel>Backup</SectionLabel>
+          {auth.status === 'restoring' ? (
+            <RestoringAccountCard />
+          ) : auth.status === 'signed_in' ? (
+            <>
+              <AccountCard email={auth.email} busy={signingOut} onSignOut={() => void signOut()} />
+              <SyncCard
+                status={describeSync(sync, now)}
+                onSyncNow={() => sync.requestSync('manual')}
+                cloudOnly={cloudOnlySummary(sync)}
+                onUseThisAccount={
+                  sync.blockedBy === 'account_mismatch'
+                    ? () => void sync.rebindToCurrentAccount()
+                    : null
+                }
+              />
+            </>
+          ) : (
+            <>
+              <View style={styles.backupCard}>
+                <View style={styles.backupHeader}>
+                  <Text style={styles.backupHeadline}>{backup.headline}</Text>
+                </View>
+                <Text style={styles.backupDetail}>{backup.detail}</Text>
+              </View>
+
+              {auth.status === 'unconfigured' ? (
+                <CloudUnconfiguredNotice />
+              ) : null}
+
+              {canSignIn ? (
+                <>
+                  <Card className="px-[16px] py-[4px]">
+                    <ListRow
+                      label="With a free account"
+                      value="Optional backup"
+                      mono={false}
+                      tone="good"
+                      showDot
+                      detail="Eligible summaries and IGC files upload when connected. Check sync status for progress or errors."
+                      last
+                    />
+                  </Card>
+                  <SignInCard
+                    requestOtp={auth.requestOtp}
+                    verifyOtp={auth.verifyOtp}
+                    error={authError ?? auth.lastError?.message ?? null}
+                    onClearError={() => setAuthError(null)}
+                  />
+                  <Disclaimer align="left">
+                    No password. We store your email, your flight summaries and your IGC files —
+                    IGC files contain GPS coordinates. Raw sensor and diagnostic samples stay on this phone.
+                  </Disclaimer>
+                </>
+              ) : null}
+            </>
+          )}
+        </View>
 
         {privacyPolicyReady ? (
           <View style={styles.block}>
@@ -342,8 +325,8 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 6,
   },
-  title: { fontFamily: fonts.sansBold, fontSize: 26, color: paper.ink, letterSpacing: -0.4 },
-  gear: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  title: { flex: 1, fontFamily: fonts.sansBold, fontSize: 26, color: paper.ink, letterSpacing: -0.4 },
+  gear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.5 },
   gearGlyph: { fontSize: 18, color: paper.muted },
   block: { paddingHorizontal: 18, paddingTop: 10, gap: 10 },
@@ -363,7 +346,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   backupHeadline: { fontFamily: fonts.sansSemi, fontSize: 13.5, color: paper.ink, flexShrink: 1 },
-  backupValue: { fontFamily: fonts.monoMedium, fontSize: 13, color: paper.ink },
   backupDetail: { fontFamily: fonts.sans, fontSize: 11.5, lineHeight: 16.5, color: paper.text },
   pilotRow: {
     gap: 3,

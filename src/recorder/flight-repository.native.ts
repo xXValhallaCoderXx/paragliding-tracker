@@ -11,6 +11,7 @@ import {
   getPilotProfile,
   getFlightBySessionId,
   getFlightDetail,
+  getFlightReplay,
   getFlightTrackRow,
   getSessionExportData,
   listFlights as listStoredFlights,
@@ -247,6 +248,7 @@ export const flightRepository: FlightRepository = {
   deleteFlight,
   listTracks,
   getTrack,
+  getReplay: getFlightReplay,
 };
 
 /**

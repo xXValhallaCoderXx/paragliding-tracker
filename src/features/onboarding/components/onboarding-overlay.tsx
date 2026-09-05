@@ -12,7 +12,7 @@ import {
 import { Button, Card, Disclaimer, Input, LinkButton, ListRow, Notice } from '@/components/ui';
 import { useCloudAuth } from '@/features/account/auth-provider';
 import { SignInCard } from '@/features/account/components/sign-in-card';
-import { GUEST_FLIGHT_CAPACITY } from '@/features/logbook/guest-capacity';
+import { JournalArt } from '@/components/ui/journal-art';
 import {
   requestNotificationPermission,
   type NotificationPermission,
@@ -204,8 +204,7 @@ export function PilotStep({
     <View style={styles.block}>
       <Text style={styles.heading}>Who&apos;s flying?</Text>
       <Text style={styles.body}>
-        This name is written into every IGC file you export. XContest matches your claims against
-        it, so use the name you fly under.
+        Use the name you fly under. It appears in the header of your unsigned IGC exports.
       </Text>
       <Card className="px-[16px] pt-[4px] pb-[4px]">
         <Input
@@ -216,7 +215,7 @@ export function PilotStep({
           autoCapitalize="words"
           autoComplete="name"
           onChangeText={onPilotName}
-          hint="Leave it blank and files ship as UNSPECIFIED — still valid, just anonymous."
+          hint="Leave it blank and exports use UNSPECIFIED."
         />
         <Input
           label="Pilot registration ID — optional"
@@ -225,7 +224,7 @@ export function PilotStep({
           maxLength={30}
           autoCapitalize="characters"
           onChangeText={onRegistrationId}
-          hint="Your APPI, FAI or club number. Only needed if you fly comps or claim under a federation — it rides along in the file header."
+          hint="Your APPI, FAI or club number, kept for your own reference. It is not included in IGC exports."
           last
         />
       </Card>
@@ -249,8 +248,7 @@ export function GliderStep({
     <View style={styles.block}>
       <Text style={styles.heading}>What are you flying?</Text>
       <Text style={styles.body}>
-        Your usual wing. Every flight starts with this one, and you can change it per flight when
-        you save.
+        Your usual wing, used in IGC exports. You can update it from your pilot page.
       </Text>
       <Card className="px-[16px] pt-[4px] pb-[4px]">
         <Input
@@ -268,8 +266,7 @@ export function GliderStep({
         ))}
       </View>
       <Disclaimer align="left">
-        Flying something borrowed today? Change it on the save sheet when you land — this is only
-        the default.
+        Flying something borrowed? Update your glider on the pilot page before exporting.
       </Disclaimer>
       <StepActions onContinue={onContinue} onSkip={onSkip} />
     </View>
@@ -291,29 +288,28 @@ export function BackupStep({
     <View style={styles.block}>
       <Text style={styles.heading}>Last one — a backup.</Text>
       <Text style={styles.body}>
-        Every flight is saved on this phone the second you land, with or without an account. An
-        account only decides whether a second copy exists if the phone is lost, wiped or replaced.
+        Stop recording after landing to save a flight on this phone. An optional account can back up eligible summaries and IGC files when connected. Restoring cloud flights to a new phone is planned.
       </Text>
       <Card className="px-[16px] py-[4px]">
         <ListRow
           label="Without an account"
-          value={`${GUEST_FLIGHT_CAPACITY} flights`}
+          value="Local journal"
           mono={false}
-          detail={`This phone keeps ${GUEST_FLIGHT_CAPACITY} saved flights. Recording is never blocked and nothing is ever removed for you — past ${GUEST_FLIGHT_CAPACITY}, the logbook asks you to sign in or remove one yourself.`}
+          detail="Recording stays available. Saved flights are never automatically removed."
         />
         <ListRow
           label="With a free account"
-          value="Unlimited"
+          value="Optional backup"
           mono={false}
           tone="good"
           showDot
-          detail="Every flight backed up with its stats and its IGC file. Your logbook stays on this phone as well."
+          detail="Eligible summaries and IGC files can upload while connected. Your local journal stays available."
           last
         />
       </Card>
       {auth.status === 'signed_in' ? (
         <Notice tone="good" title="Signed in">
-          Your flights will back up automatically from now on.
+          Backup can run while connected. Check its progress and any errors on your pilot page.
         </Notice>
       ) : auth.status === 'unconfigured' ? (
         <Notice tone="info" title="Backup is not set up in this build">
@@ -328,7 +324,7 @@ export function BackupStep({
         />
       )}
       <Disclaimer align="left">
-        We store your email, your flight summaries and your IGC files — never your raw GPS track.
+        We store your email, your flight summaries and your IGC files — IGC files contain GPS coordinates. Raw sensor and diagnostic samples stay on this phone.
       </Disclaimer>
       <View style={styles.finish}>
         <LinkButton
@@ -362,17 +358,17 @@ export function WelcomeStep({
 }) {
   return (
     <View style={styles.block}>
-      <Text style={styles.wordmark}>XC TRACKER</Text>
-      <Text style={styles.tagline}>Every flight, kept.</Text>
+      <Text style={styles.wordmark}>XC · FLIGHT JOURNAL</Text>
+      <JournalArt scene="flight" height={220} />
+      <Text style={styles.tagline}>Bring the sky home.</Text>
       <Text style={styles.body}>
-        Tap record before you launch. XC Tracker keeps the whole flight with the screen off and no
-        signal, then hands you a logbook entry and an IGC file when you land.
+        Record before launch, save after landing, then revisit the route and the moments that made it yours. Recording and replay work offline.
       </Text>
 
       <Card className="px-[16px] py-[4px]">
         <ListRow
           label="Records in the background"
-          detail="Pocket the phone, it keeps going."
+          detail="Uses background location. Phone settings and interruptions can affect capture."
           mono={false}
         />
         <ListRow
@@ -381,8 +377,8 @@ export function WelcomeStep({
           mono={false}
         />
         <ListRow
-          label="Exports a real IGC"
-          detail="The file you claim on XContest."
+          label="Your flight, ready to revisit"
+          detail="Replay the recorded route and export an unsigned IGC for your own archive."
           mono={false}
           last
         />
@@ -438,11 +434,10 @@ export function LocationStep({
 
   return (
     <View style={styles.block}>
-      <Text style={styles.eyebrow}>THE ONE STEP WE CAN&apos;T SKIP</Text>
-      <Text style={styles.heading}>Android has to let us follow you.</Text>
+      <Text style={styles.eyebrow}>BEFORE YOU LAUNCH</Text>
+      <Text style={styles.heading}>Give your journal a position.</Text>
       <Text style={styles.body}>
-        Without background location the track stops the second you pocket the phone — and you&apos;d
-        only find out after landing.
+        Location permission lets the recorder capture GPS fixes. Background access is required by this recorder when the app is not visible; it does not guarantee uninterrupted recording.
       </Text>
 
       <Card className="px-[16px] py-[4px]">
@@ -451,7 +446,7 @@ export function LocationStep({
           value={foreground === 'granted' ? 'ALLOWED' : 'NEEDED'}
           tone={foreground === 'granted' ? 'good' : foreground === 'denied' ? 'danger' : 'neutral'}
           showDot
-          detail="The GPS fixes that become your track. Coarse location can't record a flight."
+          detail="Precise location gives a more useful track than approximate location."
         />
         <ListRow
           label="Allow all the time"
@@ -471,19 +466,18 @@ export function LocationStep({
           }
           tone={notifications === 'granted' ? 'good' : 'neutral'}
           showDot={notifications === 'granted'}
-          detail="Shows the recording notification so Android never kills the flight to save power."
+          detail="Makes recording status visible. Notifications do not prevent Android from stopping the app."
           last
         />
       </Card>
 
       <Disclaimer align="left">
-        This is also how we name your launch — the site fills itself in from where you took off, so
-        there&apos;s nothing to set up.
+        Your takeoff position can suggest launch names when you edit a saved flight. You choose the name.
       </Disclaimer>
 
       {denied ? (
-        <Notice tone="warning" title="Android is not asking again">
-          Once a permission is refused twice, only the system settings can grant it.
+        <Notice tone="warning" title="Permission is not granted">
+          If the phone no longer offers a permission prompt, you can review it in system settings.
         </Notice>
       ) : null}
 

@@ -77,15 +77,11 @@ export function FlightCard({
           ) : null}
         </View>
 
-        {/*
-          Renders nothing at all when there is no track — a card with an empty box beside it
-          reads as broken, a card with no box reads as no picture, and the chip above
-          already says which flights those are. The text simply reflows to the full width.
-        */}
+        {/* Finished routes and unavailable/processing states share a full-width plate. */}
         <View style={styles.thumbnail}>
           <TrackPlate
             segments={track}
-            variant="thumbnail"
+            variant="hero"
             state={trackPlateState(flight, track)}
           />
         </View>
@@ -94,23 +90,21 @@ export function FlightCard({
   );
 }
 
-
 const styles = StyleSheet.create({
   card: {
     backgroundColor: paper.card,
     borderColor: paper.border,
     borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 22,
+    padding: 18,
   },
   pressed: { opacity: 0.74 },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  row: { gap: 16 },
   body: { flex: 1 },
-  // Fixed width so every card's text column starts and ends in the same place, whether or
-  // not that flight has a track yet.
-  thumbnail: { width: 64 },
+  // A full-width route gives each dated journal entry room to breathe.
+  thumbnail: { width: '100%' },
   dateLine: { fontFamily: fonts.monoMedium, fontSize: 10, letterSpacing: 0.4, color: paper.muted },
-  title: { fontFamily: fonts.sansSemi, fontSize: 15, lineHeight: 19, color: paper.ink, marginTop: 5 },
+  title: { fontFamily: fonts.sansSemi, fontSize: 21, lineHeight: 27, color: paper.ink, marginTop: 5 },
   metrics: { fontFamily: fonts.monoSemi, fontSize: 12, color: paper.ink, marginTop: 8 },
   metricsPending: { fontFamily: fonts.sans, fontSize: 12, color: paper.muted, marginTop: 8 },
   dot: { color: paper.faint },

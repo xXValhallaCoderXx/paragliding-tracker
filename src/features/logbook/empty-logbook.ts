@@ -28,9 +28,8 @@ export function emptyLogbookChips(input: {
     chips.push({ key: 'glider', label: input.gliderType.trim().toUpperCase(), tone: 'muted' });
   }
 
-  // Always true, and worth saying: naming the launch from the first GPS fix is the part pilots
-  // do not expect.
-  chips.push({ key: 'site', label: 'SITE FROM GPS', tone: 'muted' });
+  // A takeoff position can suggest launches, but the pilot chooses the saved name.
+  chips.push({ key: 'site', label: 'CHOOSE YOUR LAUNCH', tone: 'muted' });
 
   chips.push(
     input.locationReady

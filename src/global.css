@@ -56,10 +56,10 @@
    * one-off (14 distinct values, including 3.5) and is written as an arbitrary value at the
    * call site instead.
    */
-  --radius-card: 14px;
-  --radius-card-large: 16px;
-  --radius-control: 12px;
-  --radius-control-large: 16px;
+  --radius-card: 22px;
+  --radius-card-large: 28px;
+  --radius-control: 14px;
+  --radius-control-large: 18px;
   --radius-pill: 999px;
 
   /*
@@ -71,24 +71,24 @@
    * theme.ts stays the source of truth for the handful of runtime JS reads (the navigator's
    * contentStyle, ActivityIndicator colours, Animated interpolations) that cannot be classes.
    */
-  --color-background: #f4efe6;
-  --color-card: #fffcf6;
-  --color-card-alt: #f1e8d8;
-  --color-border: #e2d9c8;
-  --color-hairline: #efe7d6;
-  --color-grid: #dfd2b7;
-  --color-ink: #16130f;
-  --color-body: #5b534a;
-  --color-muted: #8b8177;
+  --color-background: #f7f3e8;
+  --color-card: #fffcf5;
+  --color-card-alt: #eee8d9;
+  --color-border: #dadccf;
+  --color-hairline: #eaeadd;
+  --color-grid: #d3d9ca;
+  --color-ink: #203f36;
+  --color-body: #4f6257;
+  --color-muted: #637368;
   --color-faint: #c9bfae;
   --color-ghost: #a79a82;
   --color-placeholder: #b8ad9c;
-  --color-thermal: #d9591f;
-  --color-thermal-pressed: #b4471a;
-  --color-thermal-soft: #f7e7dc;
+  --color-thermal: #b74e29;
+  --color-thermal-pressed: #943d20;
+  --color-thermal-soft: #f5e5d8;
   --color-thermal-ink: #8a3f14;
-  --color-altitude: #1f5f6b;
-  --color-altitude-soft: #e2edef;
+  --color-altitude: #356c88;
+  --color-altitude-soft: #e5eef2;
   --color-good: #3e7a52;
   --color-good-soft: #e7f0e7;
   --color-good-border: #cfe1cf;
@@ -105,7 +105,7 @@
   --color-attention-soft: #fff3ea;
   --color-attention-border: #e0b79e;
   --color-attention-ink: #7a4a2c;
-  --color-on-dark: #fffcf6;
+  --color-on-dark: #fffcf5;
   --color-on-dark-muted: rgba(255, 252, 246, 0.6);
   --color-on-dark-faint: rgba(255, 252, 246, 0.45);
   --color-on-dark-hairline: rgba(255, 252, 246, 0.14);

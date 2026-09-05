@@ -1,3 +1,4 @@
+import { JournalArt } from '@/components/ui/journal-art';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -84,6 +85,10 @@ export function PreflightView({
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <TopBar onBack={onBack} backLabel="Back to logbook" title="Pre-flight" />
 
+        <View style={styles.illustration}>
+          <JournalArt scene="launch" height={112} />
+        </View>
+
         <View style={styles.headline}>
           <StateLabel label={summary.label} tone={tone} />
           <Text style={styles.title}>{summary.title}</Text>
@@ -135,8 +140,7 @@ export function PreflightView({
 
         <View style={styles.footer}>
           <Text style={styles.startNote}>
-            There is no takeoff detection yet — tap start before you launch and it runs until you
-            stop it.
+            There is no takeoff detection yet — tap start before you launch and stop manually after landing. Watch capture health for interruptions.
           </Text>
           {hardBlocked ? (
             <Button
@@ -172,6 +176,7 @@ export function PreflightView({
 
 const styles = StyleSheet.create({
   content: { flexGrow: 1, paddingBottom: 28, gap: 12 },
+  illustration: { marginHorizontal: 18 },
   headline: { paddingHorizontal: 22, paddingTop: 12, gap: 8 },
   title: { fontFamily: fonts.sansBold, fontSize: 27, lineHeight: 32, color: paper.ink, marginTop: 4 },
   body: { fontFamily: fonts.sans, fontSize: 13.5, lineHeight: 21, color: paper.text },

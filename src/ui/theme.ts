@@ -1,6 +1,5 @@
 /**
- * Visual language for the "field notebook" design (Claude Design project
- * "MVP app UI design", file `XC Tracker UI.dc.html`).
+ * Visual language for the illustrated adventure journal.
  *
  * A single warm-paper palette across every screen. (The recorder previously inverted to a
  * near-black instrument mode; that was removed in favour of one consistent theme.)
@@ -11,25 +10,25 @@
  */
 
 export const paper = {
-  background: '#F4EFE6',
-  card: '#FFFCF6',
-  cardAlt: '#F1E8D8',
-  border: '#E2D9C8',
-  hairline: '#EFE7D6',
+  background: '#F7F3E8',
+  card: '#FFFCF5',
+  cardAlt: '#EEE8D9',
+  border: '#DADCCF',
+  hairline: '#EAEADD',
   /** The chart-plate graticule. Deliberately darker than `border`, which is too pale to read as a grid. */
-  grid: '#DFD2B7',
-  ink: '#16130F',
-  text: '#5B534A',
-  muted: '#8B8177',
+  grid: '#D3D9CA',
+  ink: '#203F36',
+  text: '#4F6257',
+  muted: '#637368',
   faint: '#C9BFAE',
   ghost: '#A79A82',
   placeholder: '#B8AD9C',
-  thermal: '#D9591F',
-  thermalPressed: '#B4471A',
-  thermalSoft: '#F7E7DC',
+  thermal: '#B74E29',
+  thermalPressed: '#943D20',
+  thermalSoft: '#F5E5D8',
   thermalInk: '#8A3F14',
-  altitude: '#1F5F6B',
-  altitudeSoft: '#E2EDEF',
+  altitude: '#356C88',
+  altitudeSoft: '#E5EEF2',
   good: '#3E7A52',
   goodSoft: '#E7F0E7',
   goodBorder: '#CFE1CF',
@@ -46,7 +45,7 @@ export const paper = {
   attentionSoft: '#FFF3EA',
   attentionBorder: '#E0B79E',
   attentionInk: '#7A4A2C',
-  onDark: '#FFFCF6',
+  onDark: '#FFFCF5',
   onDarkMuted: 'rgba(255,252,246,0.6)',
   onDarkFaint: 'rgba(255,252,246,0.45)',
   onDarkHairline: 'rgba(255,252,246,0.14)',
@@ -63,10 +62,10 @@ export const fonts = {
 } as const;
 
 export const radii = {
-  card: 14,
-  cardLarge: 16,
-  control: 12,
-  controlLarge: 16,
+  card: 22,
+  cardLarge: 28,
+  control: 14,
+  controlLarge: 18,
   pill: 999,
 } as const;
 

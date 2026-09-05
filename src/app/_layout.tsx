@@ -1,3 +1,4 @@
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 // Tailwind entry. Deliberately imported here rather than in index.js: that file registers the
 // background location task *before* expo-router, and that ordering is load-bearing. This is a
 // module-scope side effect, so it is unaffected by the fonts gate on <Stack> below.
@@ -30,6 +31,7 @@ import { paper } from '@/ui/theme';
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
+  const reducedMotion = useReducedMotion();
   const [fontsLoaded, fontError] = useFonts({
     Archivo_400Regular,
     Archivo_500Medium,
@@ -73,7 +75,7 @@ export default function RootLayout() {
                 <FirstRunGate>
                   <Stack
                     screenOptions={{
-                      animation: 'slide_from_right',
+                      animation: reducedMotion ? 'none' : 'slide_from_right',
                       contentStyle: { backgroundColor: paper.background },
                       headerShown: false,
                       // Every screen is warm paper, so the status bar is dark-on-light throughout.

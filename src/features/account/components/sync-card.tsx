@@ -30,9 +30,9 @@ export function SyncCard({
       </Card>
       {onUseThisAccount ? (
         <>
-          <Notice tone="warning" title="Backed up to a different account">
-            Your flights are safe on this phone. Switching accounts re-uploads them to the
-            account you are signed in to now, and leaves the old copies alone.
+          <Notice tone="warning" title="Backup linked to a different account">
+            Your local flights stay on this phone. Switching accounts queues eligible flights
+            for upload to the account you are signed in to now, and leaves old cloud copies alone.
           </Notice>
           <Button
             label="Back up to this account instead"

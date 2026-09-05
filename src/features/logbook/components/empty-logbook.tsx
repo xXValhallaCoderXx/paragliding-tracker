@@ -1,19 +1,11 @@
+import { JournalArt } from '@/components/ui/journal-art';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button, Chip, Disclaimer } from '@/components/ui';
-import { GhostTrack } from '@/features/logbook/components/ghost-track';
 import { emptyLogbookChips } from '@/features/logbook/empty-logbook';
 import { fonts, paper } from '@/ui/theme';
 
-/**
- * The first-flight empty state.
- *
- * Two variants, per design 2b. A pilot who completed setup is greeted by name and told
- * their first entry will fill itself in, because it genuinely will — the wing and the
- * site are already known. A pilot who skipped setup gets the plainer line, because
- * promising pre-filled details we do not have would be a lie, and because the checklist
- * card above is already asking for them.
- */
+/** Illustrated first-flight invitation, personalized with the available setup details. */
 export function EmptyLogbook({
   pilotName = null,
   gliderType = null,
@@ -41,11 +33,11 @@ export function EmptyLogbook({
   const body = !hasSetup
     ? 'You can record right now — the rest can be filled in when you land.'
     : hasSetup && pilotName
-      ? 'Hit record on launch and your first entry writes itself — wing, site and times all filled in for you.'
+      ? 'Tap record before launch and stop after landing. Add a launch name and a few memories when you save.'
       : 'Tap record before you launch and stop after you land. The track and its stats stay on this phone — no account, no signal needed.';
   return (
     <View style={styles.wrap}>
-      <GhostTrack />
+      <JournalArt scene="launch" height={210} />
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.body}>{body}</Text>
       <View style={styles.chips}>
@@ -71,7 +63,7 @@ export function EmptyLogbook({
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: 30, paddingTop: 44, alignItems: 'center' },
+  wrap: { paddingHorizontal: 20, paddingTop: 24, alignItems: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 14 },
   title: {
     fontFamily: fonts.sansBold,

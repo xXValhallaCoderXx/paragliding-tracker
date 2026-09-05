@@ -1,3 +1,4 @@
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 import { useEffect } from 'react';
 import { Animated, Easing } from 'react-native';
 
@@ -19,9 +20,10 @@ export function PulseDot({
   pulse: boolean;
   halo?: boolean;
 }) {
+  const reducedMotion = useReducedMotion();
   const opacity = useStableAnimatedValue(1);
   useEffect(() => {
-    if (!pulse) {
+    if (!pulse || reducedMotion) {
       opacity.setValue(1);
       return;
     }
@@ -43,7 +45,7 @@ export function PulseDot({
     );
     loop.start();
     return () => loop.stop();
-  }, [opacity, pulse]);
+  }, [opacity, pulse, reducedMotion]);
 
   return (
     <Animated.View

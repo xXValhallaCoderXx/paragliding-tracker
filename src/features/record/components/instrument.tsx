@@ -160,12 +160,12 @@ export function InstrumentView({
         </View>
 
         <View className="mt-[24px] gap-[3px] px-[24px]" accessibilityLabel="Capture evidence">
-          <Text className="font-data-medium text-[10.5px] tracking-[0.4px] text-faint">
+          <Text className="font-data-medium text-[10.5px] tracking-[0.4px] text-muted">
             {formatThousands(snapshot.fixCount)} {snapshot.fixCount === 1 ? 'fix' : 'fixes'}
             {' · '}
             {formatAccuracy(snapshot.horizontalAccuracy)}
           </Text>
-          <Text className="font-data-medium text-[10.5px] tracking-[0.4px] text-faint">
+          <Text className="font-data-medium text-[10.5px] tracking-[0.4px] text-muted">
             {'last fix '}
             {captureAgeLabel(snapshot.lastFixReceivedAt, snapshot.capturedAt)}
             {' · callback '}

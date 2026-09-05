@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { JournalArt } from '@/components/ui/journal-art';
+
 import type { SeasonSummary } from '@/features/logbook/logbook';
 import { formatAirtimeShort, formatDistance } from '@/lib/format/flight-format';
 import { fonts, paper } from '@/ui/theme';
@@ -14,6 +16,7 @@ export function SeasonCard({ summary }: { summary: SeasonSummary }) {
       style={styles.card}
       accessibilityRole="summary"
       accessibilityLabel={`Season ${summary.year}: ${formatAirtimeShort(summary.airtimeMs)} airtime, ${summary.flightCount} flights`}>
+      <JournalArt scene="flight" height={165} />
       <View style={styles.headerRow}>
         <Text style={styles.eyebrow}>SEASON {summary.year}</Text>
         <Text style={styles.eyebrowQuiet}>FROM THIS PHONE</Text>
@@ -46,17 +49,17 @@ function SeasonStat({ value, label }: { value: string; label: string }) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: paper.ink,
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingTop: 18,
+    borderRadius: 28,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 14,
   },
-  headerRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  eyebrow: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.4, color: paper.onDarkMuted },
-  eyebrowQuiet: { fontFamily: fonts.monoMedium, fontSize: 9, letterSpacing: 0.8, color: paper.onDarkFaint },
+  headerRow: { marginTop: 20, flexWrap: 'wrap', gap: 6, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  eyebrow: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.4, color: paper.onDark },
+  eyebrowQuiet: { fontFamily: fonts.monoMedium, fontSize: 9, letterSpacing: 0.8, color: paper.onDarkMuted },
   airtimeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginTop: 9 },
   airtime: { fontFamily: fonts.monoSemi, fontSize: 34, lineHeight: 36, letterSpacing: -1.2, color: paper.onDark },
-  airtimeLabel: { fontFamily: fonts.sansMedium, fontSize: 12, color: paper.onDarkMuted, paddingBottom: 4 },
+  airtimeLabel: { fontFamily: fonts.sansMedium, fontSize: 12, color: paper.onDark, paddingBottom: 4 },
   grid: {
     flexDirection: 'row',
     gap: 10,
@@ -67,5 +70,5 @@ const styles = StyleSheet.create({
   },
   stat: { flex: 1 },
   statValue: { fontFamily: fonts.monoSemi, fontSize: 15, color: paper.onDark },
-  statLabel: { fontFamily: fonts.sans, fontSize: 10, color: paper.onDarkFaint, marginTop: 2 },
+  statLabel: { fontFamily: fonts.sans, fontSize: 10, color: paper.onDarkMuted, marginTop: 2 },
 });

@@ -36,8 +36,7 @@ function countWord(count: number): string {
 }
 
 /**
- * Background permission is the one that matters: foreground alone still stops the track
- * the moment the screen locks, which the pilot would only discover after landing.
+ * This recorder requires both foreground and background location access before starting.
  */
 function locationDone(capabilities: RecorderCapabilities): boolean {
   return capabilities.foregroundPermission === 'granted' && capabilities.backgroundPermission === 'granted';
@@ -62,7 +61,7 @@ export function setupChecklist(args: {
       label: locationDone(capabilities) ? 'Location allowed' : 'Allow location',
       detail: locationDone(capabilities)
         ? ''
-        : 'Without it the track stops when the screen locks',
+        : 'Required before this recorder can start',
       done: locationDone(capabilities),
     },
     {
@@ -74,7 +73,7 @@ export function setupChecklist(args: {
     {
       key: 'glider',
       label: profile.gliderType ? 'Glider named' : 'Name your glider',
-      detail: profile.gliderType ? '' : 'Pre-fills every flight you save',
+      detail: profile.gliderType ? '' : 'Used in your IGC exports',
       done: Boolean(profile.gliderType),
     },
   ];

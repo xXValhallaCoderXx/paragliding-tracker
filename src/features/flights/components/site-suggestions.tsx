@@ -94,10 +94,11 @@ export function SiteSuggestions({
     return (
       <View style={[styles.group, styles.closedGroup]}>
         {view.reopen === 'nearby' ? (
-          <LinkButton label="Nearby launches" onPress={onOpen} />
+          <LinkButton label="Nearby launches" disabled={disabled} onPress={onOpen} />
         ) : (
           <LinkButton
             label={locating ? 'Finding you…' : 'Use my current location'}
+            disabled={disabled || locating}
             onPress={onLocate}
           />
         )}
@@ -115,6 +116,8 @@ export function SiteSuggestions({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Close launch suggestions"
+            accessibilityState={{ disabled }}
+            disabled={disabled}
             hitSlop={10}
             onPress={onDismiss}
             style={({ pressed }) => pressed && styles.pressed}>
@@ -186,6 +189,7 @@ function SiteRow({
       accessibilityRole="button"
       accessibilityLabel={detail ? `${site.name}, ${detail}` : site.name}
       accessibilityHint="Sets this flight's site"
+      accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [styles.row, !first && styles.divided, pressed && styles.rowPressed]}>

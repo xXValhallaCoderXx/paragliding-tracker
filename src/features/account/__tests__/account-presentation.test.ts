@@ -97,12 +97,12 @@ describe('backup status', () => {
       '1 deletion still to send.',
     );
     expect(describeSync({ ...IDLE, lastSyncAt: NOW }, NOW).detail).toBe(
-      'Everything on this phone is backed up.',
+      'No eligible flights or deletions are waiting to sync. Raw sensor samples stay on this phone.',
     );
   });
 
   it('says Never rather than an empty value before the first sync', () => {
-    expect(describeSync(IDLE, NOW)).toMatchObject({ label: 'Never', canSyncNow: true });
+    expect(describeSync(IDLE, NOW)).toMatchObject({ label: 'Never', canSyncNow: true, detail: 'Backup has not completed a sync yet.' });
   });
 });
 

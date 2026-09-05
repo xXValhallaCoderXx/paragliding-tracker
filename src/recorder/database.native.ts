@@ -1,3 +1,4 @@
+import { readFlightReplay } from './replay-repository-core';
 import * as SQLite from 'expo-sqlite';
 
 import {
@@ -1097,6 +1098,10 @@ export async function listSessionTrackFixes(sessionId: string): Promise<TrackFix
      ORDER BY source_timestamp, sequence`,
     sessionId,
   );
+}
+
+export async function getFlightReplay(flightId: string) {
+  return readFlightReplay(await openDatabase(), flightId);
 }
 
 export async function listFlights(): Promise<FlightSummary[]> {

@@ -1,16 +1,6 @@
 import type { SyncSnapshot } from '@/cloud/types';
 import type { PilotProfile } from '@/recorder/types';
 import type { Tone } from '@/ui/theme';
-
-
-/**
- * Pure mapping between the stored profile and the form.
- *
- * Kept in a `.ts` module rather than the component so it is covered by jest, whose
- * `testMatch` only picks up `.ts` files.
- */
-
-/** One-line summary of what the IGC header will say, shown under the form. */
 /**
  * One line under the pilot rows summarising what an export will say.
  *
@@ -42,7 +32,9 @@ export interface SyncStatusView {
 
 function pendingDetail(snapshot: SyncSnapshot): string {
   const total = snapshot.pendingFlights + snapshot.pendingDeletions;
-  if (total === 0) return 'Everything on this phone is backed up.';
+  if (total === 0) return snapshot.lastSyncAt === null
+    ? 'Backup has not completed a sync yet.'
+    : 'No eligible flights or deletions are waiting to sync. Raw sensor samples stay on this phone.';
   if (snapshot.pendingFlights === 0) {
     return total === 1 ? '1 deletion still to send.' : `${total} deletions still to send.`;
   }
@@ -83,7 +75,7 @@ export function describeSync(snapshot: SyncSnapshot, now: number): SyncStatusVie
         return {
           label: 'Different account',
           tone: 'warning',
-          detail: "This phone's logbook is already backed up to another account.",
+          detail: "This phone's logbook is linked to another account.",
           canSyncNow: false,
         };
       case 'signed_out':

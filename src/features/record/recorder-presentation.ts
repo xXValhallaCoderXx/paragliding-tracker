@@ -111,7 +111,7 @@ export function readinessRows(snapshot: ReadinessInput): ReadinessRow[] {
     const details: string[] = [];
     if (low) {
       details.push(
-        'The track is saved to the phone continuously, so a flat battery keeps everything recorded up to that point.',
+        'Fixes are saved as callbacks arrive. A flat battery stops capture; unsaved callbacks may be lost.',
       );
     }
     if (optimised) {
@@ -148,7 +148,7 @@ function permissionRow(
         tone: 'danger',
         detail:
           key === 'always'
-            ? 'Without “allow all the time” the track stops the moment the screen locks.'
+            ? 'This recorder requires background location access to start a flight.'
             : 'Precise location is required to record a track.',
         action: 'open_app_settings',
       };
@@ -178,7 +178,7 @@ export function readinessSummary(rows: ReadinessRow[]): ReadinessSummary {
         ? 'Android needs to let this app follow you.'
         : 'Something needs switching on first.',
       body: permissionDenied
-        ? 'Location has to stay on while the screen is off, otherwise the track stops the moment you pocket the phone.'
+        ? 'Review foreground and background location permissions before starting. Phone settings can still interrupt capture.'
         : 'Fix the item marked below, then come back — the recorder checks again on its own.',
     };
   }
@@ -187,14 +187,14 @@ export function readinessSummary(rows: ReadinessRow[]): ReadinessSummary {
       level: 'degraded',
       label: degraded === 1 ? 'ONE THING TO KNOW' : `${numberWord(degraded)} THINGS TO KNOW`,
       title: 'You can still fly this.',
-      body: 'It will record — here is exactly what changes.',
+      body: 'You can try recording with these limitations. Watch capture health after starting.',
     };
   }
   return {
     level: 'ready',
     label: 'ALL GOOD',
     title: 'Ready when you are.',
-    body: 'Location is on, permissions are granted, and the track is saved as it comes in.',
+    body: 'Review the checklist, then start before launch. GPS quality is checked once recording begins.',
   };
 }
 

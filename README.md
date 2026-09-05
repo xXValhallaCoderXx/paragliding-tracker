@@ -1,16 +1,20 @@
 # Flight Log Alpha
 
 An Android-first Expo SDK 57 personal paragliding logbook. It records flights locally, preserves
-raw GPS and pressure evidence, summarizes completed flights, and exports deterministic IGC files.
+raw GPS and pressure evidence, summarizes completed flights, replays saved routes offline, and exports deterministic IGC files.
 
 This is an internal test build. It is not a certified flight recorder and must never be the only
 recorder carried on a flight.
 
 ## What is implemented
 
-- Flight history (logbook), manual recording, and flight-detail screens using stable Stack
-  navigation, restyled after the "field notebook" design; see
+- An illustrated adventure journal across setup, logbook, preflight, detail, pilot page and
+  Settings, with restrained active instruments and recovery screens. See
   [`docs/ui-design-implementation.md`](./docs/ui-design-implementation.md).
+- Offline replay at `/flights/[id]/replay`: fixed route grid, synchronized GPS-altitude chart,
+  timestamped telemetry, Play/Pause, scrubbing, ±10-second seeks and 1×/10×/60× speeds.
+- A native Edit flight modal that preserves site suggestions/attribution, protects unsaved changes
+  and closes only after a successful metadata save.
 - Precise foreground and background location with an Android foreground service.
 - A globally defined TaskManager location callback that writes directly to SQLite.
 - A custom root entry point that registers the location task before Expo Router or any screen code.
@@ -26,13 +30,20 @@ recorder carried on a flight.
 - Optional email one-time-code sign-in and push-only cloud backup of flights and IGC files.
 
 The personal alpha is intentionally narrow: it lists flights recorded on this device, derives a
-small set of trustworthy track statistics, allows optional title/site/notes, and shows no map.
+small set of track statistics, allows optional title/site/notes, and draws offline route grids.
+There is no geographic map or pan/zoom. Replay preserves timing gaps and missing telemetry;
+completed partial flights are labelled.
 There are no imported or manually created flights. Deletion is permanent after confirmation. The
 logbook's season card and the detail screen's one-line insight are computed only from flights
 stored on this phone.
 
-The UI fonts (Archivo, IBM Plex Mono) load at runtime through `expo-font`, so design changes do
-not require a native rebuild.
+The UI fonts (Archivo, IBM Plex Mono) and three locally bundled illustrations work offline. This
+milestone adds no native dependency or schema migration. A development client loads it through
+Metro; a standalone APK needs a new bundled build.
+
+Recording stays available without an account; saved flights are never automatically removed.
+Signing in enables backup but does not prove that files uploaded. Check the pilot page for
+actual sync progress and errors.
 
 Physical reliability is not established by the code or bundle checks. Follow
 [`docs/iteration-1-feasibility.md`](./docs/iteration-1-feasibility.md) and record real-device
@@ -260,6 +271,16 @@ pnpm exec expo export --platform ios --output-dir dist/ios
 The app explicitly supports only Android and iOS. There is no browser build or hosted web app.
 The web-accessible privacy policy and account-deletion page required by the stores are separate
 legal pages opened from the native app; `expo-web-browser` remains for that purpose.
+
+## Current milestone and next work
+
+The illustrated journal and offline replay are implemented. Automated verification and physical
+acceptance are tracked separately in [the delivery record](./docs/journal-replay-verification.md).
+The online dependency check currently reports newer SDK 57 patches; the pinned native TaskManager
+patch requires a coordinated upgrade, outside this UI/replay milestone.
+
+**Postcards are next**, followed by cloud restoration, geographic maps, shareable links and
+friends/community. None of those later features is implemented by this milestone.
 
 ## References
 

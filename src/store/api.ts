@@ -25,6 +25,6 @@ export const api = createApi({
    * `Flight` uses the `LIST` id convention so a metadata edit can invalidate one flight
    * without refetching every other cached entry.
    */
-  tagTypes: ['Flight', 'FlightTrack', 'Profile', 'AppSettings', 'Site'],
+  tagTypes: ['Flight', 'FlightTrack', 'FlightReplay', 'Profile', 'AppSettings', 'Site'],
   endpoints: () => ({}),
 });

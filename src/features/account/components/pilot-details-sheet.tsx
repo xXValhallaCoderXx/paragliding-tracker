@@ -12,6 +12,7 @@ import {
 
 import { Card, Input } from '@/components/ui';
 import { igcHeaderPreview } from '@/features/account/account-identity';
+import { useReducedMotion } from '@/lib/use-reduced-motion';
 import type { PilotProfile, PilotProfilePatch } from '@/recorder/types';
 import { fonts, paper } from '@/ui/theme';
 
@@ -52,6 +53,7 @@ export function PilotDetailsSheet({
   onCancel: () => void;
   onSave: (patch: PilotProfilePatch) => void;
 }) {
+  const reducedMotion = useReducedMotion();
   const [values, setValues] = useState<PilotDetailsValues>(() => valuesFromProfile(profile));
 
   // Re-seed whenever the sheet opens, so a cancelled edit never leaks into the next one.
@@ -78,7 +80,7 @@ export function PilotDetailsSheet({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType={reducedMotion ? 'none' : 'slide'}
       presentationStyle="pageSheet"
       onRequestClose={onCancel}>
       <View style={styles.sheet}>
@@ -142,7 +144,8 @@ export function PilotDetailsSheet({
                 ))}
               </View>
               <Text style={styles.previewNote}>
-                Flights already saved keep the details they were recorded with.
+                New exports use these details, including exports of older flights. Files you
+                have already shared keep their original headers.
               </Text>
             </View>
           </ScrollView>

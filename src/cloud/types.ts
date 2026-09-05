@@ -85,9 +85,7 @@ export interface SyncSnapshot {
   cloudOnlyFlights: number;
   /**
    * `cloud_link.user_id`: the account this device is bound to, or null if it never has
-   * been. Survives sign-out on purpose — it is how the logbook tells a pilot who simply
-   * signed out apart from one who has never had an account, so signing out is not a
-   * capacity cliff.
+   * been. Survives sign-out so the logbook can offer reconnection to an existing backup.
    */
   linkedUserId: string | null;
   lastError: string | null;

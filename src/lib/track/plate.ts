@@ -8,7 +8,7 @@ import type { TrackSegments } from './types';
  * Everything the plate renders, decided here.
  *
  * Jest never collects `.tsx`, so a rule that lives in the component is a rule nothing checks
- * — the same reasoning that put the onboarding flow, the guest capacity and the site policy
+ * — the same reasoning that put the onboarding flow, the backup invitation and the site policy
  * in modules like this one. The component switches on `kind` and reads coordinates; it
  * decides nothing.
  */

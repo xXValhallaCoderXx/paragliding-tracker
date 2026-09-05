@@ -31,12 +31,7 @@ import {
 import { errorMessage } from '@/lib/format/error-message';
 import type { TrackSegments } from '@/lib/track/types';
 import { setupChecklist, type ChecklistKey } from '@/features/logbook/setup-checklist';
-import {
-  countSavedFlights,
-  evaluateGuestCapacity,
-  guestCapacityNotice,
-  oldestRemovableFlight,
-} from '@/features/logbook/guest-capacity';
+import { backupInvitation } from '@/features/logbook/backup-invitation';
 import { buildLogbookLayout, seasonSummary } from '@/features/logbook/logbook';
 import { fonts, paper, TAB_BAR_HEIGHT } from '@/ui/theme';
 
@@ -51,11 +46,7 @@ export default function LogbookScreen() {
   const recorderLifecycle = useRecorderLifecycle();
   const auth = useCloudAuth();
   const sync = useCloudSync();
-  // The saved-flight count at which the pilot dismissed the capacity warning. A count
-  // rather than a flag, so dismissing at 8 does not silence 9; a count rather than a
-  // timestamp, so Date.now() stays out of render. Deliberately not persisted: it should
-  // die with the process, which is why this feature needs no schema change.
-  const [dismissedAtCount, setDismissedAtCount] = useState<number | null>(null);
+  const [backupDismissed, setBackupDismissed] = useState(false);
 
   // The recorder writes flights outside Redux, and recovery can flip a session's status,
   // so these stay skipped until the lifecycle says the database is settled.
@@ -123,15 +114,6 @@ export default function LogbookScreen() {
 
   const layout = useMemo(() => buildLogbookLayout(flights), [flights]);
   const season = useMemo(() => seasonSummary(flights), [flights]);
-  const capacity = useMemo(
-    () =>
-      evaluateGuestCapacity({
-        savedFlights: countSavedFlights(layout),
-        authStatus: auth.status,
-        linkedUserId: sync.linkedUserId,
-      }),
-    [layout, auth.status, sync.linkedUserId],
-  );
   const checklist = useMemo(
     () =>
       profile && capabilities
@@ -143,10 +125,7 @@ export default function LogbookScreen() {
         : null,
     [profile, capabilities, appSettings],
   );
-  const capacityNotice = useMemo(
-    () => guestCapacityNotice(capacity, oldestRemovableFlight(layout)),
-    [capacity, layout],
-  );
+  const invitation = backupInvitation(auth.status, sync.linkedUserId);
 
   const recorderBusy = !recorderLifecycle.ready || recorderLifecycle.recovering;
   const openFlight = layout.open;
@@ -156,12 +135,9 @@ export default function LogbookScreen() {
   const isEmpty = !loading && !error && flights.length === 0;
   // Never while the list is stale: loading and the recovery path both leave `flights`
   // holding whatever was there before, and a count taken from that would be a lie.
-  const showCapacity =
-    capacityNotice !== null &&
-    !loading &&
-    !error &&
-    !recorderLifecycle.recovering &&
-    (!capacityNotice.dismissible || dismissedAtCount !== capacity.saved);
+  const showBackup =
+    invitation !== null && flights.length > 0 && !backupDismissed && !skip && !loading && !error;
+  const pilotFirstName = profile?.pilotName?.trim().split(/\s+/)[0];
 
   return (
     <Screen>
@@ -181,7 +157,12 @@ export default function LogbookScreen() {
           />
         }>
         <View style={styles.header}>
-          <Text style={styles.title}>Logbook</Text>
+          <View style={styles.heading}>
+            <Text style={styles.eyebrow}>YOUR FLIGHT JOURNAL</Text>
+            <Text style={styles.title}>
+              {pilotFirstName ? `${pilotFirstName}’s logbook` : 'Days in the sky'}
+            </Text>
+          </View>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Settings"
@@ -258,33 +239,11 @@ export default function LogbookScreen() {
           </View>
         ) : null}
 
-        {showCapacity && capacityNotice ? (
+        {showBackup && invitation ? (
           <View style={[styles.block, styles.gap]}>
-            <Notice tone={capacityNotice.tone} title={capacityNotice.title}>
-              {capacityNotice.body}
-            </Notice>
-            <Button
-              label={capacityNotice.primaryLabel}
-              variant="primary"
-              onPress={() => router.push('/account')}
-            />
-            {capacityNotice.remove ? (
-              // Navigate rather than delete here. The pilot should see the flight, and
-              // the IGC share button only exists on that screen.
-              <Button
-                label={capacityNotice.remove.label}
-                variant="secondary"
-                onPress={() =>
-                  router.push({
-                    pathname: '/flights/[id]',
-                    params: { id: capacityNotice.remove!.flightId, intent: 'remove' },
-                  })
-                }
-              />
-            ) : null}
-            {capacityNotice.dismissible ? (
-              <LinkButton label="Not now" onPress={() => setDismissedAtCount(capacity.saved)} />
-            ) : null}
+            <Notice tone="info" title={invitation.title}>{invitation.body}</Notice>
+            <Button label={invitation.action} onPress={() => router.push('/account')} />
+            <LinkButton label="Not now" onPress={() => setBackupDismissed(true)} />
           </View>
         ) : null}
 
@@ -359,13 +318,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 6,
+    paddingTop: 20,
+    paddingBottom: 14,
   },
-  gear: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  heading: { flex: 1, gap: 7 },
+  eyebrow: { fontFamily: fonts.monoMedium, fontSize: 10, letterSpacing: 1.4, color: paper.muted },
+  gear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   gearPressed: { opacity: 0.5 },
   gearGlyph: { fontSize: 18, color: paper.muted },
-  title: { fontFamily: fonts.sansBold, fontSize: 15, letterSpacing: -0.1, color: paper.ink },
+  title: { fontFamily: fonts.sansBold, fontSize: 30, letterSpacing: -0.8, color: paper.ink },
   block: { paddingHorizontal: 16, paddingTop: 10 },
   gap: { gap: 10 },
   section: { paddingTop: 10 },

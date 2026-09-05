@@ -89,9 +89,8 @@ async function refreshCounts(): Promise<void> {
   }
   try {
     // Read here as well as in runCycle so the value is available from the moment the
-    // provider subscribes. A guest never completes a cycle, and the logbook uses this to
-    // tell "never had an account" apart from "signed out" — getting it late means a
-    // capacity banner briefly accusing a pilot whose flights are all safely backed up.
+    // provider subscribes. Signed-out users never complete a cycle, and the logbook
+    // needs the link to offer reconnection to an existing backup.
     const link = await getCloudLink();
     publish({ linkedUserId: link.userId });
   } catch {

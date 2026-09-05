@@ -66,7 +66,7 @@ export function FlightHero({
   return (
     <View style={styles.hero}>
       <Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text>
-      {title ? <Text style={styles.title}>{title}</Text> : null}
+      <Text accessibilityRole="header" style={styles.title}>{title || site || 'A day in the sky'}</Text>
       <View style={styles.bigRow}>
         {heroIsDistance ? (
           <>
@@ -118,12 +118,12 @@ export function FlightHero({
 const styles = StyleSheet.create({
   hero: { paddingHorizontal: 22, paddingTop: 10, paddingBottom: 6 },
   eyebrow: { fontFamily: fonts.sansMedium, fontSize: 10, letterSpacing: 1.4, color: paper.muted },
-  title: { fontFamily: fonts.sansSemi, fontSize: 17, lineHeight: 22, color: paper.ink, marginTop: 8 },
+  title: { fontFamily: fonts.sansSemi, fontSize: 30, lineHeight: 37, color: paper.ink, marginTop: 8 },
   bigRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 8 },
   big: {
     fontFamily: fonts.monoSemi,
-    fontSize: 58,
-    lineHeight: 58,
+    fontSize: 44,
+    lineHeight: 50,
     letterSpacing: -2.6,
     color: paper.ink,
     flexShrink: 1,

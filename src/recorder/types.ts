@@ -1,3 +1,4 @@
+import type { FlightReplay } from '../lib/replay/model';
 import type { TrackSegments } from '../lib/track/types';
 
 export type RecorderState =
@@ -272,6 +273,8 @@ export interface FlightRepository {
   listTracks(): Promise<Record<string, TrackSegments>>;
   /** One flight's track, derived and stored on a miss. */
   getTrack(flightId: string): Promise<TrackSegments>;
+  /** Full timestamped GPS data, loaded only by the replay screen. */
+  getReplay(flightId: string): Promise<FlightReplay>;
 }
 
 /**

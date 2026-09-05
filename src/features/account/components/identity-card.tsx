@@ -33,15 +33,15 @@ export function IdentityCard({
       <View style={styles.topRow}>
         <Avatar initials={pilotInitials(profile)} />
         <View style={styles.names}>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text style={styles.name} numberOfLines={2}>
             {identityName(profile)}
           </Text>
           {subtitle ? (
-            <Text style={styles.subtitle} numberOfLines={1}>
+            <Text style={styles.subtitle} numberOfLines={2}>
               {subtitle}
             </Text>
           ) : (
-            <Text style={styles.subtitlePrompt} numberOfLines={1}>
+            <Text style={styles.subtitlePrompt} numberOfLines={2}>
               No glider set
             </Text>
           )}
@@ -79,14 +79,14 @@ const styles = StyleSheet.create({
     backgroundColor: paper.card,
     borderColor: paper.border,
     borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    borderRadius: 22,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     gap: 14,
   },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   names: { flex: 1, gap: 2 },
-  name: { fontFamily: fonts.sansBold, fontSize: 16, letterSpacing: -0.2, color: paper.ink },
+  name: { fontFamily: fonts.sansBold, fontSize: 22, letterSpacing: -0.2, color: paper.ink },
   subtitle: { fontFamily: fonts.sans, fontSize: 12, color: paper.text },
   subtitlePrompt: { fontFamily: fonts.sans, fontSize: 12, color: paper.muted },
   edit: {
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     borderColor: paper.border,
     borderRadius: 999,
     paddingHorizontal: 13,
-    paddingVertical: 6,
+    paddingVertical: 12,
   },
   pressed: { opacity: 0.6 },
   editLabel: { fontFamily: fonts.sansSemi, fontSize: 11.5, color: paper.ink },
