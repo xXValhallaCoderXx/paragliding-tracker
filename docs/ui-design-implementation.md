@@ -24,7 +24,7 @@ before packaging compression and work offline.
 | `/` | Personal journal heading, illustrated local season totals, dated entries with full-width routes, pinned unfinished flight, setup checklist, dismissible backup invitation and Record. No guest flight limit or prompts to remove old flights. |
 | `/record`, preflight | Launch illustration and readiness checklist. Existing blocked/degraded states, permission requests, system settings and Start remain. |
 | `/record`, active/recovery | Solid instrument surfaces, large numbers, capture-health distinctions, hold-to-stop, retry save, Resume and Save Partial. No decorative illustration. |
-| `/flights/[id]` | Title/site/date, route, statistics, personal insight and notes. Replay flight is primary for finished, non-processing flights. Edit flight opens a native modal. IGC, collapsed recording evidence, diagnostics and confirmed deletion remain secondary. |
+| `/flights/[id]` | Title/site/date, route, statistics, personal insight and notes. Replay flight is primary for finished, non-processing flights, with Share postcard immediately below. Edit flight opens a native modal. IGC, collapsed recording evidence, diagnostics and confirmed deletion remain secondary. |
 | `/flights/[id]/replay` | Offline route, moving pilot, start/end markers, GPS-altitude chart, elapsed time/altitude/speed, scrubber, ±10 seconds, Play/Pause and 1×/10×/60×. |
 | `/account` | Illustrated pilot page, identity, glider and local totals above separate backup/auth controls. Sign-in, restoring, unavailable, mismatch, error, sign-out and account deletion states remain. |
 | `/settings` | Grouped notebook rows. Review setup reopens setup; technical version/runtime/schema rows are under App details. |
@@ -45,6 +45,17 @@ Successful saves request sync through the existing flow. The editor does not wri
 Open/processing restrictions on replay, export and deletion remain. Metadata editing retains its
 existing availability. Delete copy describes local removal and queued cloud deletion. Signing in
 is never presented as proof that an upload completed.
+
+## Postcards
+
+The subsequent [postcard increment](./postcard-verification.md) adds a full-screen composer using
+the same three local illustrations. Its mounted preview is captured as a 1080 × 1080 Square or
+1080 × 1920 Story PNG. Controls follow system text size; typography within the fixed composition
+scales with the preview width. Title/caption overflow is ellipsized on the image itself.
+The actual stored route has its own plain panel and preserves proportions and gaps.
+Captions remain temporary and independent of flight notes; optional signatures use a saved pilot
+name. Cancel/Android Back protect a nonempty caption. Sharing preserves the draft without claiming
+the image was posted. This increment adds a native capture dependency and needs a client rebuild.
 
 ## Replay implementation
 

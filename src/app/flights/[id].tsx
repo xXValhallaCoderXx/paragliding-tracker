@@ -15,6 +15,8 @@ import { FlightHero, type DetailStatus, type SavedContext } from '@/features/fli
 import { MetadataSheet } from '@/features/flights/components/metadata-sheet';
 import { siteAttribution } from '@/features/flights/site-picker';
 import { JournalArt } from '@/components/ui/journal-art';
+import { PostcardComposer } from '@/features/postcard/postcard-composer';
+import { canSharePostcard } from '@/features/postcard/presentation';
 import {
   BusyRow,
   Button,
@@ -67,6 +69,7 @@ export default function FlightDetailScreen() {
   // Authentication enables sync; it does not prove a flight has uploaded.
   const signedIn = auth.status === 'signed_in';
   const [editing, setEditing] = useState(false);
+  const [postcardOpen, setPostcardOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; tone: 'good' | 'danger' } | null>(null);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
@@ -218,6 +221,8 @@ export default function FlightDetailScreen() {
             <View style={styles.actions}>
               <Button label="Replay flight" variant="primary" size="xl" disabled={Boolean(busy)}
                 onPress={() => router.push({ pathname: '/flights/[id]/replay', params: { id: flight.id } })} />
+              {canSharePostcard(flight) ? <Button label="Share postcard" size="lg" disabled={Boolean(busy)}
+                onPress={() => setPostcardOpen(true)} /> : null}
             </View>
           ) : null}
 
@@ -255,7 +260,7 @@ export default function FlightDetailScreen() {
               ) : null}
               {metrics?.quality === 'no_track' ? (
                 <Notice tone="danger" title="No usable GPS track">
-                  No valid fixes were recorded, so there is nothing to export for this flight.
+                  No valid fixes were recorded. A postcard can still show your flight details, with the route and GPS statistics marked unavailable.
                 </Notice>
               ) : null}
               {message ? (
@@ -358,6 +363,7 @@ export default function FlightDetailScreen() {
           </View>
         </ScrollView>
       {editing ? <MetadataSheet key={flight.id} flight={flight} onClose={() => setEditing(false)} onSave={saveDetails} /> : null}
+      {postcardOpen ? <PostcardComposer key={flight.id} flightId={flight.id} onClose={() => setPostcardOpen(false)} /> : null}
     </Screen>
   );
 }

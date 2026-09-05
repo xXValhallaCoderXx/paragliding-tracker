@@ -15,6 +15,9 @@ recorder carried on a flight.
   timestamped telemetry, Play/Pause, scrubbing, ±10-second seeks and 1×/10×/60× speeds.
 - A native Edit flight modal that preserves site suggestions/attribution, protects unsaved changes
   and closes only after a successful metadata save.
+- Share postcard beneath Replay: Square and Story PNGs with three local scenes, the saved route,
+  flight statistics, an optional caption and pilot signature. No account or photo-library access
+  is required. See [postcard delivery and device checks](./docs/postcard-verification.md).
 - Precise foreground and background location with an Android foreground service.
 - A globally defined TaskManager location callback that writes directly to SQLite.
 - A custom root entry point that registers the location task before Expo Router or any screen code.
@@ -37,9 +40,10 @@ There are no imported or manually created flights. Deletion is permanent after c
 logbook's season card and the detail screen's one-line insight are computed only from flights
 stored on this phone.
 
-The UI fonts (Archivo, IBM Plex Mono) and three locally bundled illustrations work offline. This
-milestone adds no native dependency or schema migration. A development client loads it through
-Metro; a standalone APK needs a new bundled build.
+The UI fonts (Archivo, IBM Plex Mono) and three locally bundled illustrations work offline.
+Postcard capture adds `react-native-view-shot` 5.1.0 and requires a rebuilt development client;
+there is no schema migration. Subsequent postcard UI edits load through Metro. A standalone APK
+needs a new bundled build.
 
 Recording stays available without an account; saved flights are never automatically removed.
 Signing in enables backup but does not prove that files uploaded. Check the pilot page for

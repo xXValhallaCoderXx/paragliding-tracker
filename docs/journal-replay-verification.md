@@ -105,8 +105,8 @@ flight's replay. Synthetic coordinates are not flight evidence.
 
 ## Backlog order
 
-1. **Shareable flight postcards:** next product increment, using real routes/statistics,
-   explicit sharing, and truthful partial/gap labels.
+1. **Shareable flight postcards:** implemented in the subsequent increment; see
+   [delivery record and remaining device checks](./postcard-verification.md).
 2. **Cloud restoration:** retrieve cloud-only flights on a new device. Existing push-only
    backup, metadata merge and cloud-only counts do not implement restoration.
 3. **Geographic maps:** provider, offline storage and licensing decisions. The current grid

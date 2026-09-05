@@ -30,6 +30,7 @@ jest.mock('@/components/ui', () => ({
   Screen: ({ children }: { children: React.ReactNode }) => children,
 }));
 jest.mock('@/components/ui/journal-art', () => ({ JournalArt: () => null }));
+jest.mock('@/features/postcard/postcard-composer', () => ({ PostcardComposer: () => null }));
 jest.mock('../components/evidence', () => ({ EvidenceBlock: jest.fn(() => null) }));
 jest.mock('../components/hero', () => ({ FlightHero: () => null }));
 jest.mock('../components/metadata-sheet', () => ({ MetadataSheet: jest.fn(() => null) }));
@@ -75,6 +76,7 @@ it.each<Partial<FlightDetail>>([
 ])('keeps replay, export and deletion unavailable for unfinished details: %o', async (overrides) => {
   await render(overrides);
   expect(buttons().some((button) => button.label === 'Replay flight')).toBe(false);
+  expect(buttons().some((button) => button.label === 'Share postcard')).toBe(false);
   expect(buttons().find((button) => button.accessibilityHint?.includes('unsigned IGC file'))!.disabled).toBe(true);
   expect(buttons().find((button) => /delete/i.test(button.label))!.disabled).toBe(true);
   expect(jest.mocked(EvidenceBlock).mock.calls.at(-1)![0].exportDisabled).toBe(true);
@@ -85,6 +87,7 @@ it.each(['completed', 'partial'] as const)('opens replay for a %s flight', async
   const replay = buttons().find((button) => button.label === 'Replay flight')!;
   expect(replay.variant).toBe('primary');
   expect(replay.disabled).toBe(false);
+  expect(buttons().findIndex((button) => button.label === 'Share postcard')).toBe(buttons().indexOf(replay) + 1);
   replay.onPress();
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/flights/[id]/replay', params: { id: 'flight-123' } });
 });
