@@ -6,8 +6,7 @@ import { MetadataSheet } from '../components/metadata-sheet';
 import type { FlightDetail, FlightMetadataPatch } from '@/recorder/types';
 import { useGetFlightQuery, useUpdateFlightMutation } from '@/store/endpoints';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- resolve the renderer bundled with jest-expo
-const { create, act } = require(require.resolve('react-test-renderer', { paths: [require.resolve('jest-expo/package.json')] }));
+import { create, act } from '../../../../tests/support/renderer';
 const mockPush = jest.fn();
 const mockRequestSync = jest.fn();
 jest.mock('expo-router', () => ({

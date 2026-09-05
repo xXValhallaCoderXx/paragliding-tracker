@@ -1,5 +1,4 @@
 import { File, Directory } from 'expo-file-system';
-import { Platform } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import { captureRef, releaseCapture } from 'react-native-view-shot';
 import { cleanupPostcards, pngDimensions, postcardExportAdapter } from '../export-adapter';
@@ -62,7 +61,7 @@ it('cleans expired owned files without removing recent or unrelated ones', async
   mockFiles.set('file:///cache/postcards/other.png', header(1, 1));
   mockFiles.set('file:///cache/recorder-export.png', header(1, 1));
   await cleanupPostcards();
-  expect(mockFiles.has(expired)).toBe(false); expect(mockFiles.has(recent)).toBe(true); expect(mockFiles.size).toBe(3);
+  expect(mockFiles.has(expired)).toBe(false); expect(mockFiles.has(recent)).toBe(true); expect([...mockFiles.keys()].sort()).toEqual([recent, 'file:///cache/postcards/other.png', 'file:///cache/recorder-export.png'].sort());
 });
 it('uses the native capture API and PNG sharing options without permissions', async () => {
   const port = postcardExportAdapter({ current: null }, 'story');
@@ -71,5 +70,4 @@ it('uses the native capture API and PNG sharing options without permissions', as
   port.release('/tmp/original.png'); expect(releaseCapture).toHaveBeenCalledWith('file:///tmp/original.png');
   await port.share('file:///cache/card.png');
   expect(Sharing.shareAsync).toHaveBeenCalledWith('file:///cache/card.png', { mimeType: 'image/png', UTI: 'public.png', dialogTitle: 'Share flight postcard' });
-  expect(Platform.OS).toBeDefined();
 });

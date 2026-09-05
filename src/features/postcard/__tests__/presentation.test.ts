@@ -1,11 +1,12 @@
 import type { FlightSummary, PilotProfile } from '@/recorder/types';
+import { flight as makeFlight, metrics } from '../../../../tests/support/fixtures';
 import { canSharePostcard, initialPostcardDraft, postcardCaption, postcardPresentation, postcardSource } from '../presentation';
 
-export const flight = {
+const flight = makeFlight({
   status: 'completed', sessionStatus: 'completed', startedAt: Date.UTC(2026, 8, 4, 20), endedAt: Date.UTC(2026, 8, 4, 21),
   timezoneOffsetMinutes: -480, title: 'Ridge day', site: 'Launch', siteSource: 'osm', notes: 'Private flight notes',
-  metrics: { quality: 'healthy', durationMs: 3_600_000, fixCount: 100, trackDistanceMetres: 12345, maxGpsAltitude: 2345 },
-} as FlightSummary;
+  metrics: metrics({ durationMs: 3_600_000, fixCount: 100, trackDistanceMetres: 12345, maxGpsAltitude: 2345 }),
+});
 const track = [[46, 8, 46.01, 8.02], [46.03, 8.02, 46.04, 8.05]];
 
 it.each([
@@ -57,7 +58,6 @@ it('isolates captions and snapshots from flight notes and later mutations', () =
   expect(source.segments[0][0]).toBe(46);
   expect(source).not.toHaveProperty('notes');
   expect(postcardPresentation(source, { ...draft, caption: 'Lovely sky' }).caption).toBe('Lovely sky');
-  expect(flight.notes).toBe('Private flight notes');
 });
 it('omits unknown pilot details and permits opting out of a saved name', () => {
   const anonymous = postcardSource(flight, []);

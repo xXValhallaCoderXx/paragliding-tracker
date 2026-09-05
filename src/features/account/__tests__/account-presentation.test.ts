@@ -1,41 +1,10 @@
 import type { SyncSnapshot } from '@/cloud/types';
-import type { PilotProfile } from '@/recorder/types';
 
 import {
   cloudOnlySummary,
   describeSync,
-  igcHeaderSummary,
   relativeSyncTime,
 } from '../account-presentation';
-
-const EMPTY: PilotProfile = {
-  pilotName: null,
-  gliderType: null,
-  gliderId: null,
-  registrationId: null,
-  updatedAt: 0,
-  pushedUpdatedAt: null,
-};
-
-const FILLED: PilotProfile = {
-  ...EMPTY,
-  pilotName: 'Renate Gouveia',
-  gliderType: 'Ozone Rush 6',
-  updatedAt: 1_760_000_000_000,
-};
-
-describe('IGC header summary', () => {
-  it('names the placeholder that ships today when nothing is filled in', () => {
-    expect(igcHeaderSummary(EMPTY)).toContain('UNSPECIFIED');
-  });
-
-  it('falls back per field rather than hiding the whole line', () => {
-    expect(igcHeaderSummary(FILLED)).toBe('IGC files will record Renate Gouveia flying Ozone Rush 6.');
-    expect(igcHeaderSummary({ ...EMPTY, pilotName: 'Renate' })).toBe(
-      'IGC files will record Renate flying PARAGLIDER.',
-    );
-  });
-});
 
 const IDLE: SyncSnapshot = {
   phase: 'idle',

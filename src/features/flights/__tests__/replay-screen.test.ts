@@ -4,8 +4,7 @@ import { useGetFlightReplayQuery } from '@/store/endpoints';
 import ReplayScreen from '@/app/flights/[id]/replay';
 import { ReplayPlayer } from '../replay/replay-player';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- resolve the renderer bundled with jest-expo
-const { create, act } = require(require.resolve('react-test-renderer', { paths: [require.resolve('jest-expo/package.json')] }));
+import { create, act } from '../../../../tests/support/renderer';
 const mockDismissTo = jest.fn();
 const mockRouter = { dismissTo: mockDismissTo };
 const mockQueryRelease = jest.fn();

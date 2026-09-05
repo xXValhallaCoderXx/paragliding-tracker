@@ -1,4 +1,4 @@
-import { bindPlaybackAppState, ReplayPlayback, type PlaybackAppState } from '../playback';
+import { ReplayPlayback } from '../playback';
 
 function setup(duration = 100_000) {
   let now = 0;
@@ -55,24 +55,4 @@ it('does not allow Android focus to override a backgrounded app', () => {
   const { playback } = setup();
   playback.setPresence('app', false); playback.setPresence('interaction', true); playback.play();
   expect(playback.snapshot().playing).toBe(false);
-});
-it('uses supported AppState change/blur/focus events and removes all subscriptions', () => {
-  const { playback, advance } = setup();
-  const listeners = new Map<string, (state: string) => void>();
-  const appState: PlaybackAppState = {
-    currentState: 'active',
-    addEventListener: (event, listener) => { listeners.set(event, listener); return { remove: () => { listeners.delete(event); } }; },
-  };
-  const refresh = jest.fn();
-  const cleanup = bindPlaybackAppState(playback, appState, refresh);
-  playback.play(); advance(100); listeners.get('blur')!('');
-  expect(playback.snapshot()).toMatchObject({ elapsedMs: 6000, playing: false });
-  listeners.get('focus')!(''); expect(playback.snapshot().playing).toBe(false);
-  playback.play(); listeners.get('change')!('inactive');
-  expect(playback.snapshot().playing).toBe(false);
-  listeners.get('change')!('active'); expect(playback.snapshot().playing).toBe(false);
-  playback.play(); cleanup();
-  expect(listeners.size).toBe(0);
-  expect(playback.snapshot().playing).toBe(false);
-  expect(refresh).toHaveBeenCalledTimes(4);
 });

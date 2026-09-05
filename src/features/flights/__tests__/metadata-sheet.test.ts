@@ -6,9 +6,7 @@ import { MetadataForm } from '../components/metadata-form';
 import { MetadataSheet } from '../components/metadata-sheet';
 import { flightPatch, hasFlightEdits } from '../metadata-editor';
 
-// Use the renderer already installed by jest-expo, without adding a runtime dependency.
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- resolve the renderer bundled with jest-expo
-const { create, act } = require(require.resolve('react-test-renderer', { paths: [require.resolve('jest-expo/package.json')] }));
+import { create, act } from '../../../../tests/support/renderer';
 type Rendered = { root: { findByType: (type: unknown) => { props: { onRequestClose: () => void } } }; update: (element: React.ReactElement) => void; unmount: () => void };
 jest.mock('@/components/ui', () => ({
   Button: jest.fn(() => null), Notice: jest.fn(() => null),

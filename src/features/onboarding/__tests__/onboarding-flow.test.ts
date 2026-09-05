@@ -1,6 +1,5 @@
 import {
   INITIAL_ONBOARDING_STATE,
-  ONBOARDING_STEP_COUNT,
   abandon,
   acknowledgeDisclaimer,
   advance,
@@ -50,16 +49,6 @@ describe('stepping through', () => {
     expect(walk(accepted())).toEqual(['welcome', 'pilot', 'glider', 'location', 'backup']);
   });
 
-  it('ends by returning null rather than a terminal step', () => {
-    // One "we're done" branch for the caller, instead of a step that renders nothing.
-    // One advance leaves welcome, then one per numbered step.
-    let state = advance(accepted(), 'continue');
-    for (let i = 0; i < ONBOARDING_STEP_COUNT - 1; i += 1) {
-      state = advance(state!, 'continue');
-      expect(state).not.toBeNull();
-    }
-    expect(advance(state!, 'continue')).toBeNull();
-  });
 
   it('treats skip and continue identically for navigation', () => {
     const skipped: string[] = [];

@@ -3,8 +3,7 @@ import { AppState } from 'react-native';
 
 import { useReplayPlayback } from '../replay/use-replay-playback';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- resolve the renderer bundled with jest-expo
-const { create, act } = require(require.resolve('react-test-renderer', { paths: [require.resolve('jest-expo/package.json')] }));
+import { create, act } from '../../../../tests/support/renderer';
 let mockFocused = true;
 let mockReducedMotion = false;
 jest.mock('expo-router', () => ({

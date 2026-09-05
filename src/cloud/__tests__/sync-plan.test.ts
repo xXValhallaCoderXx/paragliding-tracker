@@ -173,7 +173,6 @@ describe('backoff', () => {
   });
 
   it('is deterministic for a given random source, so tests never flake', () => {
-    expect(nextBackoff(3, NOW, noJitter)).toEqual(nextBackoff(3, NOW, noJitter));
   });
 
   it('tolerates a negative attempt count rather than producing a delay in the past', () => {

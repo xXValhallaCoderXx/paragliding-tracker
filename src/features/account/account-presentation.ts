@@ -1,23 +1,5 @@
 import type { SyncSnapshot } from '@/cloud/types';
-import type { PilotProfile } from '@/recorder/types';
 import type { Tone } from '@/ui/theme';
-/**
- * One line under the pilot rows summarising what an export will say.
- *
- * Deliberately mentions only the fields that reach the file. The registration ID is kept
- * for the pilot's own reference and is never written to an IGC header — there is no
- * header that means "national licence number", and `HFCIDCOMPETITIONID` means something
- * else entirely.
- */
-export function igcHeaderSummary(profile: PilotProfile): string {
-  if (!profile.pilotName && !profile.gliderType) {
-    return 'IGC files record the pilot as UNSPECIFIED until you fill this in.';
-  }
-  const pilot = profile.pilotName ?? 'UNSPECIFIED';
-  const glider = profile.gliderType ?? 'PARAGLIDER';
-  return `IGC files will record ${pilot} flying ${glider}.`;
-}
-
 // ---------------------------------------------------------------------------
 // Backup status
 // ---------------------------------------------------------------------------

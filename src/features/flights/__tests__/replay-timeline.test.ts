@@ -3,8 +3,7 @@ import { StyleSheet, View, type ViewProps } from 'react-native';
 
 import { ReplayTimeline } from '../replay/replay-timeline';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- resolve the renderer bundled with jest-expo
-const { create, act } = require(require.resolve('react-test-renderer', { paths: [require.resolve('jest-expo/package.json')] }));
+import { create, act } from '../../../../tests/support/renderer';
 type Rendered = {
   root: { findAllByType: (type: unknown) => { props: ViewProps }[] };
   unmount: () => void;

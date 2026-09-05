@@ -4,43 +4,9 @@ import {
   trackPlateState,
 } from '../track-presentation';
 import { buildTrackPlate } from '@/lib/track/plate';
-import type { FlightMetricsRecord, FlightSummary } from '@/recorder/types';
+import { flight, metrics } from '../../../../tests/support/fixtures';
 
 const TRACK = [[46.5, 11.5, 46.51, 11.52, 46.52, 11.55]];
-
-function metrics(overrides: Partial<FlightMetricsRecord> = {}): FlightMetricsRecord {
-  return {
-    flightId: 'f1',
-    algorithmVersion: 1,
-    durationMs: 3_600_000,
-    trackDistanceMetres: 52_400,
-    minGpsAltitude: 400,
-    maxGpsAltitude: 2_410,
-    maxGroundSpeed: 14,
-    fixCount: 11_486,
-    medianSourceGapMs: 1_000,
-    p95SourceGapMs: 1_000,
-    maxSourceGapMs: 1_000,
-    quality: 'healthy',
-    computedAt: 0,
-    ...overrides,
-  };
-}
-
-function flight(overrides: Partial<FlightSummary> = {}): FlightSummary {
-  return {
-    id: 'f1',
-    recordingSessionId: 's1',
-    status: 'completed',
-    startedAt: Date.UTC(2026, 7, 16, 6, 42),
-    endedAt: Date.UTC(2026, 7, 16, 9, 54),
-    // Negative for east of UTC: the field follows Date#getTimezoneOffset, which counts
-    // minutes *behind* UTC, so Jakarta at UTC+7 is -420.
-    timezoneOffsetMinutes: -420,
-    metrics: metrics(),
-    ...overrides,
-  } as FlightSummary;
-}
 
 describe('trackPlateState', () => {
   it('is ready for a finished flight with a shape', () => {

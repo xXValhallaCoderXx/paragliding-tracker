@@ -1,3 +1,4 @@
+import { flight as makeFlight, metrics as makeMetrics } from '../../../../tests/support/fixtures';
 import type { FlightMetricsRecord, FlightSummary } from '@/recorder/types';
 
 import {
@@ -7,48 +8,18 @@ import {
   seasonSummary,
 } from '../logbook';
 
-const UTC_PLUS_7 = -420;
 const HOUR = 3_600_000;
 
-function metrics(overrides: Partial<FlightMetricsRecord> = {}): FlightMetricsRecord {
-  return {
-    flightId: 'f',
-    algorithmVersion: 1,
-    durationMs: HOUR,
-    trackDistanceMetres: 10_000,
-    minGpsAltitude: 400,
-    maxGpsAltitude: 1_200,
-    maxGroundSpeed: 12,
-    fixCount: 3_600,
-    medianSourceGapMs: 1_000,
-    p95SourceGapMs: 1_000,
-    maxSourceGapMs: 2_000,
-    quality: 'healthy',
-    computedAt: 0,
-    ...overrides,
-  };
-}
-
+const metrics = (overrides: Partial<FlightMetricsRecord> = {}) => makeMetrics({
+  flightId: 'f', trackDistanceMetres: 10_000, maxGpsAltitude: 1200, maxGroundSpeed: 12,
+  fixCount: 3600, maxSourceGapMs: 2000, ...overrides,
+});
 function flight(overrides: Partial<FlightSummary> & { id: string }): FlightSummary {
   const startedAt = overrides.startedAt ?? Date.UTC(2026, 7, 16, 6, 42);
-  return {
-    recordingSessionId: `session-${overrides.id}`,
-    status: 'completed',
-    startedAt,
-    endedAt: startedAt + HOUR,
-    timezoneOffsetMinutes: UTC_PLUS_7,
-    title: null,
-    site: null,
-    notes: null,
-    takeoffLatitude: null,
-    takeoffLongitude: null,
-    siteSource: null,
-    createdAt: startedAt,
-    updatedAt: startedAt,
-    sessionStatus: 'completed',
-    metrics: metrics({ flightId: overrides.id }),
-    ...overrides,
-  };
+  return makeFlight({
+    recordingSessionId: `session-${overrides.id}`, startedAt, endedAt: startedAt + HOUR,
+    createdAt: startedAt, updatedAt: startedAt, metrics: metrics({ flightId: overrides.id }), ...overrides,
+  });
 }
 
 describe('buildLogbookLayout', () => {

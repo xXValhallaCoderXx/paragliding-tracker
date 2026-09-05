@@ -3,10 +3,7 @@ import { AccessibilityInfo } from 'react-native';
 
 import { useReducedMotion } from '../use-reduced-motion';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- use the renderer installed by jest-expo
-const { create, act } = require(require.resolve('react-test-renderer', {
-  paths: [require.resolve('jest-expo/package.json')],
-}));
+import { create, act } from '../../../tests/support/renderer';
 
 let rendered: { unmount: () => void } | undefined;
 let current: boolean;

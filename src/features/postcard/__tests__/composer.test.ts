@@ -10,8 +10,7 @@ import { PostcardComposer, PostcardEditor } from '../postcard-composer';
 import type { PostcardExportAdapter } from '../export';
 import type { PostcardSource } from '../presentation';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- use the renderer bundled with jest-expo
-const { create, act } = require(require.resolve('react-test-renderer', { paths: [require.resolve('jest-expo/package.json')] }));
+import { create, act } from '../../../../tests/support/renderer';
 type Node = { props: { accessibilityLabel?: string; onPress: () => void; onRequestClose: () => void; onChangeText: (text: string) => void; onValueChange: (value: boolean) => void; editable: boolean } };
 type Rendered = { root: { findByType: (type: unknown) => Node; findAll: (predicate: (node: Node) => boolean) => Node[] }; unmount: () => void; update: (element: React.ReactElement) => void };
 jest.mock('@/components/ui', () => ({
@@ -56,8 +55,11 @@ afterEach(async () => { if (rendered) await act(async () => rendered.unmount());
 
 it('waits for fonts, illustration, layout and the committed composition', async () => {
   const fonts = deferred<void>(); jest.mocked(loadPostcardFonts).mockReturnValue(fonts.promise);
-  await mount(); await ready();
+  await mount();
   expect(button('Share image').disabled).toBe(true);
+  await act(async () => card().onLayout());
+  expect(button('Share image').disabled).toBe(true);
+  await act(async () => card().onImageLoad());
   await act(async () => fonts.resolve());
   expect(button('Share image').disabled).toBe(true);
   await act(async () => jest.advanceTimersByTime(100));
@@ -67,11 +69,22 @@ it('requires the new image and layout after switching format or scene', async ()
   await mount(); await ready();
   await act(async () => choose('Story'));
   expect(button('Share image').disabled).toBe(true);
-  await ready(); expect(card().draft.format).toBe('story');
+  await act(async () => card().onImageLoad());
+  await act(async () => jest.advanceTimersByTime(100));
+  expect(button('Share image').disabled).toBe(true);
+  await act(async () => card().onLayout());
+  expect(button('Share image').disabled).toBe(true);
+  await act(async () => jest.advanceTimersByTime(100));
+  expect(card().draft.format).toBe('story');
   expect(button('Share image').disabled).toBe(false);
   await act(async () => choose('Landing'));
   expect(button('Share image').disabled).toBe(true);
-  await ready(); expect(button('Share image').disabled).toBe(false);
+  await act(async () => card().onLayout());
+  await act(async () => jest.advanceTimersByTime(100));
+  expect(button('Share image').disabled).toBe(true);
+  await act(async () => card().onImageLoad());
+  await act(async () => jest.advanceTimersByTime(100));
+  expect(button('Share image').disabled).toBe(false);
 });
 it('ignores late image failures and loads from an earlier scene', async () => {
   await mount(); await ready(); const previous = card();
@@ -113,6 +126,7 @@ it('abandons preparation when closed and releases the capture', async () => {
   await act(async () => button('Cancel').onPress());
   await act(async () => capture.resolve('/tmp/image.png'));
   expect(onClose).toHaveBeenCalledTimes(1); expect(port.share).not.toHaveBeenCalled();
+  expect(port.release).toHaveBeenCalledWith('/tmp/image.png');
 });
 it('requires confirmation for a caption, including whitespace, and never saves it to a flight', async () => {
   await mount(); await act(async () => rendered.root.findByType(TextInput).props.onChangeText(' '));
@@ -165,5 +179,9 @@ it.each(['flight', 'track'])('offers Retry for a %s read failure', async (kind) 
   if (kind === 'track') jest.mocked(useGetFlightTrackQuery).mockReturnValue({ error: { message: 'track failed' }, refetch: jest.fn() } as unknown as ReturnType<typeof useGetFlightTrackQuery>);
   await act(async () => { rendered = create(React.createElement(PostcardComposer, { flightId: 'f', onClose })); });
   expect(PostcardCard).not.toHaveBeenCalled();
-  button('Retry').onPress(); expect(useGetFlightQuery('f').refetch).toHaveBeenCalled();
+  const flightRefetch = jest.mocked(useGetFlightQuery).mock.results.at(-1)!.value.refetch;
+  const trackRefetch = jest.mocked(useGetFlightTrackQuery).mock.results.at(-1)!.value.refetch;
+  await act(async () => button('Retry').onPress());
+  expect(flightRefetch).toHaveBeenCalledTimes(1);
+  expect(trackRefetch).toHaveBeenCalledTimes(1);
 });

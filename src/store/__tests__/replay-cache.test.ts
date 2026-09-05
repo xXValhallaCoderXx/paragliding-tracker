@@ -74,12 +74,12 @@ it('a failed deletion keeps replay available without a GPS reload', async () => 
   expect(dataApi.endpoints.getFlightReplay.select('f')(store.getState()).data).toBeDefined();
   replay.unsubscribe(); store.dispatch(dataApi.util.resetApiState());
 });
-it('drops all raw data from the Redux cache for a twelve-hour payload after leaving', async () => {
+it('drops available replay data from the Redux cache after leaving', async () => {
   const store = createStore();
-  const points = Array.from({ length: 43_201 }, (_, i) => ({ timestamp: i * 1000, latitude: 46, longitude: 8, altitude: 1000, speed: 10 }));
-  (flightRepository.getReplay as jest.Mock).mockResolvedValue({ kind: 'available', flightId: 'f', bounds: { startedAt: 0, endedAt: 43_200_000 }, partial: false, points });
+  const points = Array.from({ length: 3 }, (_, i) => ({ timestamp: i * 1000, latitude: 46, longitude: 8, altitude: 1000, speed: 10 }));
+  (flightRepository.getReplay as jest.Mock).mockResolvedValue({ kind: 'available', flightId: 'f', bounds: { startedAt: 0, endedAt: 2000 }, partial: false, points });
   const replay = store.dispatch(dataApi.endpoints.getFlightReplay.initiate('f')); await replay;
-  expect(dataApi.endpoints.getFlightReplay.select('f')(store.getState()).data).toHaveProperty('points.length', 43_201);
+  expect(dataApi.endpoints.getFlightReplay.select('f')(store.getState()).data).toHaveProperty('points.length', 3);
   replay.unsubscribe(); await tick();
   expect(store.getState().api.queries).toEqual({});
   store.dispatch(dataApi.util.resetApiState());

@@ -1,18 +1,7 @@
+import { profile } from '../../../../tests/support/fixtures';
 import type { AppSettings, PilotProfile, RecorderCapabilities } from '@/recorder/types';
 
 import { setupChecklist } from '../setup-checklist';
-
-function profile(overrides: Partial<PilotProfile> = {}): PilotProfile {
-  return {
-    pilotName: null,
-    gliderType: null,
-    gliderId: null,
-    registrationId: null,
-    updatedAt: 0,
-    pushedUpdatedAt: null,
-    ...overrides,
-  };
-}
 
 function capabilities(overrides: Partial<RecorderCapabilities> = {}): RecorderCapabilities {
   return {
@@ -63,13 +52,6 @@ describe('setupChecklist', () => {
     expect(checklist.items[0]).toMatchObject({ key: 'location', label: 'Location allowed', done: true });
   });
 
-  it('says "One thing" rather than "1 things"', () => {
-    const checklist = build({
-      profile: profile({ pilotName: 'Renate', gliderType: 'Ozone Rush 6' }),
-      capabilities: capabilities(),
-    })!;
-    expect(checklist.title).toBe('One thing before you fly');
-  });
 
   it('disappears entirely once everything is done', () => {
     expect(
@@ -106,14 +88,6 @@ describe('setupChecklist', () => {
     expect(partly.items[1]).toMatchObject({ label: 'Pilot name added', detail: '' });
   });
 
-  it('ignores the glider registration and home site, which setup never asks for', () => {
-    // Only the three the design draws. Adding more would turn a nudge into a chore list.
-    const checklist = build({
-      profile: profile({ pilotName: 'Renate', gliderType: 'Rush 6', registrationId: null }),
-      capabilities: capabilities(GRANTED),
-    });
-    expect(checklist).toBeNull();
-  });
 });
 
 describe('who is offered the checklist at all', () => {

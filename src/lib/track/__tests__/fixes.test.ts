@@ -21,13 +21,14 @@ describe('isUsableCoordinateFix', () => {
     expect(isUsableCoordinateFix(fix({ latitude: 91 }))).toBe(false);
     expect(isUsableCoordinateFix(fix({ latitude: -91 }))).toBe(false);
     expect(isUsableCoordinateFix(fix({ longitude: 181 }))).toBe(false);
+    expect(isUsableCoordinateFix(fix({ longitude: -181 }))).toBe(false);
     expect(isUsableCoordinateFix(fix({ latitude: Number.NaN }))).toBe(false);
     expect(isUsableCoordinateFix(fix({ longitude: Number.POSITIVE_INFINITY }))).toBe(false);
   });
 
   it('rejects a fix with no usable ordering', () => {
     expect(isUsableCoordinateFix(fix({ sourceTimestamp: Number.NaN }))).toBe(false);
-    expect(isUsableCoordinateFix(fix({ sequence: Number.NaN }))).toBe(false);
+    expect(isUsableCoordinateFix(fix({ sequence: Number.POSITIVE_INFINITY }))).toBe(false);
   });
 
   it('rejects mock locations', () => {

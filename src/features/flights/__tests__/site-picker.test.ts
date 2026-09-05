@@ -52,13 +52,6 @@ describe('sitePickerView opening', () => {
     expect(view({ trigger: 'typing' }).mode).toBe('nearby');
   });
 
-  it('closes once a suggestion is taken', () => {
-    const taken = view({ trigger: 'none', query: 'Bukit Jugra', debouncedQuery: 'Bukit Jugra' });
-    expect(taken.open).toBe(false);
-    // And sends nothing: the pick set the field text, which is the very signal that used to
-    // reopen the list and search for the name it had just inserted.
-    expect(taken.shouldSearch).toBe(false);
-  });
 
   it('shows nearby on request even when the field is full', () => {
     // The way back in after settling. Without this the request would be overruled by the

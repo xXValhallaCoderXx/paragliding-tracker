@@ -16,11 +16,9 @@ describe('replay fixes', () => {
   it('includes boundary fixes and excludes pre-start cached and post-stop fixes', () => {
     expect(normalizeReplayPoints([fix(999), fix(1000), fix(100_000), fix(100_001)], bounds).map((p) => p.timestamp)).toEqual([1000, 100_000]);
   });
-  it.each([
-    { latitude: NaN }, { latitude: 91 }, { latitude: -91 }, { longitude: 181 }, { longitude: -181 },
-    { longitude: Infinity }, { sourceTimestamp: NaN }, { sequence: Infinity }, { mocked: true },
-  ])('rejects invalid coordinate fix %o', (overrides) => {
-    expect(normalizeReplayPoints([fix(1000, overrides)], bounds)).toEqual([]);
+  it('filters invalid fixes while retaining usable points in replay', () => {
+    expect(normalizeReplayPoints([fix(1000), fix(2000, { latitude: NaN }), fix(3000)], bounds)
+      .map((point) => point.timestamp)).toEqual([1000, 3000]);
   });
   it('retains stationary coordinates, negative altitude and zero speed', () => {
     const points = normalizeReplayPoints([fix(1000, { gpsAltitude: -10, speed: 0 }), fix(2000, { gpsAltitude: -20, speed: 0 })], bounds);

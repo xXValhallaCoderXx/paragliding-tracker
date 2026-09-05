@@ -1,8 +1,7 @@
 import React from 'react';
 import { SiteSuggestions } from '../components/site-suggestions';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- resolve the renderer bundled with jest-expo
-const { create, act } = require(require.resolve('react-test-renderer', { paths: [require.resolve('jest-expo/package.json')] }));
+import { create, act } from '../../../../tests/support/renderer';
 jest.mock('@reduxjs/toolkit/query', () => ({ skipToken: Symbol('skip') }));
 jest.mock('@/components/ui', () => ({
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- use the native button under test without loading unrelated UI
