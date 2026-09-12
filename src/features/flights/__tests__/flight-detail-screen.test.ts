@@ -35,6 +35,7 @@ jest.mock('../components/hero', () => ({ FlightHero: () => null }));
 jest.mock('../components/metadata-sheet', () => ({ MetadataSheet: jest.fn(() => null) }));
 jest.mock('../components/stat-grid', () => ({ StatGrid: () => null }));
 jest.mock('../components/track-plate', () => ({ TrackPlate: () => null }));
+jest.mock('../components/flight-map-preview', () => ({ FlightMapPreview: () => null }));
 
 const flight = {
   id: 'flight-123', recordingSessionId: 'session-123', status: 'completed', sessionStatus: 'completed',

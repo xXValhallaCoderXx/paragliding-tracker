@@ -54,7 +54,8 @@
       ],
       "expo-sqlite",
       "expo-sharing",
-      "expo-secure-store"
+      "expo-secure-store",
+      "@rnmapbox/maps"
     ],
     "experiments": {
       "typedRoutes": true,

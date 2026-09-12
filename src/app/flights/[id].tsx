@@ -45,7 +45,7 @@ import {
 import { errorMessage } from '@/lib/format/error-message';
 import { flightInsight, flightInsightText, isFlightProcessing } from '@/features/logbook/logbook';
 import { StatGrid } from '@/features/flights/components/stat-grid';
-import { TrackPlate } from '@/features/flights/components/track-plate';
+import { FlightMapPreview } from '@/features/flights/components/flight-map-preview';
 import {
   trackPlateAccessibilityLabel,
   trackPlateLabels,
@@ -207,7 +207,7 @@ export default function FlightDetailScreen() {
 
           <FlightHero flight={flight} status={status} saved={savedContext} insight={insight} />
           <View style={styles.route}>
-          <TrackPlate
+          <FlightMapPreview
             segments={track}
             variant="hero"
             state={plateState}
@@ -379,7 +379,8 @@ function detailStatus(flight: FlightDetail): DetailStatus {
 }
 
 const styles = StyleSheet.create({
-  route: { margin: 18, overflow: 'hidden', borderRadius: 22 },
+  // Keep the static image's bottom-edge provider attribution fully visible.
+  route: { margin: 18, overflow: 'hidden', borderTopLeftRadius: 22, borderTopRightRadius: 22 },
   journalNote: { margin: 18, padding: 20, borderRadius: 22, backgroundColor: paper.card, gap: 14 },
   notes: { fontFamily: fonts.sans, fontSize: 16, lineHeight: 25, color: paper.text },
   content: { paddingBottom: 40 },

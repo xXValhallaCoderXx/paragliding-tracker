@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View, type SectionListProps } from 'react-native';
+import { useFocusEffect, useIsFocused, useRouter } from 'expo-router';
 
 import {
   BusyRow,
@@ -41,12 +41,26 @@ const EMPTY_FLIGHTS: FlightSummary[] = [];
 /** Stable identity, so a default `{}` does not remount every thumbnail on each render. */
 const EMPTY_TRACKS: Record<string, TrackSegments> = {};
 
+const PREVIEW_VIEWABILITY = { itemVisiblePercentThreshold: 1 };
+
 export default function LogbookScreen() {
   const router = useRouter();
+  const focused = useIsFocused();
   const recorderLifecycle = useRecorderLifecycle();
   const auth = useCloudAuth();
   const sync = useCloudSync();
   const [backupDismissed, setBackupDismissed] = useState(false);
+  const [visibleFlightIds, setVisibleFlightIds] = useState<ReadonlySet<string>>(() => new Set());
+  const onViewableItemsChanged = useCallback<NonNullable<SectionListProps<FlightSummary>['onViewableItemsChanged']>>(
+    ({ viewableItems }) => {
+      // Section headers also produce tokens; only actual visible flight rows may load maps.
+      const next = new Set<string>(viewableItems
+        .filter((token) => token.isViewable && token.index !== null && typeof token.item?.id === 'string')
+        .map((token) => token.item.id));
+      setVisibleFlightIds((previous) => previous.size === next.size && [...next].every((id) => previous.has(id))
+        ? previous : next);
+    }, [],
+  );
 
   // The recorder writes flights outside Redux, and recovery can flip a session's status,
   // so these stay skipped until the lifecycle says the database is settled.
@@ -113,6 +127,10 @@ export default function LogbookScreen() {
   );
 
   const layout = useMemo(() => buildLogbookLayout(flights), [flights]);
+  const sections = useMemo(() => layout.sections.map((section) => ({
+    key: section.key, title: section.title, data: section.flights,
+  })), [layout.sections]);
+  const listExtraData = useMemo(() => ({ tracks, focused, visibleFlightIds }), [tracks, focused, visibleFlightIds]);
   const season = useMemo(() => seasonSummary(flights), [flights]);
   const checklist = useMemo(
     () =>
@@ -141,7 +159,30 @@ export default function LogbookScreen() {
 
   return (
     <Screen>
-      <ScrollView
+      <SectionList
+        sections={sections}
+        keyExtractor={(flight) => flight.id}
+        extraData={listExtraData}
+        initialNumToRender={3}
+        maxToRenderPerBatch={3}
+        windowSize={5}
+        stickySectionHeadersEnabled={false}
+        viewabilityConfig={PREVIEW_VIEWABILITY}
+        onViewableItemsChanged={onViewableItemsChanged}
+        renderSectionHeader={({ section }) => <View style={styles.section}>
+          <SectionLabel className="px-[18px] pt-[10px] pb-[8px]">
+            {section.key === sections[0]?.key && openFlight ? `Earlier · ${section.title}` : section.title}
+          </SectionLabel>
+        </View>}
+        renderItem={({ item: flight }) => <View style={styles.card}>
+          <FlightCard
+            flight={flight}
+            track={tracks[flight.id]}
+            mapPreviewEnabled={focused && visibleFlightIds.has(flight.id)}
+            onPress={() => router.push({ pathname: '/flights/[id]', params: { id: flight.id } })}
+          />
+        </View>}
+        ItemSeparatorComponent={FlightCardSeparator}
         contentContainerStyle={[styles.content, isEmpty && styles.contentEmpty]}
         refreshControl={
           <RefreshControl
@@ -155,7 +196,8 @@ export default function LogbookScreen() {
               sync.requestSync('manual');
             }}
           />
-        }>
+        }
+        ListHeaderComponent={<>
         <View style={styles.header}>
           <View style={styles.heading}>
             <Text style={styles.eyebrow}>YOUR FLIGHT JOURNAL</Text>
@@ -247,7 +289,8 @@ export default function LogbookScreen() {
           </View>
         ) : null}
 
-        {isEmpty ? (
+        </>}
+        ListEmptyComponent={isEmpty ? (
           <EmptyLogbook
             pilotName={profile?.pilotName ?? null}
             gliderType={profile?.gliderType ?? null}
@@ -261,34 +304,13 @@ export default function LogbookScreen() {
             busyLabel={recorderLifecycle.recovering ? 'Checking recorder…' : null}
           />
         ) : null}
-
-        {layout.sections.map((section, sectionIndex) => (
-          <View key={section.key} style={styles.section}>
-            <SectionLabel className="px-[18px] pt-[10px] pb-[8px]">
-              {sectionIndex === 0 && openFlight ? `Earlier · ${section.title}` : section.title}
-            </SectionLabel>
-            <View style={styles.cards}>
-              {section.flights.map((flight) => (
-                <FlightCard
-                  key={flight.id}
-                  flight={flight}
-                  track={tracks[flight.id]}
-                  onPress={() =>
-                    router.push({ pathname: '/flights/[id]', params: { id: flight.id } })
-                  }
-                />
-              ))}
-            </View>
-          </View>
-        ))}
-
-        {!isEmpty ? (
+        ListFooterComponent={!isEmpty ? (
           <Disclaimer className="mt-[26px] px-[32px]">
             Personal alpha. Not a certified flight recorder — never fly with this as your only
             recorder. Long-duration and locked-screen recording are still being validated.
           </Disclaimer>
         ) : null}
-      </ScrollView>
+      />
 
       {!loading && !isEmpty && openFlight?.sessionStatus !== 'interrupted' ? (
         <RecordFab
@@ -308,9 +330,10 @@ export default function LogbookScreen() {
   );
 }
 
+function FlightCardSeparator() { return <View style={styles.cardSeparator} />; }
 
 const styles = StyleSheet.create({
-  // The tab bar overlays the scroll view, so its height has to be reserved here.
+  // The tab bar overlays the list, so its height has to be reserved here.
   content: { paddingBottom: 120 + TAB_BAR_HEIGHT },
   contentEmpty: { paddingBottom: 40 + TAB_BAR_HEIGHT },
   header: {
@@ -330,5 +353,6 @@ const styles = StyleSheet.create({
   block: { paddingHorizontal: 16, paddingTop: 10 },
   gap: { gap: 10 },
   section: { paddingTop: 10 },
-  cards: { paddingHorizontal: 16, gap: 10 },
+  card: { paddingHorizontal: 16 },
+  cardSeparator: { height: 10 },
 });

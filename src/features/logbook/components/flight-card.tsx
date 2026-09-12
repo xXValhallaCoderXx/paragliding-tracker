@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Chip } from '@/components/ui';
-import { TrackPlate } from '@/features/flights/components/track-plate';
+import { FlightMapPreview } from '@/features/flights/components/flight-map-preview';
 import { trackPlateState } from '@/features/flights/track-presentation';
 import { flightChips, isFlightProcessing } from '@/features/logbook/logbook';
 import type { FlightSummary } from '@/recorder/types';
@@ -22,11 +22,13 @@ const EMPTY_TRACK: TrackSegments = [];
 export function FlightCard({
   flight,
   track = EMPTY_TRACK,
+  mapPreviewEnabled = true,
   onPress,
 }: {
   flight: FlightSummary;
   /** The stored shape, when there is one. Never derived here — see `listTracks`. */
   track?: TrackSegments;
+  mapPreviewEnabled?: boolean;
   onPress: () => void;
 }) {
   const metrics = flight.metrics;
@@ -79,7 +81,8 @@ export function FlightCard({
 
         {/* Finished routes and unavailable/processing states share a full-width plate. */}
         <View style={styles.thumbnail}>
-          <TrackPlate
+          <FlightMapPreview
+            enabled={mapPreviewEnabled}
             segments={track}
             variant="hero"
             state={trackPlateState(flight, track)}
