@@ -27,7 +27,6 @@ import { RECORDER_CONFIG } from '@/recorder/config';
 import { recorderService } from '@/recorder/recorder-service';
 import type { RecorderCapabilities } from '@/recorder/types';
 import { useGetFlightsQuery } from '@/store/endpoints';
-import { TAB_BAR_HEIGHT } from '@/ui/theme';
 
 /**
  * Instruments, storage, legal and version.
@@ -74,7 +73,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <TopBar onBack={() => router.canGoBack() ? router.back() : router.replace('/')} title="Settings" />
+      <TopBar onBack={() => router.canGoBack() ? router.back() : router.replace('/account')} title="Settings" />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.block}>
           <SectionLabel>Recorder</SectionLabel>
@@ -206,6 +205,6 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: 40 + TAB_BAR_HEIGHT },
+  content: { paddingBottom: 20 },
   block: { paddingHorizontal: 18, paddingTop: 22, gap: 12 },
 });

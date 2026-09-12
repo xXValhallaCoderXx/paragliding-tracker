@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fonts, paper, TAB_BAR_HEIGHT } from '@/ui/theme';
+import { fonts, paper } from '@/ui/theme';
 
 export function RecordFab({
   label,
@@ -24,7 +24,7 @@ export function RecordFab({
       onPress={onPress}
       style={({ pressed }) => [
         styles.fab,
-        { bottom: Math.max(insets.bottom, 12) + 14 + TAB_BAR_HEIGHT },
+        { right: Math.max(insets.right, 18) },
         disabled && styles.disabled,
         pressed && !disabled && styles.pressed,
       ]}>
@@ -37,7 +37,8 @@ export function RecordFab({
 const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
-    right: 18,
+    // The tab navigator already reserves its bar and bottom safe area below this scene.
+    bottom: 16,
     height: 56,
     paddingHorizontal: 22,
     borderRadius: 28,

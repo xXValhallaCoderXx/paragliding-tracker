@@ -36,7 +36,7 @@ import { JournalArt } from '@/components/ui/journal-art';
 import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import type { FlightSummary, PilotProfilePatch } from '@/recorder/types';
 import { useGetFlightsQuery, useGetProfileQuery, useUpdateProfileMutation } from '@/store/endpoints';
-import { fonts, paper, TAB_BAR_HEIGHT } from '@/ui/theme';
+import { fonts, paper } from '@/ui/theme';
 
 /**
  * The pilot's account: who they are, whether their flights have a second copy, and the
@@ -125,18 +125,11 @@ export default function AccountScreen() {
   const canSignIn = auth.status === 'signed_out';
 
   return (
-    <Screen>
+    <Screen edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
+          <Text style={styles.eyebrow}>YOUR ACCOUNT</Text>
           <Text style={styles.title}>Your pilot page</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-            hitSlop={12}
-            onPress={() => router.push('/settings')}
-            style={({ pressed }) => [styles.gear, pressed && styles.pressed]}>
-            <Text style={styles.gearGlyph}>⚙</Text>
-          </Pressable>
         </View>
 
         <View style={styles.block}>
@@ -160,6 +153,21 @@ export default function AccountScreen() {
             <IdentityCard profile={profile} stats={stats} onEdit={() => setEditing(true)} />
           </View>
         )}
+
+        <View style={styles.block}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            accessibilityHint="Opens recorder, storage and app settings"
+            onPress={() => router.push('/settings')}
+            style={({ pressed }) => [styles.settingsRow, pressed && styles.pressed]}>
+            <View style={styles.settingsText}>
+              <Text style={styles.settingsTitle}>Settings</Text>
+              <Text style={styles.settingsDetail}>Recorder, storage and app details</Text>
+            </View>
+            <Text style={styles.settingsChevron}>›</Text>
+          </Pressable>
+        </View>
 
         {profile && !loading ? (
           <View style={styles.block}>
@@ -316,19 +324,32 @@ function PilotRow({
 }
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: 40 + TAB_BAR_HEIGHT },
+  content: { paddingBottom: 24 },
   header: {
+    gap: 7,
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 14,
+  },
+  eyebrow: { fontFamily: fonts.monoMedium, fontSize: 10, letterSpacing: 1.4, color: paper.muted },
+  title: { fontFamily: fonts.sansBold, fontSize: 30, color: paper.ink, letterSpacing: -0.8 },
+  pressed: { opacity: 0.5 },
+  settingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 6,
+    gap: 16,
+    minHeight: 64,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: paper.border,
+    borderRadius: 22,
+    backgroundColor: paper.card,
   },
-  title: { flex: 1, fontFamily: fonts.sansBold, fontSize: 26, color: paper.ink, letterSpacing: -0.4 },
-  gear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  pressed: { opacity: 0.5 },
-  gearGlyph: { fontSize: 18, color: paper.muted },
+  settingsText: { flex: 1, gap: 4 },
+  settingsTitle: { fontFamily: fonts.sansSemi, fontSize: 16, color: paper.ink },
+  settingsDetail: { fontFamily: fonts.sans, fontSize: 12, lineHeight: 17, color: paper.muted },
+  settingsChevron: { fontFamily: fonts.sans, fontSize: 24, color: paper.muted },
   block: { paddingHorizontal: 18, paddingTop: 10, gap: 10 },
   backupCard: {
     backgroundColor: paper.card,

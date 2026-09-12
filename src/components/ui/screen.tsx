@@ -1,6 +1,6 @@
 import { styled } from 'nativewind';
 import type { ReactNode } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type SafeAreaViewProps } from 'react-native-safe-area-context';
 
 /**
  * react-native-css only wraps a fixed set of React Native primitives (View, Text, Pressable,
@@ -15,9 +15,11 @@ const SafeArea = styled(SafeAreaView);
 export function Screen({
   children,
   className = '',
+  edges,
 }: {
   children: ReactNode;
   className?: string;
+  edges?: SafeAreaViewProps['edges'];
 }) {
-  return <SafeArea className={`flex-1 bg-background ${className}`}>{children}</SafeArea>;
+  return <SafeArea edges={edges} className={`flex-1 bg-background ${className}`}>{children}</SafeArea>;
 }

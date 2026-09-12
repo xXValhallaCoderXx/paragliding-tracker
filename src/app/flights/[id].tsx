@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   route: { margin: 18, overflow: 'hidden', borderTopLeftRadius: 22, borderTopRightRadius: 22 },
   journalNote: { margin: 18, padding: 20, borderRadius: 22, backgroundColor: paper.card, gap: 14 },
   notes: { fontFamily: fonts.sans, fontSize: 16, lineHeight: 25, color: paper.text },
-  content: { paddingBottom: 40 },
+  content: { paddingBottom: 20 },
   missing: { padding: 16, gap: 12 },
   notices: { marginHorizontal: 16, marginTop: 10, gap: 8 },
   actions: { marginHorizontal: 16, marginTop: 20, gap: 10 },

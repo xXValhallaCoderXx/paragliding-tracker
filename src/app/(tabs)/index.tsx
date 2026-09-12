@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View, type SectionListProps } from 'react-native';
+import { RefreshControl, SectionList, StyleSheet, Text, View, type SectionListProps } from 'react-native';
 import { useFocusEffect, useIsFocused, useRouter } from 'expo-router';
 
 import {
@@ -33,7 +33,7 @@ import type { TrackSegments } from '@/lib/track/types';
 import { setupChecklist, type ChecklistKey } from '@/features/logbook/setup-checklist';
 import { backupInvitation } from '@/features/logbook/backup-invitation';
 import { buildLogbookLayout, seasonSummary } from '@/features/logbook/logbook';
-import { fonts, paper, TAB_BAR_HEIGHT } from '@/ui/theme';
+import { fonts, paper } from '@/ui/theme';
 
 /** Stable identity: a fresh `[]` default would break every memo that depends on it. */
 const EMPTY_FLIGHTS: FlightSummary[] = [];
@@ -156,9 +156,10 @@ export default function LogbookScreen() {
   const showBackup =
     invitation !== null && flights.length > 0 && !backupDismissed && !skip && !loading && !error;
   const pilotFirstName = profile?.pilotName?.trim().split(/\s+/)[0];
+  const showRecordFab = !loading && !isEmpty && openFlight?.sessionStatus !== 'interrupted';
 
   return (
-    <Screen>
+    <Screen edges={['top', 'left', 'right']}>
       <SectionList
         sections={sections}
         keyExtractor={(flight) => flight.id}
@@ -183,7 +184,7 @@ export default function LogbookScreen() {
           />
         </View>}
         ItemSeparatorComponent={FlightCardSeparator}
-        contentContainerStyle={[styles.content, isEmpty && styles.contentEmpty]}
+        contentContainerStyle={[styles.content, showRecordFab && styles.contentWithRecorder]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -205,14 +206,6 @@ export default function LogbookScreen() {
               {pilotFirstName ? `${pilotFirstName}’s logbook` : 'Days in the sky'}
             </Text>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-            hitSlop={12}
-            onPress={() => router.push('/settings')}
-            style={({ pressed }) => [styles.gear, pressed && styles.gearPressed]}>
-            <Text style={styles.gearGlyph}>⚙</Text>
-          </Pressable>
         </View>
 
         {recorderLifecycle.recovering ? (
@@ -312,7 +305,7 @@ export default function LogbookScreen() {
         ) : null}
       />
 
-      {!loading && !isEmpty && openFlight?.sessionStatus !== 'interrupted' ? (
+      {showRecordFab ? (
         <RecordFab
           label={
             recorderLifecycle.recovering
@@ -333,9 +326,9 @@ export default function LogbookScreen() {
 function FlightCardSeparator() { return <View style={styles.cardSeparator} />; }
 
 const styles = StyleSheet.create({
-  // The tab bar overlays the list, so its height has to be reserved here.
-  content: { paddingBottom: 120 + TAB_BAR_HEIGHT },
-  contentEmpty: { paddingBottom: 40 + TAB_BAR_HEIGHT },
+  content: { paddingBottom: 24 },
+  // Only the floating recorder overlaps the list: 56dp button + 16dp offset + 16dp gap.
+  contentWithRecorder: { paddingBottom: 88 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -346,9 +339,6 @@ const styles = StyleSheet.create({
   },
   heading: { flex: 1, gap: 7 },
   eyebrow: { fontFamily: fonts.monoMedium, fontSize: 10, letterSpacing: 1.4, color: paper.muted },
-  gear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  gearPressed: { opacity: 0.5 },
-  gearGlyph: { fontSize: 18, color: paper.muted },
   title: { fontFamily: fonts.sansBold, fontSize: 30, letterSpacing: -0.8, color: paper.ink },
   block: { paddingHorizontal: 16, paddingTop: 10 },
   gap: { gap: 10 },

@@ -21,9 +21,8 @@ export default function TabsLayout() {
         sceneStyle: { backgroundColor: paper.background },
         tabBarActiveTintColor: paper.thermal,
         tabBarInactiveTintColor: paper.muted,
-        // Height is deliberately left to the navigator so the safe-area inset on notched
-        // phones is handled for us. TAB_BAR_HEIGHT is only the padding reserve that
-        // scrolling screens add so their content clears the bar.
+        // The navigator reserves the bar and its bottom safe area below each tab scene.
+        // Tab screens only need top/side safe areas and padding for their own controls.
         tabBarStyle: {
           backgroundColor: paper.card,
           borderTopColor: paper.border,
