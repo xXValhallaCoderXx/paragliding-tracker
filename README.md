@@ -158,17 +158,60 @@ pnpm android:no-bundler
 
 This debug APK loads its JavaScript from Metro; it is ideal for feature iteration, but it is not the
 standalone artifact for the long-duration evidence gate. Keep Metro running while using this build.
-Before an endurance or termination/recovery trial, create a production-like internal APK with an
-embedded bundle, then install it without Metro:
+
+### First standalone Android test
+
+Before synchronizing native configuration, securely preserve the existing local signing key
+(`android/app/debug.keystore`, currently also used for local release builds) and record its
+certificate fingerprint. Keep that key out of Git and shared build records. Synchronize the ignored
+Android project in place using the installed SDK 57 CLI:
 
 ```bash
+pnpm exec expo prebuild --platform android --no-clean --no-install --skip-dependency-update react,react-native,expo
+```
+
+Keep the tracked dependency versions, package scripts and TaskManager patch for this first test.
+Verify the generated manifest includes notification, background-location and location foreground
+service permissions; also check postcard native-module linking, the applied TaskManager patch,
+package identity and signing configuration. Record existing Expo dependency-version warnings
+separately for the compatibility follow-up; do not report dependency validation as passing.
+
+Run the full checks with Docker available, then create a fresh APK containing its JavaScript bundle
+and assets:
+
+```bash
+pnpm test
 pnpm android:release
+```
+
+The artifact is `android/app/build/outputs/apk/release/app-release.apk`. Inspect its embedded bundle,
+permissions and native modules, then retain it with a build record: source commit and any uncommitted
+source changes, build time, APK SHA-256, package/version and signing-certificate fingerprint. Keep
+automated results separate from phone-test evidence. An older APK does not validate current source.
+
+Before installing, compare the phone's installed package, version code and signing certificate with
+the fresh APK. Use a compatible in-place update to preserve the local logbook. If a higher installed
+version requires a version-code increment, update the app configuration and rebuild. Stop and resolve
+any signing or data-compatibility conflict before continuing; do not uninstall or reset phone data.
+
+```bash
 pnpm android:release:install
 adb reverse --remove-all
 ```
 
-The resulting artifact is `android/app/build/outputs/apk/release/app-release.apk`. Stop Metro before
-the trial; the release APK must launch and record from its embedded JavaScript bundle.
+Stop Metro and remove development-server connectivity before these ground-based checks:
+
+- Launch from the phone icon offline; close/reopen, reboot the phone and launch again. No development
+  server or server-selection screen should be needed.
+- Record approximately five minutes in the foreground and ten minutes with the screen locked; stop,
+  save, reopen the journal, inspect the route/statistics and export IGC/diagnostic data.
+- Open offline replay and check play, pause and scrubbing. Create one postcard, preview its share
+  attachment, then dismiss and retry the share sheet without sending it.
+
+Record the device/OS, build identity, permissions, observed results and remaining defects in the
+internal-test tickets. Recording requires no account; preserve the existing public Supabase
+configuration while testing offline use. This first phone test leaves full postcard/replay acceptance,
+long-duration recording and wider release checks pending.
 
 ### Reset the device's data
 
