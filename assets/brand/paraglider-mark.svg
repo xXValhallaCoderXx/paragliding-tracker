@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <title>Paraglider</title>
+  <desc>A swept paraglider canopy with a suspended pilot. No lettering or app name.</desc>
+  <path fill="#FFFCF5" d="M38 115C53 68 87 44 130 44C173 44 207 68 222 115C190 97 159 88 130 88C101 88 70 97 38 115Z"/>
+  <path fill="#B74E29" d="M155 47C187 55 212 79 222 115C211 109 200 104 189 100C182 76 171 58 155 47Z"/>
+  <path stroke="#FFFCF5" stroke-width="7" stroke-linecap="round" d="M66 116L113 173M194 116L143 173"/>
+  <circle cx="128" cy="164" r="9" fill="#FFFCF5"/>
+  <path stroke="#FFFCF5" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" d="M113 180L128 190L143 180M128 190L123 206L143 206L155 195"/>
+</svg>
