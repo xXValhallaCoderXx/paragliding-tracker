@@ -8,6 +8,7 @@ overrides:
   '@expo/metro-config>lightningcss': 1.30.1
 
 patchedDependencies:
+  '@rnmapbox/maps@10.3.5': c4f79587085e4f25e5052bbb1348c448bef79938372233494b1ae92cebf5af04
   expo-task-manager@57.0.11: 6ffdd76111ea302bd89a09953ff6a77233aa381b2762c993f4a7960fe9b482a1
 
 importers:
@@ -31,7 +32,7 @@ importers:
         version: 2.12.0(react-redux@9.3.0(@types/react@19.2.18)(react@19.2.3)(redux@5.0.1))(react@19.2.3)
       '@rnmapbox/maps':
         specifier: 10.3.5
-        version: 10.3.5(expo@57.0.14)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.86.2(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)
+        version: 10.3.5(patch_hash=c4f79587085e4f25e5052bbb1348c448bef79938372233494b1ae92cebf5af04)(expo@57.0.14)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.86.2(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)
       '@supabase/supabase-js':
         specifier: ^2.112.3
         version: 2.112.3
@@ -7017,7 +7018,7 @@ snapshots:
       react: 19.2.3
       react-redux: 9.3.0(@types/react@19.2.18)(react@19.2.3)(redux@5.0.1)
 
-  '@rnmapbox/maps@10.3.5(expo@57.0.14)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.86.2(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)':
+  '@rnmapbox/maps@10.3.5(patch_hash=c4f79587085e4f25e5052bbb1348c448bef79938372233494b1ae92cebf5af04)(expo@57.0.14)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.86.2(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@turf/along': 6.5.0
       '@turf/distance': 6.5.0

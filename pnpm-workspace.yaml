@@ -39,4 +39,5 @@ minimumReleaseAgeExclude:
   - expo-splash-screen@57.0.7
   - expo-task-manager@57.0.11
 patchedDependencies:
+  '@rnmapbox/maps@10.3.5': patches/@rnmapbox__maps@10.3.5.patch
   expo-task-manager@57.0.11: patches/expo-task-manager@57.0.11.patch

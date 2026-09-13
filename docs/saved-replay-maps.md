@@ -4,7 +4,8 @@ Decision recorded 12 September 2026. The owner approved Mapbox Outdoors for save
 PAR-19, PAR-20, PAR-27 and PAR-30 are In Progress. The owner approved removing the Map/Grid selector:
 Map opens when configured and falls back automatically to Grid, with Retry map after a failed
 attempt. Earlier APK `44058268580d` demonstrated direct Map opening and pan/Fit on Android.
-Physical failure/retry and offline fallback on the new UI remain pending. Earlier manual-selector
+Focused native tile-error fallback and Retry passed on APK `d619c12b8bb7` on 13 September,
+both paused and playing at 10×. Broader offline and resource cases remain pending. Earlier manual-selector
 and offline Grid observations belong to APK `ef8278c3f6ad` and do not accept the new fallback flow.
 The earlier recorder smoke remains valid; EAS preview is still unconfigured.
 
@@ -44,6 +45,11 @@ provides a future path; downloads, storage management and offline guarantees nee
 - Missing configuration, native failure or a 15-second initial-load timeout automatically shows
   Grid. Offer **Retry map** after a failed map attempt. Preserve pause-on-background/navigation behavior,
   reject obsolete callbacks and release inactive map resources.
+- Keep the pinned `@rnmapbox/maps` Android patch: version 10.3.5's compatibility error
+  subscription is a no-op. The patch subscribes to real SDK loading errors and cancels the
+  subscription when the view is dropped, rejecting callbacks from obsolete subscriptions.
+  The [patch maintenance note](./par-27-map-fallback-checks.md#why-the-dependency-patch-is-kept)
+  records the 13 September release check, files to commit together and removal criteria.
 - Keep Mapbox logo/attribution and accessible controls visible. Map failure cannot affect saved
   data or recording. A future live adapter will consume recorder-captured fixes without a new GPS
   watcher; the current change adds no in-flight screen.
@@ -75,7 +81,21 @@ Run focused geometry/adapter/replay checks and the required `pnpm test` workflow
 database checks. Retain the exact APK with commit/diff, checksum, package/version, signer and
 native SDK versions. Record automated checks separately from named-phone observations.
 
-Current combined artifact:
+When adding or changing a pnpm native patch in an existing Android build, regenerate the
+ignored `android/build/generated/autolinking/autolinking.json` and verify its dependency
+`sourceDir` matches the patched package. React Native 0.86.2's default autolinking inputs omit
+the pnpm lockfile, so a cached path may otherwise keep compiling the unpatched package.
+Confirm the compiled `RNMBXMapView` calls `MapboxMap.subscribeMapLoadingError` before installation.
+
+Latest fixed APK: `FlightLogAlpha-1.0.0-map-error-fix-d619c12b8bb7.apk`, retained under
+`android/app/build/outputs/internal/par27-error-subscription-20260913/`. Its on-phone checksum
+and compatible signature match; all three flights remain. Real failed tile requests now show
+Grid + Retry. Paused Retry preserves `0:22:39`, and a second cycle preserves active 10× playback.
+Full project checks passed (603 Jest tests, 54 pgTAP checks, types/lint) and the native build
+passed; existing Expo dependency-version warnings remain. See the
+[PAR-27 check report](./par-27-map-fallback-checks.md) for exact identity, evidence and open cases.
+
+Historical combined target/static-map artifact:
 `android/app/build/outputs/internal/mapbox-previews-20260912T154420Z/FlightLogAlpha-1.0.0-mapbox-previews-8b743aee52e2.apk`,
 SHA-256 `8b743aee52e29145fef2946b538200f5ab9d0eee53f56a0139a33d31222d52fa`.
 The full `pnpm test` gate passed in 51.7 seconds: 70 Jest suites / 603 tests, 54 pgTAP checks,
