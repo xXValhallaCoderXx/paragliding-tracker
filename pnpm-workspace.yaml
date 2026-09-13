@@ -1,4 +1,5 @@
 allowBuilds:
+  sharp: true
   unrs-resolver: true
 overrides:
   # react-native-css loads lightningcss by resolving it from @expo/metro-config's directory

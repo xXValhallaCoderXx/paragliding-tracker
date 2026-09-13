@@ -47,6 +47,13 @@ and Start/Stop markers, no pilot, and automatic Grid while images load/fail/time
 receives viewport requests without encoded route overlays. Static list/detail rendering, card
 navigation and visible attribution passed on the installed combined build; broader checks remain open.
 
+## App icon
+
+The app icon uses a name-free paraglider mark. Edit `assets/brand/paraglider-mark.svg`
+and run `pnpm brand:generate` to regenerate the icon, Android themed icon and splash.
+See [brand assets](./assets/brand/README.md) for previews and platform details. These
+assets require a new native build to appear on an installed app.
+
 ## Accounts and cloud backup
 
 Signing in is **optional and never gates anything**. The recorder, the logbook and every export
