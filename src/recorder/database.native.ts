@@ -1728,9 +1728,15 @@ export async function setCloudCursors(patch: CloudCursorPatch): Promise<void> {
 export async function listDirtyFlights(
   limit: number,
   now = Date.now(),
+  options?: { ignoreBackoff?: boolean },
 ): Promise<FlightSyncCandidate[]> {
   const database = await openDatabase();
-  const rows = await database.getAllAsync<FlightSyncCandidateRow>(DIRTY_FLIGHTS_SQL, now, limit);
+  const rows = await database.getAllAsync<FlightSyncCandidateRow>(
+    DIRTY_FLIGHTS_SQL,
+    options?.ignoreBackoff ? 1 : 0,
+    now,
+    limit,
+  );
   return rows.map(mapFlightSyncCandidate);
 }
 
@@ -1768,10 +1774,10 @@ export async function markFlightIgcPushed(input: {
     const database = await openDatabase();
     await database.runAsync(
       MARK_FLIGHT_IGC_PUSHED_SQL,
+      input.flightId,
       input.sha256,
       input.objectPath,
       input.pushedAt,
-      input.flightId,
     );
   });
 }
@@ -1790,10 +1796,12 @@ export async function recordFlightSyncFailure(
 export async function listPendingFlightDeletions(
   limit: number,
   now = Date.now(),
+  options?: { ignoreBackoff?: boolean },
 ): Promise<FlightDeletionRecord[]> {
   const database = await openDatabase();
   const rows = await database.getAllAsync<FlightDeletionRow>(
     PENDING_FLIGHT_DELETIONS_SQL,
+    options?.ignoreBackoff ? 1 : 0,
     now,
     limit,
   );

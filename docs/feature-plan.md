@@ -1,30 +1,106 @@
 # Feature plan and roadmap
 
-Updated 6 September 2026. This is a proposed product direction, not a delivery schedule or a
+Updated 12 September 2026. This is a proposed product direction, not a delivery schedule or a
 claim that future features exist. The [project overview](./project-overview.md) describes today.
 
 The direction is a useful personal flight journal that becomes more enjoyable with friends:
 share a flight, know when friends are recording, and eventually explore their flights together.
 Keep recording available offline and without an account as the social features grow.
 
+The first personal Android test was accepted on 12 September: the standalone app launched offline
+after reboot, recorded and saved a walk, retained it after a full app restart, replayed it, and
+opened postcard/IGC/JSON share sheets. Exact recording and locked-screen durations were unmeasured;
+this does not establish long-flight reliability. The next approved work is a geographic map for
+saved replay. An eventual map during the pilot's own recording should influence its design.
+
 ## Suggested order
 
 | Stage | Outcome | Starting point / dependency |
 | --- | --- | --- |
-| 1. Finish sharing | A polished postcard that arrives correctly in social apps | Existing PNG composer and native share flow |
-| 2. Improve replay | Comfortable, reliable playback of your own flights | Existing offline route/chart player |
-| 3. Add friends | Invite and connect with people you choose | Optional accounts exist; social identity and permissions are new |
-| 4. Flying notifications | Opt-in updates when friends start a recording | Accepted friendships, preferences and a separate status-delivery design |
-| 5. Watch shared flights | Open and replay a friend's completed flight | Publication consent, access checks and downloadable replay data |
-| 6. Geographic maps, then 3D | Explore routes in their real terrain | Map/data-provider research and proven replay performance |
-| Later: live viewing | Watch an explicitly shared flight in progress | Reliable status delivery, access controls and measured battery/network cost |
+| 1. Saved replay map | Place your recorded route and replay marker on a geographic 2D map | Provider/native feasibility, existing saved fixes and playback timeline |
+| 2. Finish sharing | A polished postcard that arrives correctly in social apps | Existing PNG composer and native share flow |
+| 3. Improve replay | Comfortable, reliable playback of your own flights | Existing offline route/chart player plus focused map acceptance |
+| 4. Add friends | Invite and connect with people you choose | Optional accounts exist; social identity and permissions are new |
+| 5. Flying notifications | Opt-in updates when friends start a recording | Accepted friendships, preferences and a separate status-delivery design |
+| 6. Watch shared flights | Open and replay a friend's completed flight | Publication consent, access checks and downloadable replay data |
+| Later: 3D replay | Explore the route in three dimensions | Proven 2D map behavior and measured native performance |
+| Later: remote live viewing | Watch an explicitly shared flight in progress | Reliable status delivery, access controls and measured battery/network cost |
 
-Stages 1–2 can progress independently of social work. Friends and basic status notifications
+Stages 1–3 can progress independently of social work. Friends and basic status notifications
 do not need 3D maps. Shared completed flights can initially use the existing 2D presentation.
 Cloud restoration is a separate supporting track; social viewing must not require inventing
 local recorder evidence for somebody else's flight.
 
-## 1. Finish flight sharing for social media
+Downloadable map areas and an optional map during the pilot's own recording are separate future
+increments. They are outside the current cycle; their ordering against social work remains open.
+
+## 1. Add a geographic map to saved replay
+
+**Goal:** replay a saved flight against geographic context while keeping the current offline grid
+and recorded timing available.
+
+The owner expanded Cycle 1 (12–18 September) on 12 September after accepting the first internal
+test. The owner then approved Mapbox Outdoors implementation. PAR-19 (native Mapbox proof) and
+PAR-20 (implementation) remain In Progress while PAR-19's remaining checks are open. PAR-27
+(focused Android map acceptance) is In Progress. All three belong to the owner. Historical APK
+`ef8278c3f6ad` retained all three flights and passed initial map/manual-selector checks; the owner
+also confirmed its offline Grid Play/Pause/scrubbing. The owner now approved removing that selector:
+open Map automatically when configured, fall back to Grid when unavailable, and offer Retry map
+after a failed attempt. Earlier APK `44058268580d` was installed with a matching phone checksum;
+all three flights remain. It opens Outdoors directly with no selector, and pan/Fit restores the
+full route. Automated fallback/retry checks passed; physical failure/retry and offline fallback
+on this UI remain pending.
+Malaysian coverage, map tile-failure/retry, offline basemap behavior and broader resource/performance
+checks remain open. A pre-existing Home/return replay-time reset
+is tracked in PAR-3; the recorder recovery gate is preserved. EAS preview configuration is pending.
+The [saved-flight map plan](https://linear.app/sentiment-hound/document/saved-flight-maps-cycle-plan-and-future-in-flight-design-fecd2d3a6c12)
+owns the detailed implementation decisions and acceptance cases.
+
+The owner also selected [PAR-30](https://linear.app/sentiment-hound/issue/PAR-30/add-static-flight-maps-to-logbook-and-flight-details)
+for this cycle: static Outdoors basemap images on Logbook cards and flight detail, with local
+route/Start/Stop overlays and no pilot. It is In Progress, blocked by PAR-19 and related to PAR-20.
+Use Expo Image disk caching and visible-card requests, with Grid during loading/failure/timeout.
+The provider receives the viewport, not encoded route overlays. Combined APK `8b743aee52e2` is
+installed with matching checksum and all three flights retained; static card/detail maps, local
+Start/Stop labels, card navigation and full attribution passed. The target overlay pan/refit check
+passed on its immediate predecessor, with only detail-corner styling changed afterward.
+PAR-27 retains forced failure/offline/retry, Malaysian coverage and long-list stress checks.
+
+- Use `@rnmapbox/maps` 10.3.5, its default Android Mapbox SDK 11.23.1, and the explicit style
+  `mapbox://styles/mapbox/outdoors-v12`. [Outdoors is a classic style](https://docs.mapbox.com/map-styles/reference/outdoors/)
+  that remains available but is no longer actively maintained; this is the owner's chosen style.
+  The selected Android setup uses a public `pk.` token only. Keep SDK ambient-cache defaults;
+  no app-enforced numeric cache bound or downloaded-area guarantee is claimed.
+- Aim for worldwide online map coverage, with Singapore walks and Malaysian flying areas as the
+  primary coverage checks, not a geographic restriction. Saved walks are valid test recordings;
+  the recorder still uses manual Start/Stop and GPS without requiring detected flight.
+- Show the saved route and playback marker, support pan/zoom, and keep attribution visible.
+  A map-only **Fit flight** target icon at bottom right refits the entire route after pan/zoom;
+  its phone pan/refit evidence is recorded in the map guide.
+  Use the existing playback timestamp and original retained fixes; preserve gaps and
+  partial-flight labels. Geographic context must not change route/chart/telemetry timing.
+- Keep the map component focused on presentation. Use separate saved-replay and future live-recorder
+  adapters; a future in-flight map must consume recorder-captured fixes without starting a second
+  GPS watcher or making capture depend on map rendering/network access.
+- Open Map whenever configured, with no Map/Grid selector. Automatically use Grid for missing
+  configuration, native failure or a 15-second initial-load timeout; offer **Retry map** after
+  a failed attempt. Preserve replay position/playback through automatic fallback and retry.
+  Region downloads and dependable offline basemaps belong to PAR-28; Mapbox's documented regional
+  offline path informs that later design without implementing downloads now.
+- PAR-27 owns focused Android checks for placement, camera controls, fallback/attribution,
+  playback regressions and relevant performance. Broader replay/lifecycle and long-flight suites
+  remain PAR-3/PAR-5 in Backlog; PAR-5 is not an implementation prerequisite for PAR-20.
+
+**Done when:** a named standalone Android build passes the focused map checks, the saved route is
+placed correctly, replay timing remains honest, and the offline grid works when tiles cannot load.
+The [map implementation guide](./saved-replay-maps.md) records the chosen configuration and checks.
+
+**Future map work:** PAR-28 adds downloadable map areas for offline flying and replay. PAR-29 adds
+an optional on-device map during the pilot's own recording using captured fixes. Both remain in
+Backlog outside Cycle 1; map downloads need permitted provider terms, storage limits,
+attribution and deletion behavior. Neither feature publishes live location to anyone else.
+
+## 2. Finish flight sharing for social media
 
 **Goal:** make the existing Share postcard flow feel finished and dependable.
 
@@ -44,25 +120,26 @@ and retry behave correctly, and temporary-file cleanup preserves files already h
 
 **Later options:** more postcard layouts, optional photos, Save to Photos, or a short replay
 video. Choose these after image sharing is accepted; none is required to finish the current flow.
-Interactive shared links belong to stage 5.
+Interactive shared links belong to stage 6.
 
-## 2. Improve replay of your own flights
+## 3. Improve replay of your own flights
 
-**Goal:** make revisiting a flight easy before adding a more demanding map renderer.
+**Goal:** make revisiting a flight dependable across representative recordings, beyond the focused
+checks required for the first geographic map.
 
 - Validate route/chart synchronization, speed controls, scrubbing, end/restart and navigation
   on a real device. Returning from another screen or the background should remain paused.
 - Check long recordings for loading time, smooth scrubbing and memory release after exit.
   Include stationary sections, missing altitude/speed, gaps and saved-partial recordings.
-- Refine the timeline and telemetry layout based on those checks. Explore route pan/zoom,
-  tapping the chart to seek and a reset-view action as small follow-up increments.
+- Refine the timeline and telemetry layout based on those checks. Explore tapping the chart to
+  seek as a small follow-up; map pan/zoom and reset-to-fit belong to the saved-map increment.
 - Retain accessible timeline controls, enlarged text and reduced-motion behavior.
 
 **Done when:** playback remains responsive on representative long flights and its route, chart
 and readouts agree at the same timestamp, including unavailable periods. New interactions must
 preserve recorded timing and never draw a flight through a missing segment.
 
-## 3. Friends and a small social foundation
+## 4. Friends and a small social foundation
 
 **Goal:** connect with people you know without needing a public feed.
 
@@ -81,7 +158,7 @@ their private activity, and removal/blocking stops future access and notificatio
 **Decisions before implementation:** invite link versus handle, public profile fields, whether
 to share with all accepted friends or selected friends, and notification defaults.
 
-## 4. Basic notifications when friends are flying
+## 5. Basic notifications when friends are flying
 
 **Goal:** a small opt-in update, not continuous location tracking.
 
@@ -103,7 +180,7 @@ until an explicit pilot status or validated detection feature can support “fly
 accounts do not; offline delivery is honest about freshness; recording still works when the
 notification service fails. This is social awareness, not an emergency or safety service.
 
-## 5. Watch a friend's saved flight and share interactive links
+## 6. Watch a friend's saved flight and share interactive links
 
 **Goal:** open a selected flight and replay it, initially using the same 2D experience as your own.
 
@@ -127,18 +204,14 @@ limits, replay it correctly, and lose future access when it is unshared or the r
 There is no web app today; hosting, audience rules, link expiry and previews need their own work.
 Public links should expose only the approved shared representation, never the private IGC bucket.
 
-## 6. Geographic maps, then a 3D replay experiment
+## Later: a 3D replay experiment
 
 **Goal:** see where a route sits in the landscape, then explore it in three dimensions.
 
-First add an optional geographic 2D map with route, pilot marker, pan/zoom and reset-to-fit.
-Keep the current offline grid available when map data cannot load. Research provider coverage,
-attribution/licensing, tile costs, offline-download rights, cache limits and native compatibility
-before choosing a library or service. This document makes no provider commitment.
-
-Once that works, prototype terrain with an orbit camera and a follow-pilot camera. Synchronize
-the existing timeline/chart with the 3D scene. Compare GPS altitude's reference with the terrain
-dataset's reference; do not imply terrain clearance or silently snap inaccurate GPS to the ground.
+After geographic 2D replay is accepted, PAR-21 can prototype terrain with an orbit camera and a
+follow-pilot camera. Synchronize the existing timeline/chart with the 3D scene. Compare GPS
+altitude's reference with the terrain dataset's reference; do not imply terrain clearance or
+silently snap inaccurate GPS to the ground.
 Show missing altitude and gaps honestly. Measure memory, frame rate, battery use and long-flight
 loading on the target phone, then decide whether the prototype merits a product feature.
 
@@ -146,10 +219,11 @@ loading on the target phone, then decide whether the prototype merits a product 
 and acceptable device performance. Promote 3D only after those checks, with a simple 2D option
 remaining available for devices or situations where 3D is unsuitable.
 
-## Later: watch a flight live
+## Later: watch somebody else's flight live
 
-Live viewing is separate from a start notification or replaying a saved flight. It needs explicit
-per-flight broadcast consent, audience controls, a location-delivery protocol and a clear end or
+Remote live viewing is separate from an on-device map of your own recording, a start notification
+or replaying a saved flight. It needs explicit per-flight broadcast consent, audience controls,
+a location-delivery protocol and a clear end or
 expiry state. Show last-update time, gaps and disconnection; never infer fresh positions from old
 samples. Plan bounded buffering, delivery cadence and battery/data budgets before implementation.
 

@@ -55,6 +55,18 @@ describe('backup status', () => {
     );
   });
 
+  it('keeps the failure visible while automatic retries are delayed', () => {
+    expect(describeSync({ ...IDLE, phase: 'blocked', blockedBy: 'backoff', lastError: 'Account service unavailable' }, NOW)).toMatchObject({
+      label: 'Could not back up', tone: 'danger', detail: 'Account service unavailable', canSyncNow: true,
+    });
+  });
+
+  it('keeps the completed backup status when an automatic check is throttled', () => {
+    expect(describeSync({ ...IDLE, phase: 'blocked', blockedBy: 'throttled', lastSyncAt: NOW - 10_000 }, NOW)).toMatchObject({
+      label: 'Just now', tone: 'good', canSyncNow: true,
+    });
+  });
+
   it('counts pending work in words a pilot can act on', () => {
     expect(describeSync({ ...IDLE, lastSyncAt: NOW, pendingFlights: 1 }, NOW).detail).toBe(
       '1 flight still to back up.',

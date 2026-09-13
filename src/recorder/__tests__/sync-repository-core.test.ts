@@ -2,6 +2,7 @@ import { TestDatabase, schemaAt, seedSession, seedEvidence } from '../../../test
 import { BACKFILL_FLIGHTS_SQL } from '../flight-repository-core';
 import {
   BIND_CLOUD_LINK_SQL, COUNT_PENDING_SYNC_SQL, DIRTY_FLIGHTS_SQL, MARK_FLIGHT_PUSHED_SQL,
+  MARK_FLIGHT_IGC_PUSHED_SQL,
   PENDING_FLIGHT_DELETIONS_SQL, RECORD_FLIGHT_SYNC_FAILURE_SQL,
   applyRemoteFlightMetadataTransaction, mapFlightSyncCandidate, resetCloudLinkTransaction,
   updatePilotProfileTransaction, type FlightSyncCandidateRow,
@@ -13,8 +14,8 @@ async function flight(id: string, status = 'completed', start = 1000, sessionSta
   await seedSession(db, id, sessionStatus, start); await db.execAsync(BACKFILL_FLIGHTS_SQL);
   await db.runAsync('UPDATE flights SET status = ? WHERE id = ?', status, id);
 }
-const candidates = async (now = 10_000, limit = 100) =>
-  (await db.getAllAsync<FlightSyncCandidateRow>(DIRTY_FLIGHTS_SQL, now, limit)).map(mapFlightSyncCandidate);
+const candidates = async (now = 10_000, limit = 100, ignoreBackoff = false) =>
+  (await db.getAllAsync<FlightSyncCandidateRow>(DIRTY_FLIGHTS_SQL, ignoreBackoff ? 1 : 0, now, limit)).map(mapFlightSyncCandidate);
 
 it('selects only finished dirty flights, respects backoff and orders then limits work', async () => {
   await flight('late', 'partial', 2000); await flight('early'); await flight('clean');
@@ -26,6 +27,7 @@ it('selects only finished dirty flights, respects backoff and orders then limits
   expect((await candidates(10_000, 1)).map((f) => f.id)).toEqual(['early']);
   expect(await db.getFirstAsync(COUNT_PENDING_SYNC_SQL)).toEqual({ flights: 3, deletions: 0 });
   expect((await candidates(20_000)).map((f) => f.id)).toEqual(['early', 'waiting', 'late']);
+  expect((await candidates(10_000, 100, true)).map((f) => f.id)).toEqual(['early', 'waiting', 'late']);
   expect((await candidates())[0]).toMatchObject({ metrics: null, attemptCount: 0, nextAttemptAt: 0 });
   await db.runAsync("UPDATE sessions SET status = 'interrupted' WHERE id = 'live'");
   expect((await candidates()).map((f) => f.id)).not.toContain('live');
@@ -38,7 +40,37 @@ it('maps actual metrics and preserves an edit made during an in-flight push', as
   await db.runAsync(MARK_FLIGHT_PUSHED_SQL, 'f', 5000, '2026-09-06T00:00:00Z');
   expect(await candidates()).toMatchObject([{ id: 'f', metrics: { flightId: 'f', algorithmVersion: 3, durationMs: 4000, trackDistanceMetres: 12345.6, fixCount: 240, quality: 'healthy' } }]);
   await db.runAsync(MARK_FLIGHT_PUSHED_SQL, 'f', 6000, '2026-09-06T00:00:01Z');
+  await db.runAsync(MARK_FLIGHT_IGC_PUSHED_SQL, 'f', 'hash', 'user/f.igc', 6200);
   expect(await candidates()).toEqual([]);
+});
+
+it('keeps a failed IGC pending after an older client marked metadata pushed, until retry succeeds', async () => {
+  await flight('f'); await seedEvidence(db, 'f');
+  await db.runAsync("INSERT INTO flight_metrics (flight_id,algorithm_version,duration_ms,track_distance_metres,fix_count,quality,computed_at) VALUES ('f',3,4000,100,10,'healthy',1000)");
+  const evidence = await db.getAllAsync('SELECT * FROM location_fixes');
+  await db.runAsync(MARK_FLIGHT_PUSHED_SQL, 'f', 1000, 'remote');
+  // A crash here has no recorded error but still needs an artifact.
+  expect((await candidates()).map((f) => f.id)).toEqual(['f']);
+  await db.runAsync(RECORD_FLIGHT_SYNC_FAILURE_SQL, 'f', 20_000, 'Storage unavailable');
+  expect(await candidates()).toEqual([]);
+  expect(await db.getFirstAsync(COUNT_PENDING_SYNC_SQL)).toEqual({ flights: 1, deletions: 0 });
+  expect((await candidates(10_000, 100, true)).map((f) => f.id)).toEqual(['f']);
+  await db.runAsync(MARK_FLIGHT_IGC_PUSHED_SQL, 'f', 'hash', 'user/f.igc', 11_000);
+  await db.runAsync(MARK_FLIGHT_PUSHED_SQL, 'f', 1000, 'remote');
+  expect(await candidates()).toEqual([]);
+  expect(await db.getFirstAsync(COUNT_PENDING_SYNC_SQL)).toEqual({ flights: 0, deletions: 0 });
+  expect(await db.getAllAsync('SELECT * FROM location_fixes')).toEqual(evidence);
+});
+
+it('records an IGC before the first metadata watermark and preserves a concurrent flight edit', async () => {
+  await flight('f');
+  await db.runAsync(MARK_FLIGHT_IGC_PUSHED_SQL, 'f', 'hash', 'user/f.igc', 2000);
+  expect(await db.getFirstAsync('SELECT pushed_updated_at, igc_sha256 FROM flight_sync_state')).toEqual({ pushed_updated_at: null, igc_sha256: 'hash' });
+  await db.runAsync("UPDATE flights SET updated_at = 3000 WHERE id = 'f'");
+  await db.runAsync(MARK_FLIGHT_PUSHED_SQL, 'f', 1000, 'remote');
+  expect((await candidates()).map((f) => f.id)).toEqual(['f']);
+  await db.runAsync(MARK_FLIGHT_IGC_PUSHED_SQL, 'f', 'new-hash', 'user/f.igc', 4000);
+  expect(await db.getFirstAsync('SELECT pushed_updated_at, igc_sha256 FROM flight_sync_state')).toEqual({ pushed_updated_at: 1000, igc_sha256: 'new-hash' });
 });
 
 it('merges only newer metadata, resets provenance, and advances the watermark without an echo', async () => {
@@ -99,6 +131,7 @@ it('selects deletion tombstones oldest first with a deterministic tie-break, lim
   for (const [id, time, next] of [['z', 2000, 0], ['b', 1000, 0], ['a', 1000, 0], ['wait', 500, 3000]]) {
     await db.runAsync('INSERT INTO flight_deletions (flight_id,recording_session_id,deleted_at,next_attempt_at) VALUES (?, ?, ?, ?)', id, id, time, next);
   }
-  expect((await db.getAllAsync<{ flight_id: string }>(PENDING_FLIGHT_DELETIONS_SQL, 2000, 2)).map((f) => f.flight_id)).toEqual(['a', 'b']);
+  expect((await db.getAllAsync<{ flight_id: string }>(PENDING_FLIGHT_DELETIONS_SQL, 0, 2000, 2)).map((f) => f.flight_id)).toEqual(['a', 'b']);
+  expect((await db.getAllAsync<{ flight_id: string }>(PENDING_FLIGHT_DELETIONS_SQL, 1, 2000, 2)).map((f) => f.flight_id)).toEqual(['wait', 'a']);
   expect(await db.getFirstAsync(COUNT_PENDING_SYNC_SQL)).toEqual({ flights: 0, deletions: 4 });
 });

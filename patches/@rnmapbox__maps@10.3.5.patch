@@ -1,0 +1,59 @@
+diff --git a/android/src/main/java/com/rnmapbox/rnmbx/components/mapview/RNMBXMapView.kt b/android/src/main/java/com/rnmapbox/rnmbx/components/mapview/RNMBXMapView.kt
+index ce02ddb4e8005cd78865341cf71e862b3f9859da..97eca5f769431576767eea6061106f2711a0c4a6 100644
+--- a/android/src/main/java/com/rnmapbox/rnmbx/components/mapview/RNMBXMapView.kt
++++ b/android/src/main/java/com/rnmapbox/rnmbx/components/mapview/RNMBXMapView.kt
+@@ -65,7 +65,6 @@ import com.rnmapbox.rnmbx.components.annotation.RNMBXPointAnnotationManagerView
+ import com.rnmapbox.rnmbx.components.images.ImageManager
+ import com.rnmapbox.rnmbx.utils.extensions.toStringKeyPairs
+ 
+-import com.rnmapbox.rnmbx.v11compat.event.*
+ import com.rnmapbox.rnmbx.v11compat.feature.*
+ import com.rnmapbox.rnmbx.v11compat.mapboxmap.*
+ import com.rnmapbox.rnmbx.v11compat.ornamentsettings.*
+@@ -179,6 +178,8 @@ open class RNMBXMapView(private val mContext: Context, var mManager: RNMBXMapVie
+     private var mPreferredFrameRate: Int? = null
+     private var mMaxPitch: Double? = null
+     private lateinit var mMap: MapboxMap
++    private var mapLoadingErrorSubscription: com.mapbox.common.Cancelable? = null
++    private var mapLoadingErrorGeneration = 0
+ 
+     private lateinit var mMapView: MapView
+     val isInitialized: Boolean
+@@ -322,15 +323,24 @@ open class RNMBXMapView(private val mContext: Context, var mManager: RNMBXMapVie
+             }
+         })
+ 
+-        map.subscribe({ event ->
+-            Logger.e(LOG_TAG, String.format("Map load failed: %s", event.data.toString()))
+-            val errorMessage = event.getMapLoadingErrorEventData().message
++        // The v11 compatibility map.subscribe implementation is a no-op.
++        // Subscribe to the SDK event so errors reach onMapLoadingError in JS.
++        cancelMapLoadingErrorSubscription()
++        val generation = mapLoadingErrorGeneration
++        mapLoadingErrorSubscription = map.subscribeMapLoadingError { error ->
++            if (generation != mapLoadingErrorGeneration) return@subscribeMapLoadingError
+             val event = MapChangeEvent(this, EventTypes.MAP_LOADING_ERROR, writableMapOf(
+-                    "error" to errorMessage
++                    "error" to error.message
+             ))
+             mManager.handleEvent(event)
++        }
++    }
+ 
+-                      }, Arrays.asList(MapEvents.MAP_LOADING_ERROR))
++    private fun cancelMapLoadingErrorSubscription() {
++        // Invalidate before cancelling: queued callbacks must not outlive the view.
++        mapLoadingErrorGeneration += 1
++        mapLoadingErrorSubscription?.cancel()
++        mapLoadingErrorSubscription = null
+     }
+ 
+     fun<T> mapGestureBegin(type:MapGestureType, gesture: T) {
+@@ -1579,6 +1589,7 @@ open class RNMBXMapView(private val mContext: Context, var mManager: RNMBXMapVie
+      */
+ 
+     fun onDropViewInstance() {
++        cancelMapLoadingErrorSubscription()
+         removeAllFeaturesFromMap(RemovalReason.ON_DESTROY)
+         mapView.viewAnnotationManager.removeAllViewAnnotations()
+         lifecycle.onDestroy()

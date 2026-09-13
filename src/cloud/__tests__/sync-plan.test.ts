@@ -100,6 +100,15 @@ describe('sync gate', () => {
     expect(evaluateSyncGate({ ...READY, nextAttemptAt: NOW })).toMatchObject({ run: true });
   });
 
+  it('lets a manual retry bypass backoff without bypassing recording or identity guards', () => {
+    const retry = { ...READY, trigger: 'manual' as const, nextAttemptAt: NOW + 30_000 };
+    expect(evaluateSyncGate(retry)).toMatchObject({ run: true });
+    expect(evaluateSyncGate({ ...retry, recorderRecovering: true })).toEqual({ run: false, reason: 'recovering' });
+    expect(evaluateSyncGate({ ...retry, unfinishedSessionStatus: 'recording' })).toEqual({ run: false, reason: 'recording' });
+    expect(evaluateSyncGate({ ...retry, linkedUserId: 'another-account' })).toEqual({ run: false, reason: 'account_mismatch' });
+    expect(evaluateSyncGate({ ...retry, authStatus: 'signed_out' })).toEqual({ run: false, reason: 'signed_out' });
+  });
+
   it('throttles automatic triggers but never a manual one', () => {
     const recent = { ...READY, lastSyncAt: NOW - 1_000 };
     expect(evaluateSyncGate(recent)).toEqual({ run: false, reason: 'throttled' });
@@ -212,7 +221,7 @@ describe('error classification', () => {
 });
 
 describe('IGC upload decisions', () => {
-  const withTrack = { igcSha256: null, metrics: { fixCount: 240, quality: 'healthy' } };
+  const withTrack = { igcSha256: null, igcObjectPath: 'pilot/flight.igc', metrics: { fixCount: 240, quality: 'healthy' } };
 
   it('uploads a flight that has never been uploaded', () => {
     expect(shouldUploadIgc(withTrack, 'sha-a')).toBe(true);
@@ -221,6 +230,10 @@ describe('IGC upload decisions', () => {
   it('skips a flight whose IGC bytes have not changed', () => {
     // The IGC is deterministic, so an unchanged hash means an identical file.
     expect(shouldUploadIgc({ ...withTrack, igcSha256: 'sha-a' }, 'sha-a')).toBe(false);
+  });
+
+  it('repairs a missing IGC object reference even when the stored hash matches', () => {
+    expect(shouldUploadIgc({ ...withTrack, igcSha256: 'sha-a', igcObjectPath: null }, 'sha-a')).toBe(true);
   });
 
   it('re-uploads when the bytes change, e.g. after the pilot fills in their name', () => {

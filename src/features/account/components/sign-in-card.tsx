@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Card, Input, LinkButton, Notice } from '@/components/ui';
+import { Button, Card, Disclaimer, Input, LinkButton, Notice } from '@/components/ui';
 import { OTP_LENGTH } from '@/cloud/config';
 import {
   INITIAL_OTP_STATE,
@@ -26,12 +26,17 @@ export function SignInCard({
   verifyOtp,
   error,
   onClearError,
+  initiallyExpanded = true,
+  showStorageNotice = false,
 }: {
   requestOtp: (email: string) => Promise<void>;
   verifyOtp: (email: string, code: string) => Promise<void>;
   error: string | null;
   onClearError: () => void;
+  initiallyExpanded?: boolean;
+  showStorageNotice?: boolean;
 }) {
+  const [expanded, setExpanded] = useState(initiallyExpanded);
   const [state, setState] = useState<OtpState>(INITIAL_OTP_STATE);
   const [emailInput, setEmailInput] = useState('');
   const [code, setCode] = useState('');
@@ -72,6 +77,15 @@ export function SignInCard({
     }
   };
 
+  if (!expanded) {
+    return (
+      <>
+        {error ? <Notice tone="danger">{error}</Notice> : null}
+        <Button label="Sign in" onPress={() => setExpanded(true)} />
+      </>
+    );
+  }
+
   if (state.stage === 'email') {
     const valid = isValidEmail(emailInput);
     return (
@@ -102,6 +116,12 @@ export function SignInCard({
           disabled={!valid || busy}
           onPress={() => void send(emailInput)}
         />
+        {showStorageNotice ? (
+          <Disclaimer align="left">
+            We store your email, flight summaries and IGC files, including GPS coordinates.
+            Raw sensor and diagnostic samples stay on this phone.
+          </Disclaimer>
+        ) : null}
       </Card>
     );
   }

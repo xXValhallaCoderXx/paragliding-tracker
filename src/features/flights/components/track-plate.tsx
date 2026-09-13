@@ -14,10 +14,8 @@ import { fonts, paper } from '@/ui/theme';
 /**
  * A flight's track, drawn.
  *
- * No basemap and no tiles, which is a decision rather than a shortcut: launches have no
- * signal, and every tile provider's terms restrict the caching that offline would require.
- * So the plate draws what the app actually recorded, over a graticule that carries a real
- * scale — honest at a mountain launch and identical in airplane mode.
+ * The offline fallback for geographic previews. Draws recorded geometry over a graticule
+ * with a real scale, without any image, tile or network dependency.
  *
  * Every decision here was made in `@/lib/track/plate`. Jest never collects `.tsx`, so a rule
  * that lived in this file would be a rule nothing checks; this component reads coordinates

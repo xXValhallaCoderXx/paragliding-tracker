@@ -7,7 +7,8 @@ import { buildReplayGeometry } from '@/lib/replay/geometry';
 import { telemetryAt, type FlightReplay } from '@/lib/replay/model';
 import { REPLAY_SPEEDS } from '@/lib/replay/playback';
 import { fonts, paper } from '@/ui/theme';
-import { ReplayAltitude, ReplayRoute } from './replay-plots';
+import { ReplayAltitude } from './replay-plots';
+import { ReplayMap } from './replay-map';
 import { replayTime } from './replay-time';
 import { ReplayTimeline } from './replay-timeline';
 import { useReplayPlayback } from './use-replay-playback';
@@ -18,17 +19,17 @@ export function ReplayPlayer({ replay }: { replay: Extract<FlightReplay, { kind:
   const geometry = useMemo(() => buildReplayGeometry(points, bounds), [points, bounds]);
   const { controller, state, refresh, reducedMotion } = useReplayPlayback(duration);
   const [scrubbing, setScrubbing] = useState(false);
+  const [mapInteracting, setMapInteracting] = useState(false);
   const timestamp = bounds.startedAt + state.elapsedMs;
   const telemetry = telemetryAt(points, timestamp);
   const seek = (ms: number) => { controller.seek(ms); refresh(); };
   return (
-    <ScrollView scrollEnabled={!scrubbing} contentContainerStyle={styles.content}>
+    <ScrollView scrollEnabled={!scrubbing && !mapInteracting} contentContainerStyle={styles.content}>
       <View style={styles.heading}>
-        <Chip label={replay.partial ? 'Partial flight' : 'Offline replay'} tone={replay.partial ? 'warning' : 'muted'} />
+        <Chip label={replay.partial ? 'Partial flight' : 'Saved replay'} tone={replay.partial ? 'warning' : 'muted'} />
       </View>
       {replay.partial ? <Notice tone="warning">Only the saved portion of this flight is replayed.</Notice> : null}
-      <ReplayRoute geometry={geometry} telemetry={telemetry} />
-      <Text style={styles.caption}>○ First fix · ■ Last fix · Blue pilot{geometry.grid.spacingMetres ? ` · Grid ${formatMetres(geometry.grid.spacingMetres)}` : ''}</Text>
+      <ReplayMap replay={replay} geometry={geometry} telemetry={telemetry} onInteractionChange={setMapInteracting} />
       <View style={styles.readouts}>
         <Readout label="Elapsed" value={replayTime(state.elapsedMs)} />
         <Readout label="GPS altitude" value={formatMetres(telemetry?.altitude ?? null)} />

@@ -68,8 +68,19 @@ export function describeSync(snapshot: SyncSnapshot, now: number): SyncStatusVie
           canSyncNow: false,
         };
       case 'backoff':
+        return {
+          label: 'Could not back up',
+          tone: 'danger',
+          detail: snapshot.lastError ?? 'Backup will retry when you next open the app, or choose Sync now.',
+          canSyncNow: true,
+        };
       case 'throttled':
-        return { label: 'Waiting', tone: 'neutral', detail: pendingDetail(snapshot), canSyncNow: true };
+        return {
+          label: snapshot.lastSyncAt === null ? 'Never' : relativeSyncTime(snapshot.lastSyncAt, now),
+          tone: snapshot.lastSyncAt !== null && snapshot.pendingFlights + snapshot.pendingDeletions === 0 ? 'good' : 'neutral',
+          detail: pendingDetail(snapshot),
+          canSyncNow: true,
+        };
       default:
         return {
           label: 'Unavailable',

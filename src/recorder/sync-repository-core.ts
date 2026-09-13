@@ -277,15 +277,21 @@ export interface FlightSyncCandidateRow {
 }
 
 /**
- * A flight is dirty when it has never been pushed, or when it has changed since the
- * last push. Every existing write path already stamps `flights.updated_at`, so no
- * trigger and no outbox row is needed at write time.
+ * A flight stays dirty until both its metadata and usable IGC are backed up. Missing
+ * artifacts also recover uploads interrupted after older clients advanced the metadata
+ * watermark. Failed attempts stay pending even while their retry delay is active.
  *
  * The two status predicates are the first line of defence against interfering with an
  * active recording: an in-flight session's `updated_at` churns once per second and its
  * metrics are not final, so it is never a candidate. The sync gate refuses to run at
  * all while recording; this predicate makes that independently true.
  */
+const FLIGHT_NEEDS_BACKUP_SQL = `(st.pushed_updated_at IS NULL
+  OR st.pushed_updated_at < f.updated_at
+  OR st.last_error IS NOT NULL
+  OR (m.fix_count > 0 AND m.quality <> 'no_track'
+    AND (st.igc_sha256 IS NULL OR st.igc_object_path IS NULL)))`;
+
 export const DIRTY_FLIGHTS_SQL = `SELECT
   f.*,
   s.status AS session_status,
@@ -312,8 +318,8 @@ LEFT JOIN flight_sync_state st ON st.flight_id = f.id
 LEFT JOIN flight_metrics m ON m.flight_id = f.id
 WHERE s.status = 'completed'
   AND f.status IN ('completed', 'partial')
-  AND (st.pushed_updated_at IS NULL OR st.pushed_updated_at < f.updated_at)
-  AND COALESCE(st.next_attempt_at, 0) <= ?
+  AND ${FLIGHT_NEEDS_BACKUP_SQL}
+  AND (? = 1 OR COALESCE(st.next_attempt_at, 0) <= ?)
 ORDER BY f.started_at ASC, f.id ASC
 LIMIT ?`;
 
@@ -367,9 +373,10 @@ export const COUNT_PENDING_SYNC_SQL = `SELECT
      FROM flights f
      JOIN sessions s ON s.id = f.recording_session_id
      LEFT JOIN flight_sync_state st ON st.flight_id = f.id
+     LEFT JOIN flight_metrics m ON m.flight_id = f.id
     WHERE s.status = 'completed'
       AND f.status IN ('completed', 'partial')
-      AND (st.pushed_updated_at IS NULL OR st.pushed_updated_at < f.updated_at)) AS flights,
+      AND ${FLIGHT_NEEDS_BACKUP_SQL}) AS flights,
   (SELECT COUNT(*) FROM flight_deletions) AS deletions`;
 
 // ---------------------------------------------------------------------------
@@ -391,9 +398,13 @@ ON CONFLICT (flight_id) DO UPDATE SET
   next_attempt_at = 0,
   last_error = NULL`;
 
-export const MARK_FLIGHT_IGC_PUSHED_SQL = `UPDATE flight_sync_state
-SET igc_sha256 = ?, igc_object_path = ?, igc_pushed_at = ?
-WHERE flight_id = ?`;
+export const MARK_FLIGHT_IGC_PUSHED_SQL = `INSERT INTO flight_sync_state
+  (flight_id, igc_sha256, igc_object_path, igc_pushed_at)
+VALUES (?, ?, ?, ?)
+ON CONFLICT (flight_id) DO UPDATE SET
+  igc_sha256 = excluded.igc_sha256,
+  igc_object_path = excluded.igc_object_path,
+  igc_pushed_at = excluded.igc_pushed_at`;
 
 export const RECORD_FLIGHT_SYNC_FAILURE_SQL = `INSERT INTO flight_sync_state
   (flight_id, attempt_count, next_attempt_at, last_error)
@@ -418,7 +429,7 @@ export interface FlightDeletionRow {
 
 export const PENDING_FLIGHT_DELETIONS_SQL = `SELECT *
 FROM flight_deletions
-WHERE next_attempt_at <= ?
+WHERE (? = 1 OR next_attempt_at <= ?)
 ORDER BY deleted_at ASC, flight_id ASC
 LIMIT ?`;
 

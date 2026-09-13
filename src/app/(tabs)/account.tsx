@@ -31,12 +31,12 @@ import {
 } from '@/features/account/components/sign-in-card';
 import { SyncCard } from '@/features/account/components/sync-card';
 import { PRIVACY_POLICY_URL, privacyPolicyReady } from '@/features/account/legal';
-import { backupSummary } from '@/features/logbook/backup-invitation';
+import { backupSummary } from '@/features/logbook/backup-summary';
 import { JournalArt } from '@/components/ui/journal-art';
 import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import type { FlightSummary, PilotProfilePatch } from '@/recorder/types';
 import { useGetFlightsQuery, useGetProfileQuery, useUpdateProfileMutation } from '@/store/endpoints';
-import { fonts, paper, TAB_BAR_HEIGHT } from '@/ui/theme';
+import { fonts, paper } from '@/ui/theme';
 
 /**
  * The pilot's account: who they are, whether their flights have a second copy, and the
@@ -99,8 +99,11 @@ export default function AccountScreen() {
 
   const signOut = async () => {
     setSigningOut(true);
+    setAuthError(null);
     try {
       await auth.signOut();
+    } catch (signOutError) {
+      setAuthError(errorMessage(signOutError));
     } finally {
       setSigningOut(false);
     }
@@ -125,18 +128,11 @@ export default function AccountScreen() {
   const canSignIn = auth.status === 'signed_out';
 
   return (
-    <Screen>
+    <Screen edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
+          <Text style={styles.eyebrow}>YOUR ACCOUNT</Text>
           <Text style={styles.title}>Your pilot page</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-            hitSlop={12}
-            onPress={() => router.push('/settings')}
-            style={({ pressed }) => [styles.gear, pressed && styles.pressed]}>
-            <Text style={styles.gearGlyph}>⚙</Text>
-          </Pressable>
         </View>
 
         <View style={styles.block}>
@@ -160,6 +156,21 @@ export default function AccountScreen() {
             <IdentityCard profile={profile} stats={stats} onEdit={() => setEditing(true)} />
           </View>
         )}
+
+        <View style={styles.block}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            accessibilityHint="Opens recorder, storage and app settings"
+            onPress={() => router.push('/settings')}
+            style={({ pressed }) => [styles.settingsRow, pressed && styles.pressed]}>
+            <View style={styles.settingsText}>
+              <Text style={styles.settingsTitle}>Settings</Text>
+              <Text style={styles.settingsDetail}>Recorder, storage and app details</Text>
+            </View>
+            <Text style={styles.settingsChevron}>›</Text>
+          </Pressable>
+        </View>
 
         {profile && !loading ? (
           <View style={styles.block}>
@@ -193,12 +204,22 @@ export default function AccountScreen() {
         ) : null}
 
         <View style={styles.block}>
-          <SectionLabel>Backup</SectionLabel>
+          <SectionLabel>Account &amp; backup</SectionLabel>
+          {authError ? (
+            <Notice tone="danger" title="That did not work">
+              {authError}
+            </Notice>
+          ) : null}
           {auth.status === 'restoring' ? (
             <RestoringAccountCard />
           ) : auth.status === 'signed_in' ? (
             <>
-              <AccountCard email={auth.email} busy={signingOut} onSignOut={() => void signOut()} />
+              <AccountCard
+                email={auth.email}
+                busy={signingOut}
+                disabled={deleting}
+                onSignOut={() => void signOut()}
+              />
               <SyncCard
                 status={describeSync(sync, now)}
                 onSyncNow={() => sync.requestSync('manual')}
@@ -227,25 +248,21 @@ export default function AccountScreen() {
                 <>
                   <Card className="px-[16px] py-[4px]">
                     <ListRow
-                      label="With a free account"
-                      value="Optional backup"
+                      label="Account"
+                      value="Signed out"
                       mono={false}
-                      tone="good"
-                      showDot
-                      detail="Eligible summaries and IGC files upload when connected. Check sync status for progress or errors."
+                      detail="Sign in for optional cloud backup. Your pilot details and flights stay on this phone."
                       last
                     />
                   </Card>
                   <SignInCard
+                    initiallyExpanded={false}
+                    showStorageNotice
                     requestOtp={auth.requestOtp}
                     verifyOtp={auth.verifyOtp}
-                    error={authError ?? auth.lastError?.message ?? null}
+                    error={authError ? null : auth.lastError?.message ?? null}
                     onClearError={() => setAuthError(null)}
                   />
-                  <Disclaimer align="left">
-                    No password. We store your email, your flight summaries and your IGC files —
-                    IGC files contain GPS coordinates. Raw sensor and diagnostic samples stay on this phone.
-                  </Disclaimer>
                 </>
               ) : null}
             </>
@@ -263,7 +280,11 @@ export default function AccountScreen() {
         ) : null}
 
         {auth.status === 'signed_in' ? (
-          <AccountDangerZone busy={deleting} onDelete={() => void deleteAccount()} />
+          <AccountDangerZone
+            busy={deleting}
+            disabled={signingOut}
+            onDelete={() => void deleteAccount()}
+          />
         ) : null}
       </ScrollView>
 
@@ -316,19 +337,32 @@ function PilotRow({
 }
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: 40 + TAB_BAR_HEIGHT },
+  content: { paddingBottom: 24 },
   header: {
+    gap: 7,
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 14,
+  },
+  eyebrow: { fontFamily: fonts.monoMedium, fontSize: 10, letterSpacing: 1.4, color: paper.muted },
+  title: { fontFamily: fonts.sansBold, fontSize: 30, color: paper.ink, letterSpacing: -0.8 },
+  pressed: { opacity: 0.5 },
+  settingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 6,
+    gap: 16,
+    minHeight: 64,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: paper.border,
+    borderRadius: 22,
+    backgroundColor: paper.card,
   },
-  title: { flex: 1, fontFamily: fonts.sansBold, fontSize: 26, color: paper.ink, letterSpacing: -0.4 },
-  gear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  pressed: { opacity: 0.5 },
-  gearGlyph: { fontSize: 18, color: paper.muted },
+  settingsText: { flex: 1, gap: 4 },
+  settingsTitle: { fontFamily: fonts.sansSemi, fontSize: 16, color: paper.ink },
+  settingsDetail: { fontFamily: fonts.sans, fontSize: 12, lineHeight: 17, color: paper.muted },
+  settingsChevron: { fontFamily: fonts.sans, fontSize: 24, color: paper.muted },
   block: { paddingHorizontal: 18, paddingTop: 10, gap: 10 },
   backupCard: {
     backgroundColor: paper.card,

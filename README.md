@@ -9,13 +9,43 @@ recorder carried on a flight.
 ## Documentation
 
 - [Project overview](./docs/project-overview.md): current features, backup behavior and limits.
-- [Feature plan and roadmap](./docs/feature-plan.md): finish sharing and replay, then explore
-  friends, flying notifications, shared-flight viewing, geographic maps and 3D.
+- [Feature plan and roadmap](./docs/feature-plan.md): saved replay maps, broader sharing/replay
+  acceptance, then friends, shared-flight viewing and future maps.
+- [Saved replay maps](./docs/saved-replay-maps.md): Mapbox decision, configuration and Android checks.
 - [Email setup](./docs/email-setup.md): hosted sign-in email configuration.
 
 Postcard PNG sharing and offline 2D replay are implemented. Full device acceptance remains
 pending; the roadmap carries the remaining checks. Recording works without an account, and
 backup does not yet restore a logbook onto a new phone. Development and test commands follow.
+
+## Mapbox configuration
+
+The saved replay map integration selects `@rnmapbox/maps` 10.3.5 with Mapbox Outdoors v12.
+Copy the Mapbox account's public access token (beginning `pk.`) into `.env.local` as
+`EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN`. This value is bundled into the app and is public. The selected
+Android SDK path requires no secret download token. An absent map token leaves Grid replay usable.
+
+For EAS preview builds, add `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` to the project's **preview**
+environment with **plaintext** visibility and the same public token value. EAS does not upload
+ignored `.env.local`; confirm the build uses the preview environment. Changing a token requires
+rebundling a standalone APK. Do not put private Mapbox credentials into `EXPO_PUBLIC_*` variables.
+
+The native map module/config plugin requires an Android rebuild; Fast Refresh or the earlier APK
+cannot add it. Preserve the existing signing key and phone logbook, follow the in-place prebuild
+and compatible installation steps below, then run the [map phone checklist](./docs/saved-replay-maps.md#android-acceptance).
+Native compatibility and acceptance results are tracked separately in that document and Linear.
+The approved replay UI opens Map when configured, automatically falls back to Grid for missing
+configuration, native failure or a 15-second timeout, and offers **Retry map** after a failed
+attempt. There is no Map/Grid selector. The approved **Fit flight** target icon sits inside the
+map at bottom right and refits the entire recorded route after pan/zoom. The target overlay has
+passed a phone pan/refit check; named-build details are in the map guide.
+Physical failure/retry and offline fallback on this UI remain pending; the earlier manual-selector
+and offline Grid observations belong to APK `ef8278c3f6ad`. EAS preview remains unconfigured.
+
+PAR-30 adds static Outdoors images to Logbook cards and flight details, with locally drawn route
+and Start/Stop markers, no pilot, and automatic Grid while images load/fail/time out. The provider
+receives viewport requests without encoded route overlays. Static list/detail rendering, card
+navigation and visible attribution passed on the installed combined build; broader checks remain open.
 
 ## Accounts and cloud backup
 
@@ -32,6 +62,10 @@ ceiling, and pinned to `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY` so a token refresh 
 the recorder runs with the screen locked. Sessions written by an earlier build are migrated out of
 `expo-sqlite/localStorage` on first read.
 
+The pilot profile is stored locally and does not mean a cloud account is signed in.
+Account shows the current sign-in state: **Sign in** opens the email-code form;
+an active session shows its email and **Log out**. Upload progress is shown separately.
+
 **Backup is push-only.** The phone is the source of truth:
 
 - Flight facts (status, timestamps, metrics, IGC references) are pushed and never pulled.
@@ -40,6 +74,11 @@ the recorder runs with the screen locked. Sessions written by an earlier build a
 - A deletion on this phone is pushed; a deletion elsewhere never removes local evidence.
 - Raw fixes and pressure samples are never uploaded — the derived IGC file is the archive.
 - A fresh install does **not** re-download flights. Cloud-only flights are counted and shown.
+
+**Sync now** retries immediately, including flights delayed after a failed attempt.
+Automatic triggers keep their retry delay. Failures remain visible until the next attempt,
+and a flight stays pending until its metadata and any usable IGC have both uploaded.
+Backup resumes after the recorder finishes its startup or foreground recovery check.
 
 **Backup never competes with capture.** `evaluateSyncGate` refuses to run while a session is
 recording, and the dirty-flight query independently excludes anything that is not a completed
