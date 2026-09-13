@@ -62,6 +62,10 @@ ceiling, and pinned to `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY` so a token refresh 
 the recorder runs with the screen locked. Sessions written by an earlier build are migrated out of
 `expo-sqlite/localStorage` on first read.
 
+The pilot profile is stored locally and does not mean a cloud account is signed in.
+Account shows the current sign-in state: **Sign in** opens the email-code form;
+an active session shows its email and **Log out**. Upload progress is shown separately.
+
 **Backup is push-only.** The phone is the source of truth:
 
 - Flight facts (status, timestamps, metrics, IGC references) are pushed and never pulled.
@@ -70,6 +74,11 @@ the recorder runs with the screen locked. Sessions written by an earlier build a
 - A deletion on this phone is pushed; a deletion elsewhere never removes local evidence.
 - Raw fixes and pressure samples are never uploaded — the derived IGC file is the archive.
 - A fresh install does **not** re-download flights. Cloud-only flights are counted and shown.
+
+**Sync now** retries immediately, including flights delayed after a failed attempt.
+Automatic triggers keep their retry delay. Failures remain visible until the next attempt,
+and a flight stays pending until its metadata and any usable IGC have both uploaded.
+Backup resumes after the recorder finishes its startup or foreground recovery check.
 
 **Backup never competes with capture.** `evaluateSyncGate` refuses to run while a session is
 recording, and the dirty-flight query independently excludes anything that is not a completed

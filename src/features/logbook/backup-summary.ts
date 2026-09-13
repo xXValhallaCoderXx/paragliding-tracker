@@ -2,15 +2,6 @@ import type { CloudAuthStatus } from '@/cloud/types';
 
 export const LOCAL_FLIGHTS_COPY = 'Recording stays available without an account. Saved flights are never automatically removed.';
 
-export function backupInvitation(status: CloudAuthStatus, linkedUserId: string | null) {
-  if (status !== 'signed_out') return null;
-  return {
-    title: linkedUserId ? 'Reconnect your backup' : 'Keep a second copy',
-    body: `${LOCAL_FLIGHTS_COPY} Sign in to back up eligible flight summaries and IGC files when a connection is available. Check progress on your pilot page.`,
-    action: linkedUserId ? 'Sign back in' : 'Explore backup',
-  };
-}
-
 export function backupSummary(status: CloudAuthStatus, linkedUserId: string | null) {
   return {
     headline: status === 'signed_in' ? 'Backup status' : 'Saved on this phone',

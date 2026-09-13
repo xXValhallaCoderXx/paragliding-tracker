@@ -5,8 +5,6 @@ import { useFocusEffect, useIsFocused, useRouter } from 'expo-router';
 import {
   BusyRow,
   Button,
-  Disclaimer,
-  LinkButton,
   Notice,
   Screen,
   SectionLabel,
@@ -17,7 +15,6 @@ import { FlightCard } from '@/features/logbook/components/flight-card';
 import { OpenFlightCard } from '@/features/logbook/components/open-flight-card';
 import { RecordFab } from '@/features/logbook/components/record-fab';
 import { SeasonCard } from '@/features/logbook/components/season-card';
-import { useCloudAuth } from '@/features/account/auth-provider';
 import { useCloudSync } from '@/features/account/cloud-sync-provider';
 import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import { recorderService } from '@/recorder/recorder-service';
@@ -31,7 +28,6 @@ import {
 import { errorMessage } from '@/lib/format/error-message';
 import type { TrackSegments } from '@/lib/track/types';
 import { setupChecklist, type ChecklistKey } from '@/features/logbook/setup-checklist';
-import { backupInvitation } from '@/features/logbook/backup-invitation';
 import { buildLogbookLayout, seasonSummary } from '@/features/logbook/logbook';
 import { fonts, paper } from '@/ui/theme';
 
@@ -47,9 +43,7 @@ export default function LogbookScreen() {
   const router = useRouter();
   const focused = useIsFocused();
   const recorderLifecycle = useRecorderLifecycle();
-  const auth = useCloudAuth();
   const sync = useCloudSync();
-  const [backupDismissed, setBackupDismissed] = useState(false);
   const [visibleFlightIds, setVisibleFlightIds] = useState<ReadonlySet<string>>(() => new Set());
   const onViewableItemsChanged = useCallback<NonNullable<SectionListProps<FlightSummary>['onViewableItemsChanged']>>(
     ({ viewableItems }) => {
@@ -143,7 +137,6 @@ export default function LogbookScreen() {
         : null,
     [profile, capabilities, appSettings],
   );
-  const invitation = backupInvitation(auth.status, sync.linkedUserId);
 
   const recorderBusy = !recorderLifecycle.ready || recorderLifecycle.recovering;
   const openFlight = layout.open;
@@ -151,10 +144,6 @@ export default function LogbookScreen() {
   const openWithIntent = (intent: 'resume' | 'finalize') =>
     router.push({ pathname: '/record', params: { intent } });
   const isEmpty = !loading && !error && flights.length === 0;
-  // Never while the list is stale: loading and the recovery path both leave `flights`
-  // holding whatever was there before, and a count taken from that would be a lie.
-  const showBackup =
-    invitation !== null && flights.length > 0 && !backupDismissed && !skip && !loading && !error;
   const pilotFirstName = profile?.pilotName?.trim().split(/\s+/)[0];
   const showRecordFab = !loading && !isEmpty && openFlight?.sessionStatus !== 'interrupted';
 
@@ -274,14 +263,6 @@ export default function LogbookScreen() {
           </View>
         ) : null}
 
-        {showBackup && invitation ? (
-          <View style={[styles.block, styles.gap]}>
-            <Notice tone="info" title={invitation.title}>{invitation.body}</Notice>
-            <Button label={invitation.action} onPress={() => router.push('/account')} />
-            <LinkButton label="Not now" onPress={() => setBackupDismissed(true)} />
-          </View>
-        ) : null}
-
         </>}
         ListEmptyComponent={isEmpty ? (
           <EmptyLogbook
@@ -296,12 +277,6 @@ export default function LogbookScreen() {
             disabled={recorderBusy}
             busyLabel={recorderLifecycle.recovering ? 'Checking recorder…' : null}
           />
-        ) : null}
-        ListFooterComponent={!isEmpty ? (
-          <Disclaimer className="mt-[26px] px-[32px]">
-            Personal alpha. Not a certified flight recorder — never fly with this as your only
-            recorder. Long-duration and locked-screen recording are still being validated.
-          </Disclaimer>
         ) : null}
       />
 

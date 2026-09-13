@@ -178,9 +178,37 @@ files drifted; fix them and re-paste.
 
 | Symptom | Cause |
 | --- | --- |
+| Account service unreachable while other sites work | Check the configured Supabase hostname and project status first. A paused project can stop resolving in DNS, so the request never reaches Auth or SMTP. Resume the existing project in Supabase; changing client keys does not repair this. |
 | Resend shows nothing in Logs | Supabase never called it — SMTP settings wrong, or you are still on the built-in sender |
 | `403` in Resend Logs | Sender address is not on a verified domain |
 | Domain never verifies | Records went into the wrong zone — a different domain you also own — or the Host field has the domain appended twice. Check both; neither reports an error |
 | Works for you, nobody else | Still on the built-in sender: it refuses to deliver to anyone outside the project team, on every plan |
 | Code arrives, app says expired | Codes expire after `otp_expiry` (3600 s); resend cooldown is 60 s |
 | "Too many codes requested" | Step 5 was skipped |
+
+### Paused backend check
+
+On 13 September 2026, the installed APK targeted the correct project,
+`dqbmbkalksunxbjldxdo` (Paragliding Tracking), with its client key present. The
+project reported `INACTIVE`; its hostname returned NXDOMAIN from public DNS and
+could not resolve on the phone, while other services remained reachable. The
+older app message, "No connection. Try again when you have signal.", incorrectly
+suggested that phone connectivity was the only possible cause. Auth transport
+errors now say that the account service could not be reached.
+
+See [Supabase project pausing](https://supabase.com/docs/guides/platform/free-project-pausing)
+for the resume procedure. After resuming, verify `ACTIVE_HEALTHY`, DNS resolution,
+and successful reads of Auth health/settings with the configured client key.
+These checks establish service availability; the user must still request and
+verify an email code to establish end-to-end sign-in and delivery.
+
+The user completed email-code sign-in on the installed Android app after the
+project resumed. Backup then exposed a separate deployment gap: the hosted
+database lacked `profiles.registration_id`, which the APK writes and reads.
+The pending migration was `20260820120000_profile_site_columns.sql`. Before
+applying it, check its removal of `home_site` against existing data; the affected
+project had no stored values in that column.
+
+If sign-in works but backup fails, compare `supabase migration list` with the
+checkout before changing Auth or SMTP settings. Verify a phone sync and its IGC
+objects after schema repair; a successful sign-in alone does not verify backup.

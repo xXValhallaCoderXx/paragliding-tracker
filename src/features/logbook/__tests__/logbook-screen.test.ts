@@ -2,7 +2,7 @@ import React from 'react';
 import { SectionList } from 'react-native';
 
 import LogbookScreen from '@/app/(tabs)';
-import { BusyRow, Disclaimer } from '@/components/ui';
+import { BusyRow } from '@/components/ui';
 import { EmptyLogbook } from '../components/empty-logbook';
 import { OpenFlightCard } from '../components/open-flight-card';
 import { RecordFab } from '../components/record-fab';
@@ -16,7 +16,7 @@ const mockPush = jest.fn();
 const mockRouter = { push: mockPush };
 const mockRefetch = jest.fn();
 const mockRefetchTracks = jest.fn();
-const mockSync = { requestSync: jest.fn(), linkedUserId: null };
+const mockSync = { requestSync: jest.fn() };
 let mockFocused = true;
 let mockRecovering = false;
 let mockFlights: FlightSummary[] = [];
@@ -30,7 +30,6 @@ jest.mock('expo-router', () => ({
 jest.mock('@/features/record/recorder-lifecycle', () => ({
   useRecorderLifecycle: () => ({ ready: true, recovering: mockRecovering, recoveryError: null }),
 }));
-jest.mock('@/features/account/auth-provider', () => ({ useCloudAuth: () => ({ status: 'unconfigured' }) }));
 jest.mock('@/features/account/cloud-sync-provider', () => ({ useCloudSync: () => mockSync }));
 jest.mock('@/recorder/recorder-service', () => ({ recorderService: { getCapabilities: async () => null } }));
 jest.mock('@/store/endpoints', () => ({
@@ -47,8 +46,8 @@ jest.mock('../components/season-card', () => ({ SeasonCard: () => null }));
 jest.mock('../components/setup-checklist-card', () => ({ SetupChecklistCard: () => null }));
 jest.mock('@/components/ui', () => ({
   Screen: ({ children }: { children: React.ReactNode }) => children,
-  BusyRow: () => null, Button: () => null, Disclaimer: () => null,
-  LinkButton: () => null, Notice: () => null, SectionLabel: () => null,
+  BusyRow: () => null, Button: () => null,
+  Notice: () => null, SectionLabel: () => null,
 }));
 
 type TestNode = { props: Record<string, any> };
@@ -94,7 +93,6 @@ it('keeps pinned content, month headings, empty content and refresh controls beh
   await act(async () => { rendered = create(React.createElement(LogbookScreen)); });
   expect(rendered.root.findByType(OpenFlightCard).props.flight.id).toBe('open');
   expect(rendered.root.findAllByType(SeasonCard)).toHaveLength(1);
-  expect(rendered.root.findAllByType(Disclaimer)).toHaveLength(1);
   expect(rendered.root.findAllByType(EmptyLogbook)).toHaveLength(0);
   const sections = list().sections;
   expect(sections.map((section: { data: FlightSummary[] }) => section.data.map((item) => item.id))).toEqual([['august'], ['july']]);
@@ -114,7 +112,6 @@ it('keeps pinned content, month headings, empty content and refresh controls beh
   mockFlights = [];
   await update();
   expect(rendered.root.findAllByType(EmptyLogbook)).toHaveLength(1);
-  expect(rendered.root.findAllByType(Disclaimer)).toHaveLength(0);
   expect(rendered.root.findAllByType(RecordFab)).toHaveLength(0);
   mockRefetch.mockClear();
   list().refreshControl.props.onRefresh();

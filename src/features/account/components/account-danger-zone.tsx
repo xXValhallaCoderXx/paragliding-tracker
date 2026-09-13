@@ -14,7 +14,15 @@ import { fonts, paper } from '@/ui/theme';
  * recordings are theirs, and losing them to an account action would be a serious
  * surprise.
  */
-export function AccountDangerZone({ busy, onDelete }: { busy: boolean; onDelete: () => void }) {
+export function AccountDangerZone({
+  busy,
+  disabled = false,
+  onDelete,
+}: {
+  busy: boolean;
+  disabled?: boolean;
+  onDelete: () => void;
+}) {
   const confirm = () => {
     Alert.alert(
       'Delete your account?',
@@ -37,7 +45,7 @@ export function AccountDangerZone({ busy, onDelete }: { busy: boolean; onDelete:
         label={busy ? 'Deleting…' : 'Delete account permanently'}
         variant="danger"
         busy={busy}
-        disabled={busy}
+        disabled={disabled || busy}
         onPress={confirm}
       />
     </View>

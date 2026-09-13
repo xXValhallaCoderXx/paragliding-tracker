@@ -78,7 +78,10 @@ function publish(patch: Partial<SyncSnapshot>): SyncSnapshot {
 }
 
 function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message;
+  }
+  return String(error);
 }
 
 async function refreshCounts(): Promise<void> {
@@ -119,8 +122,9 @@ async function pushProfile(userId: string): Promise<void> {
   await markPilotProfilePushed(profile.updatedAt);
 }
 
-async function pushDeletions(userId: string, now: number): Promise<void> {
-  const tombstones = await listPendingFlightDeletions(CLOUD_CONFIG.pushBatchSize, now);
+async function pushDeletions(userId: string, now: number, ignoreBackoff: boolean): Promise<unknown[]> {
+  const failures: unknown[] = [];
+  const tombstones = await listPendingFlightDeletions(CLOUD_CONFIG.pushBatchSize, now, { ignoreBackoff });
   for (const tombstone of tombstones) {
     try {
       // Storage first: an orphaned object nobody can list is worse than a flight row
@@ -148,8 +152,10 @@ async function pushDeletions(userId: string, now: number): Promise<void> {
         messageOf(error),
         kind === 'fatal' ? now + CLOUD_CONFIG.backoffMaxMs : backoff.nextAttemptAt,
       );
+      failures.push(error);
     }
   }
+  return failures;
 }
 
 async function pushIgc(flight: FlightSyncCandidate, userId: string): Promise<void> {
@@ -190,8 +196,9 @@ async function pushIgc(flight: FlightSyncCandidate, userId: string): Promise<voi
   await markFlightIgcPushed({ flightId: flight.id, sha256, objectPath, pushedAt: Date.now() });
 }
 
-async function pushFlights(userId: string, now: number): Promise<void> {
-  const flights = await listDirtyFlights(CLOUD_CONFIG.pushBatchSize, now);
+async function pushFlights(userId: string, now: number, ignoreBackoff: boolean): Promise<unknown[]> {
+  const failures: unknown[] = [];
+  const flights = await listDirtyFlights(CLOUD_CONFIG.pushBatchSize, now, { ignoreBackoff });
   for (const flight of flights) {
     try {
       const { data, error } = await getSupabase()
@@ -201,13 +208,15 @@ async function pushFlights(userId: string, now: number): Promise<void> {
         .single();
       if (error) throw error;
 
+      // Only acknowledge the flight after its required IGC has reached the server.
+      // An upload failure must leave the flight pending for the next attempt.
+      await pushIgc(flight, userId);
+
       await markFlightPushed({
         flightId: flight.id,
         pushedUpdatedAt: flight.updatedAt,
         remoteUpdatedAt: String(data?.updated_at ?? ''),
       });
-
-      await pushIgc(flight, userId);
     } catch (error) {
       const kind = classifySyncError(error);
       if (kind === 'reauth') throw error;
@@ -218,8 +227,10 @@ async function pushFlights(userId: string, now: number): Promise<void> {
         // A row the server will never accept is parked rather than retried every cycle.
         kind === 'fatal' ? now + CLOUD_CONFIG.backoffMaxMs : backoff.nextAttemptAt,
       );
+      failures.push(error);
     }
   }
+  return failures;
 }
 
 // ---------------------------------------------------------------------------
@@ -310,7 +321,11 @@ async function runCycle(trigger: SyncTrigger, recorderRecovering: boolean): Prom
   }
   // Published before the gate, because the gate blocks on every guest cycle and the
   // logbook needs to know whether this phone has ever had an account.
-  publish({ linkedUserId: link.userId });
+  publish({
+    linkedUserId: link.userId,
+    lastSyncAt: link.lastSyncAt,
+    lastError: link.lastSyncError,
+  });
 
   // Read straight from the database rather than subscribing to recorderService: its
   // subscribe() starts a 1 Hz poll, far too expensive to hold open just to observe state.
@@ -344,10 +359,15 @@ async function runCycle(trigger: SyncTrigger, recorderRecovering: boolean): Prom
     if (gate.bindTo) await bindCloudLink(gate.bindTo, now);
 
     await pushProfile(userId);
-    await pushDeletions(userId, now);
-    await pushFlights(userId, now);
+    const ignoreBackoff = trigger === 'manual';
+    const failures = await pushDeletions(userId, now, ignoreBackoff);
+    failures.push(...await pushFlights(userId, now, ignoreBackoff));
     await pullProfile(userId);
     await pullFlights(userId, link.flightsCursor);
+
+    // Let independent rows finish, but never report a completed backup while a row
+    // failed. Its own retry state remains stored even after this cycle ends.
+    if (failures.length > 0) throw failures[0];
 
     cycleAttemptCount = 0;
     cycleNextAttemptAt = 0;
@@ -359,7 +379,9 @@ async function runCycle(trigger: SyncTrigger, recorderRecovering: boolean): Prom
     if (kind === 'reauth') {
       // The token is no longer accepted. Sign out so the account screen offers a way
       // back in, rather than retrying with a credential the server has rejected.
-      await cloudAuthService.signOut();
+      // A failed logout already reports its error through the auth snapshot. Keep
+      // this cycle's original sync error and retry schedule even if logout fails.
+      await cloudAuthService.signOut().catch(() => undefined);
     }
     const backoff = nextBackoff(cycleAttemptCount, now, Math.random);
     cycleAttemptCount = backoff.attemptCount;

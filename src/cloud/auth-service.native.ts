@@ -63,7 +63,7 @@ function failureCodeFor(error: AuthError): CloudFailureCode {
 function toCloudError(error: unknown, fallbackCode: CloudFailureCode): CloudError {
   if (error instanceof CloudError) return error;
   if (isOfflineError(error)) {
-    return new CloudError('offline', 'No connection. Try again when you have signal.', {
+    return new CloudError('offline', 'Could not reach the account service. Try again shortly.', {
       cause: error,
     });
   }
@@ -225,13 +225,12 @@ class SupabaseAuthService implements CloudAuthService {
     try {
       const { error } = await getSupabase().auth.signOut();
       if (error) throw error;
-    } catch (error) {
-      // Even a failed sign-out must leave the app signed out locally: the stored
-      // session is already gone in every case that matters, and refusing to sign out
-      // because the network is down would trap the pilot.
-      if (__DEV__) console.warn('Cloud sign-out failed', error);
-    } finally {
       this.update({ status: 'signed_out', userId: null, email: null, lastError: null });
+    } catch (error) {
+      // An expired session can fail to refresh before auth-js removes it. Preserve
+      // the current state and allow retry. If auth-js already cleared the session,
+      // its SIGNED_OUT event has updated the snapshot independently.
+      this.fail(error, 'auth_error');
     }
   }
 

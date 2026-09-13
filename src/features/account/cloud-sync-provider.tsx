@@ -45,10 +45,11 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
   // time the engine publishes. A ref keeps the value current without touching identity.
   // Reading a ref inside a callback is fine; only reading one during render is what the
   // React Compiler rules forbid.
-  const recoveringRef = useRef(recorderLifecycle.recovering);
+  const recorderRecovering = !recorderLifecycle.ready || recorderLifecycle.recovering;
+  const recoveringRef = useRef(recorderRecovering);
   useEffect(() => {
-    recoveringRef.current = recorderLifecycle.recovering;
-  }, [recorderLifecycle.recovering]);
+    recoveringRef.current = recorderRecovering;
+  }, [recorderRecovering]);
 
   const requestSync = useCallback(
     (trigger: SyncTrigger) => {
@@ -73,12 +74,20 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
     return () => subscription.remove();
   }, [enabled, requestSync]);
 
-  // Signing in claims the whole existing logbook, so kick a cycle as soon as it happens.
+  // Sign-in and completed recorder recovery both make a deferred backup eligible.
   const signedInUserId = auth.status === 'signed_in' ? auth.userId : null;
   useEffect(() => {
-    if (!enabled || signedInUserId === null) return;
-    requestSync('post-sign-in');
-  }, [enabled, signedInUserId, requestSync]);
+    if (!enabled || signedInUserId === null || recorderRecovering) return;
+    let current = true;
+    void cloudSyncEngine.requestSync('post-sign-in', { recorderRecovering: false }).then((result) => {
+      // The engine coalesces overlapping requests. If this joined a cycle that
+      // already captured recovery=true, wait for it to release its slot and retry.
+      if (current && !recoveringRef.current && result.phase === 'blocked' && result.blockedBy === 'recovering') {
+        requestSync('post-sign-in');
+      }
+    });
+    return () => { current = false; };
+  }, [enabled, signedInUserId, recorderRecovering, requestSync]);
 
   const userId = auth.userId;
   const rebindToCurrentAccount = useCallback(async () => {

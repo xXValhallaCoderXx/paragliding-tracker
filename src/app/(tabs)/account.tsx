@@ -31,7 +31,7 @@ import {
 } from '@/features/account/components/sign-in-card';
 import { SyncCard } from '@/features/account/components/sync-card';
 import { PRIVACY_POLICY_URL, privacyPolicyReady } from '@/features/account/legal';
-import { backupSummary } from '@/features/logbook/backup-invitation';
+import { backupSummary } from '@/features/logbook/backup-summary';
 import { JournalArt } from '@/components/ui/journal-art';
 import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import type { FlightSummary, PilotProfilePatch } from '@/recorder/types';
@@ -99,8 +99,11 @@ export default function AccountScreen() {
 
   const signOut = async () => {
     setSigningOut(true);
+    setAuthError(null);
     try {
       await auth.signOut();
+    } catch (signOutError) {
+      setAuthError(errorMessage(signOutError));
     } finally {
       setSigningOut(false);
     }
@@ -201,12 +204,22 @@ export default function AccountScreen() {
         ) : null}
 
         <View style={styles.block}>
-          <SectionLabel>Backup</SectionLabel>
+          <SectionLabel>Account &amp; backup</SectionLabel>
+          {authError ? (
+            <Notice tone="danger" title="That did not work">
+              {authError}
+            </Notice>
+          ) : null}
           {auth.status === 'restoring' ? (
             <RestoringAccountCard />
           ) : auth.status === 'signed_in' ? (
             <>
-              <AccountCard email={auth.email} busy={signingOut} onSignOut={() => void signOut()} />
+              <AccountCard
+                email={auth.email}
+                busy={signingOut}
+                disabled={deleting}
+                onSignOut={() => void signOut()}
+              />
               <SyncCard
                 status={describeSync(sync, now)}
                 onSyncNow={() => sync.requestSync('manual')}
@@ -235,25 +248,21 @@ export default function AccountScreen() {
                 <>
                   <Card className="px-[16px] py-[4px]">
                     <ListRow
-                      label="With a free account"
-                      value="Optional backup"
+                      label="Account"
+                      value="Signed out"
                       mono={false}
-                      tone="good"
-                      showDot
-                      detail="Eligible summaries and IGC files upload when connected. Check sync status for progress or errors."
+                      detail="Sign in for optional cloud backup. Your pilot details and flights stay on this phone."
                       last
                     />
                   </Card>
                   <SignInCard
+                    initiallyExpanded={false}
+                    showStorageNotice
                     requestOtp={auth.requestOtp}
                     verifyOtp={auth.verifyOtp}
-                    error={authError ?? auth.lastError?.message ?? null}
+                    error={authError ? null : auth.lastError?.message ?? null}
                     onClearError={() => setAuthError(null)}
                   />
-                  <Disclaimer align="left">
-                    No password. We store your email, your flight summaries and your IGC files —
-                    IGC files contain GPS coordinates. Raw sensor and diagnostic samples stay on this phone.
-                  </Disclaimer>
                 </>
               ) : null}
             </>
@@ -271,7 +280,11 @@ export default function AccountScreen() {
         ) : null}
 
         {auth.status === 'signed_in' ? (
-          <AccountDangerZone busy={deleting} onDelete={() => void deleteAccount()} />
+          <AccountDangerZone
+            busy={deleting}
+            disabled={signingOut}
+            onDelete={() => void deleteAccount()}
+          />
         ) : null}
       </ScrollView>
 

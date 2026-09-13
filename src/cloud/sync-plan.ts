@@ -60,7 +60,9 @@ export function evaluateSyncGate(input: SyncGateInput): SyncGateDecision {
     // is not 'completed' so the push query excludes it anyway.
     return { run: false, reason: 'recording' };
   }
-  if (input.now < input.nextAttemptAt) return { run: false, reason: 'backoff' };
+  if (input.trigger !== 'manual' && input.now < input.nextAttemptAt) {
+    return { run: false, reason: 'backoff' };
+  }
   if (
     input.trigger !== 'manual' &&
     input.lastSyncAt !== null &&
@@ -189,6 +191,7 @@ export function classifySyncError(error: unknown): SyncErrorKind {
 
 export interface IgcUploadCandidate {
   igcSha256: string | null;
+  igcObjectPath?: string | null;
   metrics: { fixCount: number; quality: string } | null;
 }
 
@@ -202,7 +205,7 @@ export interface IgcUploadCandidate {
  */
 export function shouldUploadIgc(candidate: IgcUploadCandidate, freshSha256: string): boolean {
   if (!hasUsableTrack(candidate)) return false;
-  return candidate.igcSha256 !== freshSha256;
+  return candidate.igcSha256 !== freshSha256 || !candidate.igcObjectPath;
 }
 
 export function hasUsableTrack(candidate: IgcUploadCandidate): boolean {
