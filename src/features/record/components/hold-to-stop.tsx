@@ -23,6 +23,19 @@ export function HoldToStop({
   const animation = useRef<Animated.CompositeAnimation | null>(null);
   const [holding, setHolding] = useState(false);
   const [screenReader, setScreenReader] = useState(false);
+  const generation = useRef(0);
+  const confirm = useRef({ disabled, onConfirm });
+  useEffect(() => { confirm.current = { disabled, onConfirm }; }, [disabled, onConfirm]);
+  useEffect(() => {
+    if (!disabled) return;
+    const cancelled = ++generation.current;
+    animation.current?.stop();
+    animation.current = null;
+    progress.stopAnimation(() => {
+      if (generation.current === cancelled) setHolding(false);
+    });
+    progress.setValue(0);
+  }, [disabled, progress]);
 
   useEffect(() => {
     let mounted = true;
@@ -42,12 +55,14 @@ export function HoldToStop({
 
   useEffect(
     () => () => {
+      generation.current += 1;
       animation.current?.stop();
     },
     [],
   );
 
   const reset = (animated: boolean) => {
+    generation.current += 1;
     animation.current?.stop();
     animation.current = null;
     setHolding(false);
@@ -65,6 +80,7 @@ export function HoldToStop({
 
   const beginHold = () => {
     if (disabled || screenReader) return;
+    const attempt = ++generation.current;
     setHolding(true);
     progress.setValue(0);
     const timing = Animated.timing(progress, {
@@ -75,18 +91,24 @@ export function HoldToStop({
     });
     animation.current = timing;
     timing.start(({ finished }) => {
-      if (!finished) return;
+      if (!finished || generation.current !== attempt || confirm.current.disabled) return;
       animation.current = null;
       setHolding(false);
       progress.setValue(0);
-      onConfirm();
+      confirm.current.onConfirm();
     });
   };
 
   const confirmWithDialog = () => {
+    const attempt = ++generation.current;
     Alert.alert('Stop recording?', 'Use this after you have landed. The flight is saved on this phone.', [
       { text: 'Keep recording', style: 'cancel' },
-      { text: 'Stop and save', style: 'destructive', onPress: onConfirm },
+      { text: 'Stop and save', style: 'destructive', onPress: () => {
+        if (generation.current === attempt && !confirm.current.disabled) {
+          generation.current += 1;
+          confirm.current.onConfirm();
+        }
+      } },
     ]);
   };
 

@@ -22,7 +22,7 @@ it('leaves an older APK usable without evaluating its missing map package', asyn
     }));
     expect(onError).not.toHaveBeenCalled();
   });
-  expect(onError).toHaveBeenCalledWith(expect.stringContaining('Grid replay'));
+  expect(onError).toHaveBeenCalledWith(expect.stringContaining('Grid'));
   expect(onReady).not.toHaveBeenCalled();
   await act(async () => rendered.unmount());
 });

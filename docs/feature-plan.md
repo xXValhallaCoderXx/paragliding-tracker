@@ -3,6 +3,11 @@
 Updated 12 September 2026. This is a proposed product direction, not a delivery schedule or a
 claim that future features exist. The [project overview](./project-overview.md) describes today.
 
+19 September implementation update: PAR-29's optional in-flight map is now implemented locally,
+with Android acceptance still pending. Its [implementation and acceptance guide](./in-flight-map.md)
+supersedes the provisional in-flight direction below. PAR-32 archive pagination and PAR-33 replay
+bookmark maintenance are included as separate changes; hosted/device acceptance is still distinct.
+
 The direction is a useful personal flight journal that becomes more enjoyable with friends:
 share a flight, know when friends are recording, and eventually explore their flights together.
 Keep recording available offline and without an account as the social features grow.
@@ -31,8 +36,8 @@ do not need 3D maps. Shared completed flights can initially use the existing 2D 
 Cloud restoration is a separate supporting track; social viewing must not require inventing
 local recorder evidence for somebody else's flight.
 
-Downloadable map areas and an optional map during the pilot's own recording are separate future
-increments. They are outside the current cycle; their ordering against social work remains open.
+Downloadable map areas remain future work. The optional map during the pilot's own recording
+now has a local implementation; its measured Android acceptance is the next feature-specific gate.
 
 ## 1. Add a geographic map to saved replay
 
@@ -95,10 +100,10 @@ PAR-27 retains forced failure/offline/retry, Malaysian coverage and long-list st
 placed correctly, replay timing remains honest, and the offline grid works when tiles cannot load.
 The [map implementation guide](./saved-replay-maps.md) records the chosen configuration and checks.
 
-**Future map work:** PAR-28 adds downloadable map areas for offline flying and replay. PAR-29 adds
-an optional on-device map during the pilot's own recording using captured fixes. Both remain in
-Backlog outside Cycle 1; map downloads need permitted provider terms, storage limits,
-attribution and deletion behavior. Neither feature publishes live location to anyone else.
+**Map work:** PAR-28 remains future downloadable map areas for offline flying and replay;
+it needs permitted provider terms, storage limits, attribution and deletion behavior.
+PAR-29's local optional in-flight map consumes captured fixes and awaits PAR-37 Android acceptance.
+Neither feature publishes live location to anyone else.
 
 ## 2. Finish flight sharing for social media
 

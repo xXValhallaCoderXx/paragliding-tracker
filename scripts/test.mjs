@@ -7,6 +7,7 @@ const commands = {
   types: [[bin('tsc'), '--noEmit']],
   lint: [[bin('eslint'), '.'], [process.execPath, '--test', 'scripts/eslint/architecture.test.cjs']],
   unit: [[bin('jest'), '--runInBand']],
+  functions: [[process.execPath, 'scripts/test-functions.mjs']],
   db: [[process.execPath, 'scripts/test-db.mjs']],
 };
 const [component, ...extra] = process.argv.slice(2);

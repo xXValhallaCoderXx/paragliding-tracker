@@ -12,6 +12,7 @@ recorder carried on a flight.
 - [Feature plan and roadmap](./docs/feature-plan.md): saved replay maps, broader sharing/replay
   acceptance, then friends, shared-flight viewing and future maps.
 - [Saved replay maps](./docs/saved-replay-maps.md): Mapbox decision, configuration and Android checks.
+- [Optional in-flight map](./docs/in-flight-map.md): implementation, bounded live data and pending Android acceptance.
 - [Email setup](./docs/email-setup.md): hosted sign-in email configuration.
 
 Postcard PNG sharing and offline 2D replay are implemented. Full device acceptance remains
@@ -317,7 +318,7 @@ or release builds, but it is not part of the daily Android development loop.
 
 Use Node 24 (`.node-version`), install with `pnpm install --frozen-lockfile`, and start Docker.
 `pnpm test` runs TypeScript, ESLint and its architecture regressions, Jest with real SQLite,
-then pgTAP and generated-type drift checks against a disposable Postgres database. Docker is
+Deno account-deletion handler tests, then pgTAP and generated-type drift checks against a disposable Postgres database. Docker is
 required: an unavailable engine fails the command, and database checks are never skipped.
 
 ```bash
@@ -325,6 +326,7 @@ pnpm test
 pnpm test:unit src/recorder/__tests__/recorder-lifecycle.test.ts
 pnpm test:types
 pnpm test:lint
+pnpm test:functions
 pnpm test:db
 pnpm db:types
 ```
@@ -335,6 +337,9 @@ verification only generates temporary output and compares it. The Supabase CLI i
 2.116.0. Test runs copy only repository migrations and SQL tests into a temporary project with
 unique ports and SMTP disabled, and remove that project's containers and volumes afterward.
 They do not use the linked project, local credentials or the app's `.env.local`.
+
+The function runner uses pinned Deno 2.5.6 through `pnpm dlx` (first run needs registry access).
+Its local handler tests require no live account, runtime permissions or credentials.
 
 Test observable behavior or a demonstrated regression. Keep one primary owner for each rule;
 avoid cosmetic wording assertions, self-comparisons and large fixtures without a specific purpose.

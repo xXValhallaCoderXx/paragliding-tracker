@@ -12,6 +12,7 @@ import {
   getFlightBySessionId,
   getFlightDetail,
   getFlightReplay,
+  getLiveMapPage,
   getFlightTrackRow,
   getSessionExportData,
   listFlights as listStoredFlights,
@@ -249,6 +250,7 @@ export const flightRepository: FlightRepository = {
   listTracks,
   getTrack,
   getReplay: getFlightReplay,
+  getLiveMapPage,
 };
 
 /**

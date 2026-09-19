@@ -11,13 +11,17 @@ import { ReplayAltitude } from './replay-plots';
 import { ReplayMap } from './replay-map';
 import { replayTime } from './replay-time';
 import { ReplayTimeline } from './replay-timeline';
-import { useReplayPlayback } from './use-replay-playback';
+import { useReplayPlayback, type ReplayBookmark } from './use-replay-playback';
 
-export function ReplayPlayer({ replay }: { replay: Extract<FlightReplay, { kind: 'available' }> }) {
+export function ReplayPlayer({ replay, bookmark, onRelease }: {
+  replay: Extract<FlightReplay, { kind: 'available' }>;
+  bookmark?: ReplayBookmark | null;
+  onRelease?: (bookmark: ReplayBookmark) => void;
+}) {
   const { points, bounds } = replay;
   const duration = bounds.endedAt - bounds.startedAt;
   const geometry = useMemo(() => buildReplayGeometry(points, bounds), [points, bounds]);
-  const { controller, state, refresh, reducedMotion } = useReplayPlayback(duration);
+  const { controller, state, refresh, reducedMotion } = useReplayPlayback(duration, bookmark, onRelease);
   const [scrubbing, setScrubbing] = useState(false);
   const [mapInteracting, setMapInteracting] = useState(false);
   const timestamp = bounds.startedAt + state.elapsedMs;

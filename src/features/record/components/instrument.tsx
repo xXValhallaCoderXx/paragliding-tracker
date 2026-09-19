@@ -1,4 +1,5 @@
-import { ScrollView, Text, View } from 'react-native';
+import type { ReactNode } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import {
   BusyRow,
@@ -21,6 +22,7 @@ import {
   formatThousands,
 } from '@/lib/format/flight-format';
 import type { InFlightNotice } from '@/features/record/recorder-presentation';
+import type { RecordingViewMode } from '../recording-view-intent';
 
 export interface InstrumentViewProps {
   snapshot: RecorderSnapshot;
@@ -33,6 +35,9 @@ export interface InstrumentViewProps {
   onBack: () => void;
   onStop: () => void;
   onRetrySave: () => void;
+  selectedView?: RecordingViewMode;
+  onSelectView?: (view: RecordingViewMode) => void;
+  mapContent?: ReactNode;
 }
 
 /**
@@ -52,6 +57,9 @@ export function InstrumentView({
   onBack,
   onStop,
   onRetrySave,
+  selectedView = 'instruments',
+  onSelectView,
+  mapContent,
 }: InstrumentViewProps) {
   const healthy = snapshot.state === 'recording' && snapshot.captureHealth === 'healthy';
   const stopping = snapshot.state === 'stopping' || snapshot.state === 'completed';
@@ -81,7 +89,7 @@ export function InstrumentView({
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 26 }}>
+      <View testID="recording-header" style={{ flexShrink: 0 }}>
         <TopBar
           onBack={onBack}
           backLabel="Back to logbook, recording continues"
@@ -92,12 +100,26 @@ export function InstrumentView({
             />
           }
         />
-        <View className="flex-row px-[18px] pt-[8px]">
+        <View className="flex-row px-[18px] pt-[8px] pb-[8px]">
           <StatusPill label={pillLabel} tone={pillTone} emphasis={healthy} pulse={healthy} />
         </View>
-
+        <View accessibilityRole="tablist" className="mx-[18px] mb-[8px] flex-row gap-[8px]">
+          {(['instruments', 'map'] as const).map((view) => <Pressable key={view}
+            accessibilityRole="tab" accessibilityLabel={view === 'map' ? 'Map' : 'Instruments'}
+            accessibilityState={{ selected: selectedView === view, disabled: stopping }}
+            disabled={stopping} onPress={() => onSelectView?.(view)}
+            className={`min-h-[44px] flex-1 items-center justify-center rounded-[12px] border px-[8px] py-[8px] ${
+              selectedView === view ? 'border-thermal bg-thermal-soft' : 'border-border bg-card'
+            }`}>
+            <Text className="font-body-semi text-[13px] text-ink">{view === 'map' ? 'Map' : 'Instruments'}</Text>
+          </Pressable>)}
+        </View>
+      </View>
+      <View style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {notices.length > 0 || recoveryError || errorMessage ? (
-          <View className="gap-[8px] px-[18px] pt-[14px]">
+          <ScrollView style={{ flexGrow: 0, maxHeight: '35%' }}
+            contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 8, gap: 8 }}
+            accessibilityLabel="Recording notices">
             {errorMessage ? (
               <Notice tone="danger" title="That did not work">
                 {errorMessage}
@@ -113,9 +135,19 @@ export function InstrumentView({
                 {recoveryError}
               </Notice>
             ) : null}
-          </View>
+          </ScrollView>
         ) : null}
-
+        {selectedView === 'map' ? <>
+          <View className="flex-row flex-wrap gap-x-[18px] gap-y-[5px] px-[20px] pb-[8px]"
+            accessibilityLabel="Flight instruments">
+            <CompactValue label="AIRTIME" value={formatAirtime(snapshot.durationMs)} />
+            <CompactValue label="GPS ALTITUDE" value={altitude === null || !Number.isFinite(altitude) ? '—' : `${Math.round(altitude)} m`} />
+            <CompactValue label="GROUND SPEED" value={speedKmh === null ? '—' : `${Math.round(speedKmh)} km/h`} />
+          </View>
+          <View testID="recording-map-region" style={{ flex: 1, minHeight: 0, paddingHorizontal: 16 }}>
+            {mapContent}
+          </View>
+        </> : <ScrollView testID="recording-instruments" contentContainerStyle={{ paddingBottom: 18 }}>
         <View className={compact ? 'pt-[20px]' : 'pt-[30px]'}>
           <View className="px-[24px]">
             <Text className={label}>{stopping ? 'AIRTIME · STOPPED' : 'AIRTIME'}</Text>
@@ -172,8 +204,9 @@ export function InstrumentView({
             {captureAgeLabel(snapshot.lastLocationCallbackAt, snapshot.capturedAt)}
           </Text>
         </View>
-
-        <View className="mt-auto gap-[14px] px-[20px] pt-[26px]">
+        </ScrollView>}
+      </View>
+        <View testID="recording-footer" style={{ flexShrink: 0 }} className="gap-[8px] px-[20px] pt-[10px] pb-[8px]">
           <Disclaimer>{TEST_BUILD_WARNING}</Disclaimer>
           {stopping ? (
             busyLabel ? (
@@ -193,7 +226,13 @@ export function InstrumentView({
             <HoldToStop onConfirm={onStop} disabled={actionsDisabled} />
           )}
         </View>
-      </ScrollView>
     </Screen>
   );
+}
+
+function CompactValue({ label, value }: { label: string; value: string }) {
+  return <View style={{ flexGrow: 1 }}>
+    <Text className="font-body-semi text-[9px] tracking-[0.5px] text-muted">{label}</Text>
+    <Text className="font-data-semi text-[19px] text-ink">{value}</Text>
+  </View>;
 }
