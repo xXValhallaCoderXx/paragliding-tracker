@@ -8,6 +8,7 @@ import * as Location from 'expo-location';
 import { Barometer, type BarometerMeasurement } from 'expo-sensors';
 import * as Sharing from 'expo-sharing';
 import * as TaskManager from 'expo-task-manager';
+import { captureSharingConsent } from './sharing-preference-cache';
 
 import { LOCATION_TASK_NAME, RECORDER_CONFIG } from './config';
 import { RecorderActivityChannel } from './activity';
@@ -264,6 +265,7 @@ class NativeRecorderService implements RecorderService {
       const sessionId = Crypto.randomUUID();
       const flightId = Crypto.randomUUID();
       const power = await readPower();
+      const sharingConsent = captureSharingConsent(() => Crypto.randomUUID());
       await createSession({
         id: sessionId,
         flightId,
@@ -287,6 +289,7 @@ class NativeRecorderService implements RecorderService {
           runtimeVersion: Constants.expoConfig?.runtimeVersion,
         },
         startPower: power,
+        ...(sharingConsent ? { sharingConsent: sharingConsent.stamp, sharingConsentCurrent: sharingConsent.isCurrent } : {}),
       });
       createdSessionId = sessionId;
       this.activeFlightId = flightId;

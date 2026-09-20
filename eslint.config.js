@@ -21,7 +21,7 @@ module.exports = defineConfig([
         {
           ignore: [
             '^@/recorder/(flight-repository|location-task|recorder-service)$',
-            '^@/cloud/(supabase|auth-service|sync-engine)$',
+            '^@/cloud/(supabase|auth-service|sync-engine|publication-service)$',
             '^@/journal/(repository|artifacts)$',
           ],
         },

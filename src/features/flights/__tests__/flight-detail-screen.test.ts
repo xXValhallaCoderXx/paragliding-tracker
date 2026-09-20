@@ -33,6 +33,7 @@ jest.mock('@/components/ui', () => ({
 }));
 jest.mock('@/components/ui/journal-art', () => ({ JournalArt: () => null }));
 jest.mock('@/features/postcard/postcard-composer', () => ({ PostcardComposer: () => null }));
+jest.mock('@/features/feed/flight-sharing-section', () => ({ FlightSharingSection: () => null }));
 jest.mock('../components/evidence', () => ({ EvidenceBlock: jest.fn(() => null) }));
 jest.mock('../components/hero', () => ({ FlightHero: () => null }));
 jest.mock('../components/metadata-sheet', () => ({ MetadataSheet: jest.fn(() => null) }));

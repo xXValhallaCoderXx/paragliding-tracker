@@ -2,6 +2,7 @@ interface ServiceError { message: string }
 
 /** The service-role operations this handler needs; tests supply an isolated fake. */
 export interface DeletionAdmin {
+  rpc(name: string, args: Record<string, unknown>): PromiseLike<{ data: unknown; error: ServiceError | null }>;
   auth: {
     getUser(token: string): Promise<{ data: { user: { id: string } | null }; error: ServiceError | null }>;
     admin: { deleteUser(id: string): Promise<{ error: ServiceError | null }> };
@@ -36,16 +37,24 @@ export function createDeleteAccountHandler(dependencies: {
     const { data: { user }, error: callerError } = await admin.auth.getUser(accessToken);
     if (callerError || !user) return new Response('Unauthorized', { status: 401 });
 
+    // Revoke social reads and reject new artifact reservations before listing
+    // storage. A live upload must finish (or its bounded lease expire) first.
+    const gate = await admin.rpc('social_begin_account_deletion', { p_owner: user.id });
+    if (gate.error) return new Response('Could not prepare account deletion. Please retry.', { status: 500 });
+    if (gate.data !== true) return new Response('A shared flight upload is finishing. Please retry account deletion shortly.', { status: 409 });
+
     // Deleting a page shrinks the collection. Always drain its first page, otherwise
     // advancing an offset skips archives. Storage must be empty before auth cascades.
-    const archives = admin.storage.from('flight-igc');
-    for (;;) {
-      const { data: objects, error: listError } = await archives.list(user.id, { limit: 100, offset: 0 });
-      if (listError) return new Response(`Could not list stored files: ${listError.message}`, { status: 500 });
-      if (!objects || objects.length === 0) break;
+    for (const bucket of ['flight-igc', 'shared-flight-replays']) {
+      const archives = admin.storage.from(bucket);
+      for (;;) {
+        const { data: objects, error: listError } = await archives.list(user.id, { limit: 100, offset: 0 });
+        if (listError) return new Response(`Could not list stored files: ${listError.message}`, { status: 500 });
+        if (!objects || objects.length === 0) break;
 
-      const { error: removeError } = await archives.remove(objects.map((object) => `${user.id}/${object.name}`));
-      if (removeError) return new Response(`Could not delete stored files: ${removeError.message}`, { status: 500 });
+        const { error: removeError } = await archives.remove(objects.map((object) => `${user.id}/${object.name}`));
+        if (removeError) return new Response(`Could not delete stored files: ${removeError.message}`, { status: 500 });
+      }
     }
 
     const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);

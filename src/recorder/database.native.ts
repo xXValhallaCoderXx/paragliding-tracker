@@ -2,6 +2,7 @@ import { readFlightReplay } from './replay-repository-core';
 import { readLiveMapPage } from './live-map-repository-core';
 import type { LiveMapRead } from '../lib/live/types';
 import * as SQLite from 'expo-sqlite';
+import { cancelDeletedPublication, enqueueFinalizedPublication, stampCapture, type CaptureSharingStamp } from './publication-repository-core';
 
 import {
   EXPECTED_V1_TABLE_COLUMNS,
@@ -19,6 +20,8 @@ import {
   EXPECTED_V8_INDEX_NAMES,
   EXPECTED_V9_INDEX_NAMES,
   EXPECTED_V9_TABLE_COLUMNS,
+  EXPECTED_V10_INDEX_NAMES,
+  EXPECTED_V10_TABLE_COLUMNS,
   LATEST_DATABASE_VERSION,
   flightStatusForSession,
   getSchemaMigrationSteps,
@@ -215,8 +218,9 @@ async function assertRawRowCounts(
 async function createMigrationBackup(
   database: SQLite.SQLiteDatabase,
   fromVersion: number,
+  purpose = '',
 ): Promise<string> {
-  const backupName = `xc-recorder-migration-v${fromVersion}-to-v${LATEST_DATABASE_VERSION}-${Date.now()}.db`;
+  const backupName = `xc-recorder-migration-v${fromVersion}-to-v${LATEST_DATABASE_VERSION}-${purpose}${Date.now()}.db`;
   const backup = await SQLite.openDatabaseAsync(backupName, { useNewConnection: true });
   try {
     await SQLite.backupDatabaseAsync({ sourceDatabase: database, destDatabase: backup });
@@ -230,7 +234,7 @@ async function createMigrationBackup(
 }
 
 /** Repair only artifacts whose exact owner/flight already has an explicit deletion receipt. */
-async function finishInterruptedArchiveCleanup(database: SQLite.SQLiteDatabase): Promise<void> {
+async function finishInterruptedArchiveCleanup(database: SQLite.SQLiteDatabase, version: number): Promise<void> {
   // The first schema-9 build relied on ON DELETE CASCADE from an Expo exclusive
   // transaction. Its separate connection did not inherit foreign_keys = ON.
   // An absent catalogue row alone is never permission to delete a stored file.
@@ -246,7 +250,7 @@ async function finishInterruptedArchiveCleanup(database: SQLite.SQLiteDatabase):
   );
   if (!pending?.count) return;
   const originalCounts = await getRawRowCounts(database);
-  const backupName = await createMigrationBackup(database, 9);
+  const backupName = await createMigrationBackup(database, version, 'archive-cleanup-');
   try {
     await database.withExclusiveTransactionAsync(async (transaction) => {
       await transaction.execAsync(`DELETE FROM archive_artifacts WHERE ${removable}`);
@@ -322,9 +326,15 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
   if (currentVersion >= 9) {
     await validateExpectedSchema(database, EXPECTED_V9_TABLE_COLUMNS);
     await validateExpectedIndexes(database, EXPECTED_V9_INDEX_NAMES);
+    // A schema-9 cleanup receipt remains authoritative when upgrading to schema 10.
+    await finishInterruptedArchiveCleanup(database, currentVersion);
+    await assertDatabaseIntegrity(database);
+  }
+  if (currentVersion >= 10) {
+    await validateExpectedSchema(database, EXPECTED_V10_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V10_INDEX_NAMES);
   }
   if (currentVersion === LATEST_DATABASE_VERSION) {
-    await finishInterruptedArchiveCleanup(database);
     await assertDatabaseIntegrity(database);
     return;
   }
@@ -369,6 +379,8 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
     await validateExpectedIndexes(database, EXPECTED_V8_INDEX_NAMES);
     await validateExpectedSchema(database, EXPECTED_V9_TABLE_COLUMNS);
     await validateExpectedIndexes(database, EXPECTED_V9_INDEX_NAMES);
+    await validateExpectedSchema(database, EXPECTED_V10_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V10_INDEX_NAMES);
     await assertDatabaseIntegrity(database);
     if (backupName) await SQLite.deleteDatabaseAsync(backupName);
   } catch (error) {
@@ -556,6 +568,8 @@ export async function createSession(input: {
   deviceMetadata: Record<string, unknown>;
   appMetadata: Record<string, unknown>;
   startPower: PowerReading;
+  sharingConsent?: CaptureSharingStamp;
+  sharingConsentCurrent?: () => boolean;
 }): Promise<void> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
@@ -599,6 +613,9 @@ export async function createSession(input: {
         `session-armed:${input.id}`,
         JSON.stringify({ startPower: input.startPower }),
       );
+      if (input.sharingConsent && input.sharingConsentCurrent?.()) {
+        await stampCapture(transaction, input.flightId ?? input.id, input.sharingConsent, input.startedAt);
+      }
     });
   });
 }
@@ -1342,22 +1359,27 @@ export async function setFlightStatus(input: {
 }): Promise<FlightRecord> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
-    const shouldUpdateEndedAt = Object.prototype.hasOwnProperty.call(input, 'endedAt');
-    const result = shouldUpdateEndedAt
-      ? await database.runAsync(
+    await database.withExclusiveTransactionAsync(async transaction => {
+      const shouldUpdateEndedAt = Object.prototype.hasOwnProperty.call(input, 'endedAt');
+      const result = shouldUpdateEndedAt
+        ? await transaction.runAsync(
           'UPDATE flights SET status = ?, ended_at = ?, updated_at = ? WHERE id = ?',
           input.status,
           input.endedAt ?? null,
           input.updatedAt,
           input.flightId,
         )
-      : await database.runAsync(
+        : await transaction.runAsync(
           'UPDATE flights SET status = ?, updated_at = ? WHERE id = ?',
           input.status,
           input.updatedAt,
           input.flightId,
         );
-    if (result.changes !== 1) throw new Error(`Flight ${input.flightId} was not found.`);
+      if (result.changes !== 1) throw new Error(`Flight ${input.flightId} was not found.`);
+      if (input.status === 'completed' || input.status === 'partial') {
+        await enqueueFinalizedPublication(transaction, input.flightId, input.updatedAt);
+      }
+    });
 
     const row = await database.getFirstAsync<FlightRow>(
       'SELECT * FROM flights WHERE id = ?',
@@ -1406,6 +1428,7 @@ export async function deleteCompletedFlight(
         if (options) { outcome = 'deferred'; return; }
         throw new Error(`Flight ${flightId} is active or unfinished and cannot be deleted.`);
       }
+      await cancelDeletedPublication(transaction, flightId, deletedAt);
 
       await transaction.runAsync(
         `INSERT OR IGNORE INTO pending_file_deletions (path, created_at)

@@ -6,8 +6,9 @@ import type {
   PilotProfilePatch,
   SessionRecord,
 } from './types';
+import { PUBLICATION_COLUMNS, PUBLICATION_SCHEMA_SQL } from './publication-repository-core';
 
-export const LATEST_DATABASE_VERSION = 9;
+export const LATEST_DATABASE_VERSION = 10;
 
 export const EXPECTED_V1_TABLE_COLUMNS = Object.freeze({
   sessions: [
@@ -211,6 +212,8 @@ export const EXPECTED_V9_TABLE_COLUMNS = Object.freeze({
   archive_settings: ['id', 'last_owner_user_id'],
 } as const);
 export const EXPECTED_V9_INDEX_NAMES = Object.freeze(['archive_flights_owner_order', 'archive_deletions_retry_order'] as const);
+export const EXPECTED_V10_TABLE_COLUMNS = Object.freeze(PUBLICATION_COLUMNS);
+export const EXPECTED_V10_INDEX_NAMES = Object.freeze(['social_publication_retry_order'] as const);
 
 export const CREATE_V1_SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS sessions (
@@ -666,6 +669,10 @@ export function getSchemaMigrationSteps(
   }
   if (version < 9) {
     steps.push({ version: 9, statements: [MIGRATE_V9_SCHEMA_SQL] });
+    version = 9;
+  }
+  if (version < 10) {
+    steps.push({ version: 10, statements: [PUBLICATION_SCHEMA_SQL] });
   }
   return steps;
 }

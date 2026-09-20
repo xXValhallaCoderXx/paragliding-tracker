@@ -12,6 +12,12 @@ bookmark maintenance are included as separate changes; hosted/device acceptance 
 The [offline maps guide](./offline-maps.md) records the agreed defaults, native/persistence
 design and remaining cold-start, storage-size and overlap/deletion Android checks.
 
+21 September implementation update: [Friends v1](./friends.md) provides profiles, invitations
+and accepted connections. The owner selected the [shared-flight feed](./shared-flights.md) next,
+ahead of notifications and further personal replay polish. Its local implementation includes
+explicit publication, optional automatic sharing of future recordings and authorized 2D replay;
+release and physical acceptance remain separate. The numbered order below is the original proposal.
+
 The direction is a useful personal flight journal that becomes more enjoyable with friends:
 share a flight, know when friends are recording, and eventually explore their flights together.
 Keep recording available offline and without an account as the social features grow.
@@ -167,10 +173,11 @@ profile. [Friends v1](./friends.md) is the implementation and acceptance record 
 **Done when:** two accounts can establish and remove a connection, a third account cannot read
 their private activity, and removal/blocking stops future access and notifications.
 
-Individual flight lists, feeds, kudos, shared replay and notifications are deferred. No sharing
-audience or notification preferences are needed until those features are selected. Social
-data is online and held only in memory for the current signed-in account. External postcard
-sharing remains separate. Signing in alone does not publish a social profile.
+The v1 foundation deliberately excluded individual flights and replay. The next selected slice
+now implements the accepted-friends feed and shared replay described below; kudos and notifications
+remain deferred. Social viewing is online and held only in memory for the current signed-in
+account. External postcard sharing remains separate. Signing in alone does not publish a profile
+or a flight.
 
 ## 5. Basic notifications when friends are flying
 
@@ -194,22 +201,27 @@ until an explicit pilot status or validated detection feature can support “fly
 accounts do not; offline delivery is honest about freshness; recording still works when the
 notification service fails. This is social awareness, not an emergency or safety service.
 
-## 6. Watch a friend's saved flight and share interactive links
+## 6. Watch a friend's saved flight
 
-**Goal:** open a selected flight and replay it, initially using the same 2D experience as your own.
+**Implemented and deployed, 21 September 2026:** open a published flight from the Friends
+feed and replay it with the existing 2D presentation. [Shared flights](./shared-flights.md) owns
+the exact contract and acceptance ledger; interactive links remain a later extension.
 
-- Let the owner explicitly publish a finished flight to chosen friends. Keep other flights and
-  private notes private. Show the fields and route that will be shared before publication.
-- Define a downloadable, versioned replay artifact and a separate read model for remote flights.
-  Decide between an export derived from retained fixes and an IGC-derived route. An IGC-derived
-  replay cannot recreate the original subsecond samples or every piece of telemetry.
-- Preserve provenance, missing data and partial/gap labels. Viewing a friend's flight must not
-  create a fake locally recorded session or alter the viewer's personal flight totals.
-- Support unsharing, deletion and permission changes. Check access on every fetch and remove
-  cached remote content when revocation is discovered, including on reconnect. Decide whether
-  remote flights can be opened offline and for how long. Previously exported images or downloaded
-  files cannot be recalled; make that distinction clear.
-- Consider route trimming or hiding launch/landing locations before broader publication.
+- Manual sharing of saved flights and explicit automatic-sharing consent, off by default, cover
+  the title, site, dates/times, full route including endpoints, approved statistics and replay.
+  Current accepted friends see all published history; this is not a per-flight recipient picker.
+- Automatic sharing covers future recordings only after save/backup. Disabling stops future posts;
+  existing posts require Hide. Durable retries cannot override a newer Hide or consent change.
+- A versioned, validated artifact is projected from saved GPS or verified IGC. Preserve provenance,
+  missing speed, precision, partial flights and timing gaps; never create a viewer's recorder session
+  or alter their personal totals. Original IGCs and diagnostics remain private.
+- Remote viewing is online and memory-only, cleared on background/offline/account changes. Every
+  fetch checks current friendship and publication access. Existing views reauthorize on focus,
+  refresh and reconnect; there is no push revocation or ability to recall a viewer's screenshots.
+- Title/site edits appear after backup sync without bumping feed time. Friends management remains
+  accessible from the feed. No kudos, comments, notifications or public links enter this slice.
+- Route trimming and endpoint privacy zones remain a prerequisite to reconsider before broader
+  publication, not part of this consented full-route implementation.
 
 **Done when:** a friend can open a deliberately shared completed flight, see its owner and data
 limits, replay it correctly, and lose future access when it is unshared or the relationship ends.

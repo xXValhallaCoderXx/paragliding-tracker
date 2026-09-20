@@ -10,8 +10,9 @@ recorder carried on a flight.
 
 - [Project overview](./docs/project-overview.md): current features, backup behavior and limits.
 - [Friends v1](./docs/friends.md): private invitations, friend profiles and backed-up flight counts.
+- [Shared flights](./docs/shared-flights.md): accepted-friends feed, publication consent, safe replay and release acceptance.
 - [Feature plan and roadmap](./docs/feature-plan.md): map/download acceptance, broader sharing/replay
-  acceptance, then friends and shared-flight viewing.
+  acceptance and the selected social stages.
 - [Saved replay maps](./docs/saved-replay-maps.md): Mapbox decision, configuration and Android checks.
 - [Optional in-flight map](./docs/in-flight-map.md): implementation, bounded live data and pending Android acceptance.
 - [Offline map areas](./docs/offline-maps.md): PAR-28 downloads, storage/recovery policy and pending Android acceptance.
@@ -86,6 +87,15 @@ The pilot profile is stored locally and does not mean a cloud account is signed 
 Account shows the current sign-in state: **Sign in** opens the email-code form;
 an active session shows its email and **Log out**. Upload progress is shown separately.
 
+**Friends** adds a separate chosen display name, private invite codes and accepted-friend
+profiles showing backed-up flight counts. Its feed now supports explicitly shared finished
+flights and 2D replay, plus optional automatic posting of future recordings, off by default.
+Signing in alone publishes neither a social profile nor a flight. Current accepted friends see
+published history; private notes, original flight rows, export details and IGCs remain owner-only.
+Social viewing follows the signed-in account and is not retained offline. See [Friends v1](./docs/friends.md)
+for the foundation's evidence and [shared flights](./docs/shared-flights.md) for consent, Hide,
+durable retries and separate release gates.
+
 **Private backup and restoration:** completed summaries and archived IGCs restore automatically
 into the normal logbook after sign-in. IGC transfers use foreground Wi-Fi by default, with explicit
 mobile-data consent and Pause/Resume/Retry controls. Downloaded archives remain usable offline.
@@ -118,15 +128,16 @@ the ESLint rule in `scripts/eslint/architecture.cjs` enforces the dependency bou
 | `src/archives/`, `src/journal/` | Account-scoped archive persistence/parser and the combined recorded/restored logbook. |
 | `src/recorder/sync-repository-core.ts` | Platform-free SQL and mappers for the v5 sync bookkeeping tables. |
 | `supabase/migrations/` | Server schema, RLS policies and the IGC storage bucket. |
-| `supabase/functions/delete-account/` | In-app account deletion (needs `service_role`, so it cannot be done from the client). |
+| `src/social/`, `src/features/feed/` | Accepted-friends feed, publication consent, authorized remote detail/replay and account-scoped memory. |
+| `supabase/functions/delete-account/`, `supabase/functions/shared-flight/` | Privileged account cleanup and authorized shared replay transfer; secrets stay server-side. |
 
 ### Setup
 
 Copy `.env.example` to `.env.local` and fill in the two values from Supabase's Project Settings →
 API: the project URL and the **publishable key** (`sb_publishable_...`, formerly called the anon
 key). Both are public by design and ship inside the bundle — row level security is what protects
-the data. The secret key is never needed by the app; the account-deletion Edge Function is the
-only thing that uses one, and Supabase injects it there automatically.
+the data. The secret key is never needed by the app; privileged account-deletion and shared-flight
+Edge Functions use server-side credentials supplied by Supabase.
 
 Register the same variables as EAS environment variables too: EAS Build respects `.gitignore`, so
 an ignored `.env.local` alone would produce a build with no backend. A build with no configuration
@@ -334,7 +345,7 @@ or release builds, but it is not part of the daily Android development loop.
 
 Use Node 24 (`.node-version`), install with `pnpm install --frozen-lockfile`, and start Docker.
 `pnpm test` runs TypeScript, ESLint and its architecture regressions, Jest with real SQLite,
-Deno account-deletion handler tests, then pgTAP and generated-type drift checks against a disposable Postgres database. Docker is
+Deno edge-function handler tests, then pgTAP and generated-type drift checks against a disposable Postgres database. Docker is
 required: an unavailable engine fails the command, and database checks are never skipped.
 
 ```bash

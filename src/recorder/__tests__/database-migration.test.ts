@@ -3,6 +3,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { TestDatabase, schemaAt, seedEvidence, seedSession, sqliteHarness } from '../../../tests/support/sqlite';
 import { migrateDatabase } from '../database.native';
+import { BACKFILL_FLIGHTS_SQL } from '../flight-repository-core';
 
 jest.mock('expo-sqlite', () => ({ openDatabaseAsync: jest.fn(), backupDatabaseAsync: jest.fn(), deleteDatabaseAsync: jest.fn() }));
 let harness: ReturnType<typeof sqliteHarness>;
@@ -17,12 +18,12 @@ afterEach(async () => { await db.closeAsync(); await harness.dispose(); jest.res
 
 it('creates an empty database and validates it again without a backup', async () => {
   await migrateDatabase(db.asExpo()); await migrateDatabase(db.asExpo());
-  expect(await db.getFirstAsync('PRAGMA user_version')).toEqual({ user_version: 9 });
+  expect(await db.getFirstAsync('PRAGMA user_version')).toEqual({ user_version: 10 });
   expect(await db.getFirstAsync('SELECT id, registration_id FROM pilot_profile')).toEqual({ id: 1, registration_id: null });
   expect(harness.backupDatabaseAsync).not.toHaveBeenCalled();
 });
 
-it.each([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])('upgrades version %i with all recording evidence intact', async (version) => {
+it.each([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])('upgrades version %i with all recording evidence intact', async (version) => {
   await schemaAt(db, 1); await seedSession(db); await seedEvidence(db);
   await seedSession(db, 'session-closed', 'completed'); await seedEvidence(db, 'session-closed');
   await db.runAsync("UPDATE sessions SET completion_reason = 'stopped', ended_at = 2000 WHERE id = 'session-closed'");
@@ -40,7 +41,7 @@ it.each([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])('upgrades version %i with all recording 
   for (const [i, table] of tables.entries()) {
     expect(await db.getAllAsync(`SELECT * FROM ${table}`)).toEqual(before[i].map((row) => expect.objectContaining(row as object)));
   }
-  expect(await db.getFirstAsync('PRAGMA user_version')).toEqual({ user_version: 9 });
+  expect(await db.getFirstAsync('PRAGMA user_version')).toEqual({ user_version: 10 });
   expect(await db.getAllAsync('SELECT recording_session_id, status FROM flights ORDER BY recording_session_id')).toEqual([
     { recording_session_id: 'session-1', status: 'recording' },
     { recording_session_id: 'session-closed', status: 'completed' },
@@ -61,6 +62,8 @@ it.each([
   [6, 'DROP TABLE app_settings', 'app_settings'],
   [7, 'DROP TABLE flight_tracks', 'flight_tracks'],
   [8, 'DROP INDEX location_fixes_map_source_order', 'location_fixes_map_source_order'],
+  [10, 'DROP TABLE social_capture_stamps', 'social_capture_stamps'],
+  [10, 'DROP INDEX social_publication_retry_order', 'social_publication_retry_order'],
   [9, 'DROP TABLE archive_artifacts', 'archive_artifacts'],
   [9, 'DROP INDEX archive_flights_owner_order', 'archive_flights_owner_order'],
 ] as const)('rejects incomplete version %i before modifying it', async (version, damage, missing) => {
@@ -103,7 +106,7 @@ it('reports cleanup failure while retaining the completed migration and backup',
   await schemaAt(db, 5);
   harness.deleteDatabaseAsync.mockRejectedValueOnce(new Error('cannot remove backup'));
   await expect(migrateDatabase(db.asExpo())).rejects.toThrow('Migration backup retained');
-  expect(await db.getFirstAsync('PRAGMA user_version')).toEqual({ user_version: 9 });
+  expect(await db.getFirstAsync('PRAGMA user_version')).toEqual({ user_version: 10 });
   expect(existsSync(join(harness.directory, readdirSync(harness.directory)[0]))).toBe(true);
 });
 
@@ -129,7 +132,7 @@ it('backfills ownership only from a linked account with positive sync evidence a
     { id: 'never-uploaded', cloud_owner_user_id: null }, { id: 'uploaded', cloud_owner_user_id: 'owner-a' },
   ]);
   expect(await db.getFirstAsync('SELECT owner_user_id FROM flight_deletions')).toEqual({ owner_user_id: null });
-  expect(await db.getFirstAsync('PRAGMA user_version')).toEqual({ user_version: 9 });
+  expect(await db.getFirstAsync('PRAGMA user_version')).toEqual({ user_version: 10 });
 });
 
 async function orphanedArchive(owner: string, id: string) {
@@ -147,6 +150,7 @@ async function archiveDeletion(owner: string, id: string) {
 
 it('finishes receipt-authorized orphan cleanup on restart with a readable backup and all other data intact', async () => {
   await schemaAt(db, 9); await seedSession(db); await seedEvidence(db);
+  await db.execAsync(BACKFILL_FLIGHTS_SQL);
   await orphanedArchive('A', 'deleted'); await archiveDeletion('A', 'deleted');
   await db.runAsync(`INSERT INTO archive_flights
     (owner_user_id, flight_id, recording_session_id, summary_json, started_at, client_updated_at, remote_updated_at, track_state)
@@ -159,14 +163,14 @@ it('finishes receipt-authorized orphan cleanup on restart with a readable backup
   expect(await db.getAllAsync('SELECT owner_user_id, hex(bytes) AS bytes FROM archive_artifacts')).toEqual([{ owner_user_id: 'B', bytes: '01' }]);
   for (const [index, table] of tables.entries()) expect(await db.getAllAsync(`SELECT * FROM ${table}`)).toEqual(before[index]);
   const [name] = readdirSync(harness.directory);
-  expect(name).toContain('v9-to-v9');
+  expect(name).toContain('v9-to-v10-archive-cleanup');
   const backup = new TestDatabase(join(harness.directory, name));
   try {
     expect(await backup.getAllAsync('SELECT owner_user_id FROM archive_artifacts ORDER BY owner_user_id')).toEqual([{ owner_user_id: 'A' }, { owner_user_id: 'B' }]);
     expect(await backup.getAllAsync('SELECT * FROM location_fixes')).toEqual(before[1]);
   } finally { await backup.closeAsync(); }
   await migrateDatabase(db.asExpo());
-  expect(harness.backupDatabaseAsync).toHaveBeenCalledTimes(1);
+  expect(harness.backupDatabaseAsync).toHaveBeenCalledTimes(2);
 });
 
 it.each([null, 'B'])('does not remove an orphan without an exact owner deletion receipt (%s)', async receiptOwner => {

@@ -186,6 +186,27 @@ export type Database = {
         }
         Relationships: []
       }
+      social_profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -231,6 +252,85 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      social_ack_artifact_cleanup: {
+        Args: { p_object_path: string; p_removed: boolean }
+        Returns: undefined
+      }
+      social_activate_upload: {
+        Args: {
+          p_activity_id: string
+          p_byte_count: number
+          p_owner: string
+          p_provenance: string
+          p_replay_available: boolean
+          p_route_preview: Json
+          p_sha256: string
+          p_upload_token: string
+        }
+        Returns: Json
+      }
+      social_authorize_artifact: {
+        Args: { p_activity_id: string; p_caller: string; p_generation: string }
+        Returns: Json
+      }
+      social_begin_account_deletion: {
+        Args: { p_owner: string }
+        Returns: boolean
+      }
+      social_begin_upload: {
+        Args: { p_activity_id: string; p_owner: string; p_upload_token: string }
+        Returns: Json
+      }
+      social_change_relationship: {
+        Args: {
+          p_action: string
+          p_other_user_id: string
+          p_request_id?: string
+        }
+        Returns: undefined
+      }
+      social_finish_failed_upload: {
+        Args: { p_activity_id: string; p_owner: string; p_upload_token: string }
+        Returns: undefined
+      }
+      social_get_activity: { Args: { p_activity_id: string }; Returns: Json }
+      social_get_friend_profile: { Args: { p_user_id: string }; Returns: Json }
+      social_get_my_publication: {
+        Args: { p_flight_id: string }
+        Returns: Json
+      }
+      social_get_sharing_preferences: { Args: never; Returns: Json }
+      social_get_state: { Args: never; Returns: Json }
+      social_hide_flight: { Args: { p_flight_id: string }; Returns: Json }
+      social_list_artifact_cleanup: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
+      social_list_feed: {
+        Args: {
+          p_cursor_activity_id?: string
+          p_cursor_published_at?: string
+          p_limit?: number
+        }
+        Returns: Json
+      }
+      social_prepare_share: {
+        Args: {
+          p_consent_generation: string
+          p_expected_revision: number
+          p_flight_id: string
+          p_mode: string
+          p_operation_id: string
+        }
+        Returns: Json
+      }
+      social_request_friend: { Args: { p_code: string }; Returns: Json }
+      social_rotate_invite_code: { Args: never; Returns: string }
+      social_save_profile: {
+        Args: { p_display_name: string }
+        Returns: undefined
+      }
+      social_set_auto_share: { Args: { p_enabled: boolean }; Returns: Json }
       write_private_flight: {
         Args: { p_flight: Json; p_metadata_only?: boolean }
         Returns: {

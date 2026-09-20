@@ -18,7 +18,7 @@ beforeEach(async () => {
   for (const { name } of await db.getAllAsync<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")) {
     await db.execAsync(`PRAGMA foreign_keys = OFF; DROP TABLE "${name}"; PRAGMA foreign_keys = ON`);
   }
-  await schemaAt(db, 9);
+  await schemaAt(db, 10);
   await seedSession(db); await db.execAsync(BACKFILL_FLIGHTS_SQL);
 });
 afterEach(() => jest.restoreAllMocks());
@@ -38,6 +38,44 @@ it('enforces one unfinished recording and singleton device settings in the appli
   await expect(seedSession(db, 'second', 'interrupted')).rejects.toThrow(/UNIQUE/);
   await expect(db.runAsync('INSERT INTO pilot_profile (id, updated_at) VALUES (2, 0)')).rejects.toThrow(/CHECK/);
   await expect(db.runAsync('INSERT INTO cloud_link (id) VALUES (2)')).rejects.toThrow(/CHECK/);
+});
+
+it('stamps only a newly created recording and queues its eligible publication atomically with finalized metrics', async () => {
+  await database.completeSession('session-1', 2000, 'stopped', power);
+  await db.runAsync("INSERT INTO social_sharing_preferences VALUES ('A', 1, 'generation')");
+  await database.createSession({ id: 'new-session', flightId: 'new-flight', startedAt: 3000, platform: 'android',
+    deviceMetadata: {}, appMetadata: {}, startPower: power,
+    sharingConsent: { ownerUserId: 'A', generation: 'generation', operationId: 'operation' }, sharingConsentCurrent: () => true });
+  expect(await db.getAllAsync('SELECT flight_id, owner_user_id, operation_id FROM social_capture_stamps')).toEqual([
+    { flight_id: 'new-flight', owner_user_id: 'A', operation_id: 'operation' },
+  ]);
+  await database.completeSession('new-session', 5000, 'stopped', power);
+  await database.setFlightStatus({ flightId: 'new-flight', status: 'completed', endedAt: 5000, updatedAt: 5000 });
+  expect(await db.getAllAsync('SELECT * FROM social_publication_intents')).toEqual([]);
+  await database.upsertFlightMetrics({ flightId: 'new-flight', algorithmVersion: 1, durationMs: 2000, trackDistanceMetres: 0,
+    minGpsAltitude: null, maxGpsAltitude: null, maxGroundSpeed: null, fixCount: 0,
+    medianSourceGapMs: null, p95SourceGapMs: null, maxSourceGapMs: null, quality: 'no_track', computedAt: 5000 });
+  await db.execAsync("CREATE TRIGGER queue_disk_full BEFORE INSERT ON social_publication_intents BEGIN SELECT RAISE(ABORT, 'disk full'); END");
+  await expect(database.setFlightStatus({ flightId: 'new-flight', status: 'completed', updatedAt: 6000 })).rejects.toThrow('disk full');
+  expect(await db.getFirstAsync("SELECT updated_at FROM flights WHERE id = 'new-flight'")).toEqual({ updated_at: 5000 });
+  await db.execAsync('DROP TRIGGER queue_disk_full');
+  await database.setFlightStatus({ flightId: 'new-flight', status: 'completed', updatedAt: 6000 });
+  await database.setFlightStatus({ flightId: 'new-flight', status: 'completed', updatedAt: 7000 });
+  expect(await db.getAllAsync('SELECT flight_id, operation_id, expected_revision, state FROM social_publication_intents')).toEqual([
+    { flight_id: 'new-flight', operation_id: 'operation', expected_revision: 0, state: 'pending' },
+  ]);
+  await database.deleteCompletedFlight('new-flight', 8000);
+  expect(await db.getAllAsync('SELECT state FROM social_publication_intents')).toEqual([{ state: 'cancelled' }]);
+  expect(await db.getAllAsync('SELECT * FROM social_capture_stamps')).toEqual([]);
+});
+
+it('does not stamp a recording when the owner changes while the creation transaction is waiting', async () => {
+  await database.completeSession('session-1', 2000, 'stopped', power);
+  await db.runAsync("INSERT INTO social_sharing_preferences VALUES ('A', 1, 'generation')");
+  await database.createSession({ id: 'new-session', startedAt: 3000, platform: 'android', deviceMetadata: {}, appMetadata: {}, startPower: power,
+    sharingConsent: { ownerUserId: 'A', generation: 'generation', operationId: 'operation' }, sharingConsentCurrent: () => false });
+  expect(await db.getAllAsync('SELECT * FROM social_capture_stamps')).toEqual([]);
+  expect(await database.getSession('new-session')).toMatchObject({ status: 'recording' });
 });
 
 it('orders captured metadata edits strictly even in the same millisecond or after a clock rollback', async () => {

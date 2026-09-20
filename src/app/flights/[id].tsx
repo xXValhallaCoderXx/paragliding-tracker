@@ -16,6 +16,7 @@ import { MetadataSheet } from '@/features/flights/components/metadata-sheet';
 import { siteAttribution } from '@/features/flights/site-picker';
 import { JournalArt } from '@/components/ui/journal-art';
 import { PostcardComposer } from '@/features/postcard/postcard-composer';
+import { FlightSharingSection } from '@/features/feed/flight-sharing-section';
 import { canSharePostcard } from '@/features/postcard/presentation';
 import {
   BusyRow,
@@ -246,6 +247,8 @@ export default function FlightDetailScreen() {
                 onPress={() => setPostcardOpen(true)} /> : null}
             </View>
           ) : null}
+
+          {canReview && metrics !== null ? <FlightSharingSection flightId={flight.id} /> : null}
 
           {isOpen || isProcessing || metrics?.quality !== 'healthy' || message ? (
             <View style={styles.notices}>

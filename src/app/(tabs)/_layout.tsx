@@ -4,7 +4,7 @@ import { TabGlyph } from '@/components/ui';
 import { fonts, paper } from '@/ui/theme';
 
 /**
- * Tab shell: the logbook and the pilot's account.
+ * Tab shell: the logbook, friends and the pilot's account.
  *
  * `/record` and `/flights/[id]` deliberately sit *above* this group in the root Stack, so they
  * present full-screen over the tabs. Route groups do not appear in the URL, so every existing
@@ -36,6 +36,15 @@ export default function TabsLayout() {
           title: 'Logbook',
           tabBarIcon: ({ color, focused }) => (
             <TabGlyph shape="logbook" color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="friends"
+        options={{
+          title: 'Friends',
+          tabBarIcon: ({ color, focused }) => (
+            <TabGlyph shape="friends" color={color} focused={focused} />
           ),
         }}
       />

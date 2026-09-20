@@ -6,13 +6,17 @@ The optional in-flight map and replay recovery fix were added locally on 19 Sept
 their [Android acceptance remains pending](./in-flight-map.md).
 Downloadable map areas were added locally on 20 September 2026; [PAR-28 physical acceptance
 remains pending](./offline-maps.md).
+Friends profiles and private invitations were added on 21 September 2026;
+[Friends v1](./friends.md) records validation and delivery evidence separately.
+The accepted-friends feed and explicitly shared flight detail/replay are implemented and deployed;
+[shared flights](./shared-flights.md) tracks their separate release and device gates.
 
 Flight Log Alpha is a personal paragliding journal built around recording a flight on your
 phone, reviewing what happened, and keeping a shareable memory of it. It is an Android-first
 native app built with Expo SDK 57 and React Native. iOS is configured; there is no web app.
 
 The core experience works offline and without an account. Optional sign-in adds private cloud
-backup. The app is an internal alpha, not a certified flight recorder or a replacement for a
+backup and enables Friends. The app is an internal alpha, not a certified flight recorder or a replacement for a
 pilot's primary recording equipment.
 
 ## What you can do today
@@ -30,6 +34,8 @@ pilot's primary recording equipment.
 | Postcard sharing | Compose a Square or Story PNG with one of three illustrations, the saved route, flight statistics, a temporary caption and optional pilot signature. Open the phone's share menu to choose a receiving app. |
 | File export | Export deterministic unsigned IGC files and diagnostic JSON through native sharing. Pilot/glider details populate applicable IGC headers. |
 | Pilot and backup | Keep a local profile, optionally sign in with an email code, inspect backup progress/errors, retry sync, sign out or delete the cloud account while retaining the local logbook. |
+| Friends | View deliberately published flights from accepted friends and preview your own posts; open shared detail and 2D replay. Manage friends keeps display names, invite codes, requests/connections and backed-up flight counts. Online only. |
+| Share with friends | Manually publish a saved flight or opt into automatic sharing of future recordings, off by default. Full route and approved summary fields are shared; private notes, pilot/export details and diagnostics are excluded. Hide and durable retry status live on your own flight detail. |
 
 The journal uses bundled illustrations and fonts. Live/replay map backgrounds can use a
 connection, cache or completed downloaded coverage. Static previews use their separate image
@@ -85,6 +91,11 @@ The [restoration guide](./private-flight-restoration.md) records account isolati
 original export, migration/old-APK limits, and the still-pending physical acceptance checks.
 The IGC archive contains route coordinates; private backup is not consent to publish a flight.
 
+The [shared-flight feed](./shared-flights.md) uses a separate approved summary and replay artifact.
+Current accepted friends can see published history, including friends added later. Turning off
+automatic sharing stops future posts; existing ones stay visible until hidden. Shared views do
+not enter the viewer's logbook or totals and are cleared on background, offline and account changes.
+
 Backup pauses during active recording and recovery. Current Android notification support is
 for the recorder's foreground service; friend notifications and live sharing do not exist.
 Signing in alone is not proof that an upload finished. Hosted email setup is documented in
@@ -93,7 +104,9 @@ Signing in alone is not proof that an upload finished. Hosted email setup is doc
 ## Current limits and confidence
 
 - Flights are recorded on this device; there is no manual flight creation or file import.
-- No friends, public pilot profiles, social feed, shared-flight links, remote replay or live viewing.
+- Shared flights have no per-flight recipient picker, route trimming or endpoint privacy zones.
+  No public pilot directory, kudos, comments, notifications, share links or live viewing. Friend
+  detail/replay requires connectivity; the new feed's exact-build acceptance is still pending.
 - No 3D maps, airspace tools, automatic takeoff/landing detection, Bluetooth vario,
   calibrated climb-rate instrument, competition signing or XContest integration.
 - Units are metric. Recorded pressure depends on the JavaScript sensor listener staying active;
@@ -119,6 +132,7 @@ That is evidence for the checked implementation, not a field-reliability claim. 
 | Track and replay calculations | [src/lib/track](../src/lib/track), [src/lib/replay](../src/lib/replay) |
 | Cached screen data | [src/store](../src/store) |
 | Account, backup and payload contracts | [src/cloud](../src/cloud) |
+| Friends permissions, publication and remote feed/replay | [src/social](../src/social), [src/features/feed](../src/features/feed) |
 | Server schema, owner access and private storage | [supabase/migrations](../supabase/migrations) |
 
 For development and testing use the [README](../README.md). Future product work belongs in

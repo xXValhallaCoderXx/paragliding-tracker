@@ -12,17 +12,30 @@ function fixture(count: number, options: {
   listFailure?: number;
   removeFailure?: number;
   deleteFailure?: boolean;
+  gateFailure?: boolean;
+  activeUpload?: boolean;
+  socialCount?: number;
+  socialRemoveFailure?: boolean;
   env?: Record<string, string | undefined>;
 } = {}) {
   const files = new Set(Array.from({ length: count }, (_, index) => `owner/${index}.igc`));
   files.add('someone-else/private.igc');
+  const socialFiles = new Set(Array.from({ length: options.socialCount ?? 0 }, (_, index) => `owner/${index}.json`));
+  socialFiles.add('someone-else/private.json');
   const calls: string[] = [];
   const deletedUsers: string[] = [];
   const tokens: string[] = [];
   const clients: [string, string][] = [];
+  const gates: string[] = [];
   let lists = 0;
   let removals = 0;
   const admin: DeletionAdmin = {
+    rpc(name, args) {
+      equal(name, 'social_begin_account_deletion');
+      equal(args, { p_owner: 'owner' });
+      gates.push('gate');
+      return Promise.resolve({ data: !options.activeUpload, error: options.gateFailure ? { message: 'Private server detail' } : null });
+    },
     auth: {
       getUser(token) {
         tokens.push(token);
@@ -36,6 +49,7 @@ function fixture(count: number, options: {
           calls.push('delete-user');
           // Storage must be empty at the moment the auth deletion is attempted.
           equal([...files].filter((path) => path.startsWith(`${id}/`)), []);
+          equal([...socialFiles].filter((path) => path.startsWith(`${id}/`)), []);
           if (options.deleteFailure) return Promise.resolve({ error: { message: 'Auth unavailable' } });
           deletedUsers.push(id);
           return Promise.resolve({ error: null });
@@ -44,14 +58,15 @@ function fixture(count: number, options: {
     },
     storage: {
       from(bucket) {
-        equal(bucket, 'flight-igc');
+        if (!['flight-igc', 'shared-flight-replays'].includes(bucket)) throw new Error('Unexpected bucket');
+        const stored = bucket === 'flight-igc' ? files : socialFiles;
         return {
           list(prefix, { limit, offset }) {
             calls.push('list');
             lists += 1;
             if (lists === options.listFailure) return Promise.resolve({ data: null, error: { message: 'List unavailable' } });
             return Promise.resolve({
-              data: [...files].filter((path) => path.startsWith(`${prefix}/`)).sort()
+              data: [...stored].filter((path) => path.startsWith(`${prefix}/`)).sort()
                 .slice(offset, offset + limit).map((path) => ({ name: path.slice(prefix.length + 1) })),
               error: null,
             });
@@ -59,8 +74,9 @@ function fixture(count: number, options: {
           remove(paths) {
             calls.push('remove');
             removals += 1;
+            if (bucket === 'shared-flight-replays' && options.socialRemoveFailure) return Promise.resolve({ error: { message: 'Remove unavailable' } });
             if (removals === options.removeFailure) return Promise.resolve({ error: { message: 'Remove unavailable' } });
-            for (const path of paths) files.delete(path);
+            for (const path of paths) stored.delete(path);
             return Promise.resolve({ error: null });
           },
         };
@@ -72,7 +88,7 @@ function fixture(count: number, options: {
     env: (name) => env[name],
     createAdmin: (url, key) => { clients.push([url, key]); return admin; },
   });
-  return { handler, files, calls, deletedUsers, tokens, clients };
+  return { handler, files, socialFiles, gates, calls, deletedUsers, tokens, clients };
 }
 
 function request(authorization: string | null = 'Bearer owner-token', body?: unknown) {
@@ -164,4 +180,32 @@ Deno.test('reports auth deletion failure after archive cleanup', async () => {
   equal(await response.text(), 'Auth unavailable');
   equal(state.deletedUsers, []);
   equal([...state.files], ['someone-else/private.igc']);
+});
+
+Deno.test('drains both private and shared buckets before account deletion', async () => {
+  const state = fixture(101, { socialCount: 201 });
+  equal((await state.handler(request())).status, 200);
+  equal([...state.socialFiles], ['someone-else/private.json']);
+  equal(state.gates, ['gate']);
+  equal(state.deletedUsers, ['owner']);
+});
+Deno.test('live upload leaves storage and account untouched for a retry', async () => {
+  const state = fixture(1, { socialCount: 1, activeUpload: true });
+  equal((await state.handler(request())).status, 409);
+  equal(state.calls, []);
+  equal(state.files.size, 2);
+  equal(state.socialFiles.size, 2);
+});
+Deno.test('failed deletion gate cannot proceed or expose database details', async () => {
+  const state = fixture(1, { gateFailure: true });
+  const result = await state.handler(request());
+  equal(result.status, 500);
+  equal((await result.text()).includes('Private server detail'), false);
+  equal(state.calls, []);
+});
+Deno.test('shared storage cleanup failure preserves the account for retry', async () => {
+  const state = fixture(1, { socialCount: 1, socialRemoveFailure: true });
+  equal((await state.handler(request())).status, 500);
+  equal(state.deletedUsers, []);
+  equal(state.socialFiles.has('owner/0.json'), true);
 });

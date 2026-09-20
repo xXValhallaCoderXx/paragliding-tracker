@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Chip, type ChipTone } from '@/components/ui';
-import type { FlightDetail } from '@/recorder/types';
+import type { FlightMetricsRecord } from '@/recorder/types';
 import {
   formatAirtime,
   formatAirtimeWords,
@@ -23,13 +23,24 @@ export interface DetailStatus {
   tone: ChipTone;
 }
 
+/** Display-only fields shared by a private journal entry and a published summary. */
+export interface FlightHeroSummary {
+  startedAt: number;
+  endedAt: number | null;
+  timezoneOffsetMinutes: number | null;
+  title: string | null;
+  site: string | null;
+  source?: 'recorded' | 'archive' | 'shared';
+  metrics: Pick<FlightMetricsRecord, 'durationMs' | 'trackDistanceMetres' | 'maxGpsAltitude' | 'fixCount' | 'quality'> | null;
+}
+
 export function FlightHero({
   flight,
   status,
   saved,
   insight,
 }: {
-  flight: FlightDetail;
+  flight: FlightHeroSummary;
   status: DetailStatus;
   saved: SavedContext;
   insight: string | null;
@@ -59,6 +70,8 @@ export function FlightHero({
     }
   } else if (flight.source === 'archive') {
     summaryLine = 'Restored flight summary. Detailed statistics are unavailable.';
+  } else if (flight.source === 'shared') {
+    summaryLine = 'Shared flight summary. Detailed statistics are unavailable.';
   } else if (flight.endedAt === null) {
     summaryLine = 'This flight is still open.';
   } else {
