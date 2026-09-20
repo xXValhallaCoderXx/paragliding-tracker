@@ -31,7 +31,11 @@ export function ReplayPlayer({ replay, bookmark, onRelease }: {
     <ScrollView scrollEnabled={!scrubbing && !mapInteracting} contentContainerStyle={styles.content}>
       <View style={styles.heading}>
         <Chip label={replay.partial ? 'Partial flight' : 'Saved replay'} tone={replay.partial ? 'warning' : 'muted'} />
+        {replay.source === 'archive' ? <Chip label="Restored" tone="muted" /> : null}
       </View>
+      {replay.source === 'archive' ? <Notice title="Replay from archived IGC">
+        Times and altitude use the precision saved in the archive. Ground speed and original sensor readings are unavailable.
+      </Notice> : null}
       {replay.partial ? <Notice tone="warning">Only the saved portion of this flight is replayed.</Notice> : null}
       <ReplayMap replay={replay} geometry={geometry} telemetry={telemetry} onInteractionChange={setMapInteracting} />
       <View style={styles.readouts}>

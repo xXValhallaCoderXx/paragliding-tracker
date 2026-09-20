@@ -152,22 +152,25 @@ preserve recorded timing and never draw a flight through a missing segment.
 
 ## 4. Friends and a small social foundation
 
-**Goal:** connect with people you know without needing a public feed.
+**Selected first stage, 21 September 2026:** connect with people you know and open their basic
+profile. [Friends v1](./friends.md) is the implementation and acceptance record for PAR-12–14.
 
-- Add a minimal social profile with a chosen display identity, separate from private email,
-  registration details and the local pilot profile used for export.
-- Start with an invite link or exact handle/code lookup. Support send, accept, decline,
+- Add a minimal social profile with a chosen display name and initials, separate from private
+  email, registration details and the local pilot profile used for export.
+- Use a private rotatable invite code with native text sharing. Support send, accept, decline,
   cancel, remove and block. Contact uploads and a searchable email directory are unnecessary.
-- Add a Friends screen with accepted connections and pending requests. Establish global and
-  per-friend sharing/notification preferences before showing flight activity.
+- Add a Friends tab with accepted connections, pending requests and a blocked list. Accepted
+  profiles show only display identity and a server-derived **Backed-up flights** count.
 - Enforce access on the server, including pending, removed and blocked relationships. Keep
   private backup and its owner-only storage separate from content deliberately shared.
 
 **Done when:** two accounts can establish and remove a connection, a third account cannot read
 their private activity, and removal/blocking stops future access and notifications.
 
-**Decisions before implementation:** invite link versus handle, public profile fields, whether
-to share with all accepted friends or selected friends, and notification defaults.
+Individual flight lists, feeds, kudos, shared replay and notifications are deferred. No sharing
+audience or notification preferences are needed until those features are selected. Social
+data is online and held only in memory for the current signed-in account. External postcard
+sharing remains separate. Signing in alone does not publish a social profile.
 
 ## 5. Basic notifications when friends are flying
 

@@ -1,8 +1,8 @@
+import { journalRepository as flightRepository } from '@/journal/repository';
 import type { FlightReplay } from '@/lib/replay/model';
 import type { LiveMapData } from '@/lib/live/types';
 import {
   appSettingsRepository,
-  flightRepository,
   pilotProfileRepository,
 } from '@/recorder/flight-repository';
 import type {

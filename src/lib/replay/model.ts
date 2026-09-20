@@ -10,11 +10,13 @@ export interface ReplayPoint {
   speed: number | null;
 }
 export interface ReplayBounds { startedAt: number; endedAt: number }
-export type ReplayUnavailableReason = 'not_found' | 'open' | 'processing' | 'invalid_bounds' | 'insufficient_fixes';
+export type ReplayUnavailableReason = 'not_found' | 'open' | 'processing' | 'invalid_bounds' | 'insufficient_fixes'
+  | 'archive_pending' | 'archive_missing' | 'archive_invalid';
 export type FlightReplay = {
   kind: 'available';
   flightId: string;
   partial: boolean;
+  source?: 'recorded' | 'archive';
   bounds: ReplayBounds;
   points: ReplayPoint[];
 } | { kind: 'unavailable'; reason: ReplayUnavailableReason };
@@ -25,6 +27,9 @@ export const REPLAY_UNAVAILABLE: Record<ReplayUnavailableReason, string> = {
   processing: 'This flight is still processing. Return to the logbook to retry its saved summary.',
   invalid_bounds: 'This recording has no valid saved start and end times.',
   insufficient_fixes: 'Replay needs at least two usable GPS fixes with different timestamps. Missing altitude alone does not prevent replay.',
+  archive_pending: 'This flight’s archived route is still waiting to download. Its summary is already in your logbook.',
+  archive_missing: 'No archived route is available for this flight. Its backed-up summary remains in your logbook.',
+  archive_invalid: 'The archived route could not be verified or opened. Retry restoration from Account; your flight summary is kept.',
 };
 
 export interface ReplayFix extends UsableFix { gpsAltitude: number | null; speed: number | null }

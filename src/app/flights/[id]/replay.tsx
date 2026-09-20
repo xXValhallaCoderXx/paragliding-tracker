@@ -48,6 +48,7 @@ function ReplayContent({ id, onBack, readBookmark, onRelease }: {
   readBookmark: () => ReplayBookmark | null;
   onRelease: (bookmark: ReplayBookmark) => void;
 }) {
+  const router = useRouter();
   const { currentData: replay, error, isFetching, refetch } = useGetFlightReplayQuery(id);
   return error ? <View className="gap-[12px] p-[18px]">
       <Notice tone="danger" title="Could not load replay">{errorMessage(error)}</Notice>
@@ -55,6 +56,8 @@ function ReplayContent({ id, onBack, readBookmark, onRelease }: {
     </View> : !replay ? <BusyRow label="Opening recorded route…" />
       : replay.kind === 'unavailable' ? <View className="gap-[12px] p-[18px]">
         <Notice tone="info" title="Replay unavailable">{REPLAY_UNAVAILABLE[replay.reason]}</Notice>
+        {replay.reason === 'archive_pending' || replay.reason === 'archive_invalid'
+          ? <Button label="Open restoration settings" onPress={() => router.push('/account')} /> : null}
         <Button label="Back to flight" onPress={onBack} />
       </View> : isFetching ? <BusyRow label="Refreshing recorded route…" />
         : <ReplayPlayer replay={replay} bookmark={readBookmark()} onRelease={onRelease} />;

@@ -1,4 +1,4 @@
-import type { FlightSummary, PilotProfile } from '@/recorder/types';
+import type { FlightSummary, PilotProfile, RecordedFlightSummary } from '@/recorder/types';
 import { flight as makeFlight, metrics } from '../../../../tests/support/fixtures';
 import { canSharePostcard, initialPostcardDraft, postcardCaption, postcardPresentation, postcardSource } from '../presentation';
 
@@ -12,11 +12,17 @@ const track = [[46, 8, 46.01, 8.02], [46.03, 8.02, 46.04, 8.05]];
 it.each([
   { status: 'recording' }, { status: 'processing' }, { sessionStatus: 'recording' },
   { sessionStatus: 'interrupted' }, { metrics: null }, { endedAt: null },
-] as Partial<FlightSummary>[])('rejects unfinished data: %o', (patch) => {
+] as Partial<RecordedFlightSummary>[])('rejects unfinished data: %o', (patch) => {
   expect(canSharePostcard({ ...flight, ...patch })).toBe(false);
 });
 it.each(['completed', 'partial'] as const)('allows %s with completed statistics', (status) => {
   expect(canSharePostcard({ ...flight, status })).toBe(true);
+});
+it('uses restored summary statistics and labels archive provenance without requiring a recorder session', () => {
+  const archive: FlightSummary = { ...flight, source: 'archive', ownerUserId: 'pilot', sessionStatus: null,
+    archive: { trackState: 'ready', error: null, downloadedAt: 1000 } };
+  expect(canSharePostcard(archive)).toBe(true);
+  expect(postcardSource(archive, track)).toMatchObject({ distance: '12.3\u00a0km', labels: ['Restored flight', 'Track gaps'] });
 });
 it('uses the recorded timezone, track distance, distinct site and attribution', () => {
   const source = postcardSource(flight, track);

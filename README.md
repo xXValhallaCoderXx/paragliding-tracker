@@ -9,16 +9,20 @@ recorder carried on a flight.
 ## Documentation
 
 - [Project overview](./docs/project-overview.md): current features, backup behavior and limits.
+- [Friends v1](./docs/friends.md): private invitations, friend profiles and backed-up flight counts.
 - [Feature plan and roadmap](./docs/feature-plan.md): map/download acceptance, broader sharing/replay
   acceptance, then friends and shared-flight viewing.
 - [Saved replay maps](./docs/saved-replay-maps.md): Mapbox decision, configuration and Android checks.
 - [Optional in-flight map](./docs/in-flight-map.md): implementation, bounded live data and pending Android acceptance.
 - [Offline map areas](./docs/offline-maps.md): PAR-28 downloads, storage/recovery policy and pending Android acceptance.
+- [Private flight restoration](./docs/private-flight-restoration.md): PAR-22 archive restore, replay/export provenance, cross-device deletion and acceptance gates.
 - [Email setup](./docs/email-setup.md): hosted sign-in email configuration.
 
 Postcard PNG sharing and offline 2D replay are implemented. Full device acceptance remains
 pending; the roadmap carries the remaining checks. Recording works without an account, and
-backup does not yet restore a logbook onto a new phone. Development and test commands follow.
+PAR-22 implements automatic restoration of private flight summaries and archived IGCs on a new
+phone; hosted migration and exact-build physical acceptance are tracked in its guide. Development
+and test commands follow.
 
 PAR-28 is implemented locally: **Settings → Offline maps** searches destinations, previews named
 coverage and manages multiple downloaded areas for live recording and saved replay. It requires
@@ -65,7 +69,7 @@ assets require a new native build to appear on an installed app.
 
 ## Accounts and cloud backup
 
-Signing in is **optional and never gates anything**. The recorder, the logbook and every export
+Signing in is **optional for the personal journal**. Friends requires an account; the recorder, the logbook and every export
 work with no account and no signal — a login wall in front of a device that records in the air
 would break the product, and App Store Guideline 5.1.1(v) forbids requiring registration for
 features that do not need an account. There is deliberately no `Stack.Protected` in this app.
@@ -82,14 +86,17 @@ The pilot profile is stored locally and does not mean a cloud account is signed 
 Account shows the current sign-in state: **Sign in** opens the email-code form;
 an active session shows its email and **Log out**. Upload progress is shown separately.
 
-**Backup is push-only.** The phone is the source of truth:
+**Private backup and restoration:** completed summaries and archived IGCs restore automatically
+into the normal logbook after sign-in. IGC transfers use foreground Wi-Fi by default, with explicit
+mobile-data consent and Pause/Resume/Retry controls. Downloaded archives remain usable offline.
+Restored flights retain their backed-up totals, are marked **Restored**, and never invent raw GPS,
+pressure or diagnostic evidence. Original local recordings remain the evidence source when present.
 
-- Flight facts (status, timestamps, metrics, IGC references) are pushed and never pulled.
-- Only `title`, `site` and `notes` merge back down, last-write-wins on the client clock.
-- Newer pilot profile fields also merge back down; this does not restore recorded flights.
-- A deletion on this phone is pushed; a deletion elsewhere never removes local evidence.
-- Raw fixes and pressure samples are never uploaded — the derived IGC file is the archive.
-- A fresh install does **not** re-download flights. Cloud-only flights are counted and shown.
+Title, site/attribution and notes synchronize through canonical metadata writes; newer client edit
+timestamps win. Explicit individual-flight deletion propagates to linked phones, including a
+verified original finished recording, while deleting the cloud account retains local copies.
+See [PAR-22 behavior and acceptance](./docs/private-flight-restoration.md) for account boundaries,
+conflict rules, original IGC export, server migration order and older-APK limits.
 
 **Sync now** retries immediately, including flights delayed after a failed attempt.
 Automatic triggers keep their retry delay. Failures remain visible until the next attempt,
@@ -108,6 +115,7 @@ the ESLint rule in `scripts/eslint/architecture.cjs` enforces the dependency bou
 | --- | --- |
 | `src/cloud/` | Domain layer: config, types, pure policy, Supabase client, auth service, sync engine. Imports `src/recorder`, never the reverse. |
 | `src/features/account/` | The `/account` route's providers, presentation and components. |
+| `src/archives/`, `src/journal/` | Account-scoped archive persistence/parser and the combined recorded/restored logbook. |
 | `src/recorder/sync-repository-core.ts` | Platform-free SQL and mappers for the v5 sync bookkeeping tables. |
 | `supabase/migrations/` | Server schema, RLS policies and the IGC storage bucket. |
 | `supabase/functions/delete-account/` | In-app account deletion (needs `service_role`, so it cannot be done from the client). |

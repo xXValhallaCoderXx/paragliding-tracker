@@ -27,7 +27,8 @@ module.exports = {
       if (layer === 'recorder' && ((targetLayer && !['recorder', 'lib'].includes(targetLayer)) || target.startsWith('@supabase/'))) reason = 'capture isolation';
       if (layer === 'lib' && ((targetLayer && targetLayer !== 'lib') || target.startsWith('@supabase/'))) reason = 'shared helpers remain leaves';
       if (/^src\/lib\/(track|replay)\//.test(from) && /^(react|react-native|react-native-svg)(\/|$)/.test(target)) reason = 'geometry is renderer independent';
-      if (['cloud', 'store'].includes(layer) && ['app', 'features', 'components'].includes(targetLayer)) reason = 'services cannot load UI';
+      if (['cloud', 'store', 'social'].includes(layer) && ['app', 'features', 'components'].includes(targetLayer)) reason = 'services cannot load UI';
+      if (layer === 'social' && ['recorder', 'journal', 'archives'].includes(targetLayer)) reason = 'social data is separate from private flight storage';
       if (layer === 'store' && /^src\/(recorder\/recorder-service|cloud\/(auth-service|sync-engine|supabase))/.test(target)) reason = 'store construction cannot subscribe to services';
       if (layer === 'sites' && targetLayer && targetLayer !== 'sites') reason = 'catalogue clients remain independent';
       if (['app', 'features', 'components'].includes(layer) && /^src\/recorder\/(flight-repository|database)/.test(target)) reason = 'UI data access goes through the cache';

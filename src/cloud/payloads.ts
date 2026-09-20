@@ -13,6 +13,7 @@ export function flightRow(flight: FlightSyncCandidate, userId: string, platform:
     timezone_offset_minutes: flight.timezoneOffsetMinutes,
     title: flight.title,
     site: flight.site,
+    site_source: flight.site ? flight.siteSource : null,
     notes: flight.notes,
     client_created_at: flight.createdAt,
     client_updated_at: flight.updatedAt,

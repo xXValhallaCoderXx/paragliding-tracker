@@ -30,6 +30,7 @@ import {
   SignInCard,
 } from '@/features/account/components/sign-in-card';
 import { SyncCard } from '@/features/account/components/sync-card';
+import { RestoreCard } from '@/features/account/components/restore-card';
 import { PRIVACY_POLICY_URL, privacyPolicyReady } from '@/features/account/legal';
 import { backupSummary } from '@/features/logbook/backup-summary';
 import { JournalArt } from '@/components/ui/journal-art';
@@ -197,8 +198,8 @@ export default function AccountScreen() {
               />
             </Card>
             <Disclaimer align="left">
-              IGC exports use your current name and glider, including when you export an older
-              flight again. Files you have already shared keep their original headers.
+              IGC exports from recordings on this phone use your current name and glider.
+              Restored archives and files you have already shared keep their original headers.
             </Disclaimer>
           </View>
         ) : null}
@@ -230,6 +231,8 @@ export default function AccountScreen() {
                     : null
                 }
               />
+              {sync.restore ? <RestoreCard key={auth.userId} restore={sync.restore}
+                onPause={sync.pauseRestore} onResume={sync.resumeRestore} onRetry={sync.retryRestore} /> : null}
             </>
           ) : (
             <>

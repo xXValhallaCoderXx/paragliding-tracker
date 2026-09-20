@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Chip } from '@/components/ui';
 import { FlightMapPreview } from '@/features/flights/components/flight-map-preview';
-import { trackPlateState } from '@/features/flights/track-presentation';
+import { archivedRouteMessage, trackPlateState } from '@/features/flights/track-presentation';
 import { flightChips, isFlightProcessing } from '@/features/logbook/logbook';
 import type { FlightSummary } from '@/recorder/types';
 import {
@@ -40,6 +40,7 @@ export function FlightCard({
     metrics?.durationMs ??
     (flight.endedAt === null ? null : Math.max(0, flight.endedAt - flight.startedAt));
   const chips = flightChips(flight);
+  const archiveMessage = track.length === 0 ? archivedRouteMessage(flight) : null;
 
   return (
     <Pressable
@@ -81,12 +82,12 @@ export function FlightCard({
 
         {/* Finished routes and unavailable/processing states share a full-width plate. */}
         <View style={styles.thumbnail}>
-          <FlightMapPreview
+          {archiveMessage ? <Text style={styles.metricsPending}>{archiveMessage}</Text> : <FlightMapPreview
             enabled={mapPreviewEnabled}
             segments={track}
             variant="hero"
             state={trackPlateState(flight, track)}
-          />
+          />}
         </View>
       </View>
     </Pressable>

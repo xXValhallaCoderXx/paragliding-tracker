@@ -19,6 +19,7 @@ import { Provider } from 'react-redux';
 
 import { CloudAuthProvider } from '@/features/account/auth-provider';
 import { CloudSyncProvider } from '@/features/account/cloud-sync-provider';
+import { FriendsProvider } from '@/features/friends/friends-provider';
 import { FirstRunProvider } from '@/features/onboarding/first-run-provider';
 import { FirstRunGate } from '@/features/onboarding/components/first-run-gate';
 import { RecorderLifecycleProvider } from '@/features/record/recorder-lifecycle';
@@ -69,6 +70,7 @@ export default function RootLayout() {
   return (
     <Provider store={store}>
       <CloudAuthProvider>
+        <FriendsProvider>
         <RecorderLifecycleProvider>
           <OfflineMapsProvider>
           <CloudSyncProvider>
@@ -90,6 +92,7 @@ export default function RootLayout() {
           </CloudSyncProvider>
           </OfflineMapsProvider>
         </RecorderLifecycleProvider>
+        </FriendsProvider>
       </CloudAuthProvider>
     </Provider>
   );

@@ -73,13 +73,17 @@ social-app handoff, accessibility and long-flight playback, remains in the
 
 The phone remains the source of truth for recorded flight evidence. With a configured backend
 and an account, completed flight summaries, profile details and derived IGC files can upload
-to private storage. Newer profile fields and flight title/site/notes can merge back down.
-Deleting a local flight queues its cloud deletion; remote deletion does not erase local evidence.
+to private storage. PAR-22 now implements automatic restoration of summaries and archived IGCs
+into the normal logbook, with foreground Wi-Fi downloads, explicit mobile permission and
+Pause/Resume/Retry controls. Restored flights contribute backed-up totals, support metadata edits,
+and replay from archived positions; original raw samples and diagnostics are not reconstructed.
+Downloaded archives remain available while offline or signed out.
 
-**Backup does not yet restore a logbook onto a new phone.** Cloud-only flights can be counted,
-but they are not downloaded into local recordings or made replayable. Raw GPS fixes, pressure
-samples and diagnostics are not automatically uploaded. The IGC archive does contain route
-coordinates, so private backup must not be treated as consent to publish a flight.
+Confirmed individual-flight deletion propagates to linked phones, including verified original
+finished recordings. Cloud account deletion remains a separate action that retains local copies.
+The [restoration guide](./private-flight-restoration.md) records account isolation, editing conflicts,
+original export, migration/old-APK limits, and the still-pending physical acceptance checks.
+The IGC archive contains route coordinates; private backup is not consent to publish a flight.
 
 Backup pauses during active recording and recovery. Current Android notification support is
 for the recorder's foreground service; friend notifications and live sharing do not exist.

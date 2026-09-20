@@ -69,13 +69,19 @@ describe('backup status', () => {
 
   it('counts pending work in words a pilot can act on', () => {
     expect(describeSync({ ...IDLE, lastSyncAt: NOW, pendingFlights: 1 }, NOW).detail).toBe(
-      '1 flight still to back up.',
+      '1 flight change still to send.',
     );
     expect(describeSync({ ...IDLE, lastSyncAt: NOW, pendingFlights: 3 }, NOW).detail).toBe(
-      '3 flights still to back up.',
+      '3 flight changes still to send.',
     );
     expect(describeSync({ ...IDLE, lastSyncAt: NOW, pendingDeletions: 1 }, NOW).detail).toBe(
       '1 deletion still to send.',
+    );
+    expect(describeSync({ ...IDLE, lastSyncAt: NOW, pendingFlights: 1, pendingDeletions: 2 }, NOW).detail).toBe(
+      '1 flight change and 2 deletions still to send.',
+    );
+    expect(describeSync({ ...IDLE, lastSyncAt: NOW, pendingFlights: 3, pendingDeletions: 1 }, NOW).detail).toBe(
+      '3 flight changes and 1 deletion still to send.',
     );
     expect(describeSync({ ...IDLE, lastSyncAt: NOW }, NOW).detail).toBe(
       'No eligible flights or deletions are waiting to sync. Raw sensor samples stay on this phone.',
@@ -109,10 +115,10 @@ describe('cloud-only flights', () => {
     expect(cloudOnlySummary(IDLE)).toBeNull();
   });
 
-  it('is explicit that this app does not download flights', () => {
-    // Restore is out of scope by design, so the copy must not imply it is coming.
+  it('explains automatic restoration without promising original sensor data', () => {
     expect(cloudOnlySummary({ ...IDLE, cloudOnlyFlights: 1 })).toMatch(/1 flight/);
     expect(cloudOnlySummary({ ...IDLE, cloudOnlyFlights: 4 })).toMatch(/4 flights/);
-    expect(cloudOnlySummary({ ...IDLE, cloudOnlyFlights: 4 })).toMatch(/does not download flights/);
+    expect(cloudOnlySummary({ ...IDLE, cloudOnlyFlights: 4 })).toMatch(/in your logbook/);
+    expect(cloudOnlySummary({ ...IDLE, cloudOnlyFlights: 4 })).toMatch(/Wi-Fi by default/);
   });
 });

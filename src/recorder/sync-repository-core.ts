@@ -242,6 +242,7 @@ export async function resetCloudLinkTransaction(
 // ---------------------------------------------------------------------------
 
 export interface FlightSyncCandidateRow {
+  cloud_owner_user_id?: string | null;
   id: string;
   recording_session_id: string;
   status: FlightStatus;
@@ -344,6 +345,7 @@ function mapCandidateMetrics(row: FlightSyncCandidateRow): FlightMetricsRecord |
 
 export function mapFlightSyncCandidate(row: FlightSyncCandidateRow): FlightSyncCandidate {
   return {
+    cloudOwnerUserId: row.cloud_owner_user_id ?? null,
     id: row.id,
     recordingSessionId: row.recording_session_id,
     status: row.status,
@@ -392,7 +394,7 @@ export const MARK_FLIGHT_PUSHED_SQL = `INSERT INTO flight_sync_state
   (flight_id, pushed_updated_at, remote_updated_at, attempt_count, next_attempt_at, last_error)
 VALUES (?, ?, ?, 0, 0, NULL)
 ON CONFLICT (flight_id) DO UPDATE SET
-  pushed_updated_at = excluded.pushed_updated_at,
+  pushed_updated_at = MAX(COALESCE(flight_sync_state.pushed_updated_at, excluded.pushed_updated_at), excluded.pushed_updated_at),
   remote_updated_at = excluded.remote_updated_at,
   attempt_count = 0,
   next_attempt_at = 0,
@@ -419,6 +421,7 @@ ON CONFLICT (flight_id) DO UPDATE SET
 // ---------------------------------------------------------------------------
 
 export interface FlightDeletionRow {
+  owner_user_id?: string | null;
   flight_id: string;
   recording_session_id: string;
   deleted_at: number;
@@ -437,6 +440,7 @@ export function mapFlightDeletion(row: FlightDeletionRow): FlightDeletionRecord 
   return {
     flightId: row.flight_id,
     recordingSessionId: row.recording_session_id,
+    ownerUserId: row.owner_user_id ?? null,
     deletedAt: row.deleted_at,
     attemptCount: row.attempt_count,
     nextAttemptAt: row.next_attempt_at,
@@ -453,30 +457,20 @@ WHERE flight_id = ?`;
 // ---------------------------------------------------------------------------
 
 /**
- * Last-write-wins on the client clock, guarded in SQL so the comparison and the write
- * are one atomic step — a local edit landing mid-cycle can never be clobbered.
- *
- * Only title, site and notes are ever pulled. Flight facts (status, timestamps,
- * metrics, IGC references) are local-wins unconditionally: the phone is the recorder
- * and the server is a backup, never an authority.
- *
- * `changes === 0` means the local row was newer or equal, which is also what stops the
- * echo loop after a push bumps the server's own `updated_at`.
- */
-/**
- * `site_source` is rewritten alongside `site`, never left as it was.
- *
- * Provenance is not pushed, so a name arriving from another device carries none this
- * device can vouch for. Leaving the old value would attach a catalogue's credit — and its
- * licence — to a string that may have been typed by hand on a different phone.
+ * Merge the whole editable metadata bundle without changing captured flight facts.
+ * A canonical RPC reply may resolve a timestamp tie only while its dispatched local
+ * version remains current. Ordinary pulls accept strictly newer metadata. Site and
+ * provenance always move together; legacy missing provenance stays unknown.
  */
 export const APPLY_REMOTE_FLIGHT_METADATA_SQL = `UPDATE flights
 SET title = ?,
     site = ?,
-    site_source = CASE WHEN ? IS NULL THEN NULL ELSE 'manual' END,
+    site_source = ?,
     notes = ?,
     updated_at = ?
-WHERE id = ? AND updated_at < ?`;
+WHERE id = ? AND ((? IS NULL AND updated_at < ? AND EXISTS (
+  SELECT 1 FROM flight_sync_state st WHERE st.flight_id = flights.id AND st.pushed_updated_at >= flights.updated_at
+)) OR updated_at = ?)`;
 
 export interface RemoteFlightMetadata {
   flightId: string;
@@ -484,6 +478,9 @@ export interface RemoteFlightMetadata {
   site: string | null;
   notes: string | null;
   clientUpdatedAt: number;
+  siteSource?: SiteSource | null;
+  /** Canonical RPC response, only while the dispatched local edit is still current. */
+  expectedLocalUpdatedAt?: number;
 }
 
 /**
@@ -510,12 +507,13 @@ export async function applyRemoteFlightMetadataTransaction(
     APPLY_REMOTE_FLIGHT_METADATA_SQL,
     remote.title,
     remote.site,
-    // Bound twice: once for the column, once for the CASE that derives its provenance.
-    remote.site,
+    remote.site ? remote.siteSource ?? null : null,
     remote.notes,
     remote.clientUpdatedAt,
     remote.flightId,
+    remote.expectedLocalUpdatedAt ?? null,
     remote.clientUpdatedAt,
+    remote.expectedLocalUpdatedAt ?? null,
   );
 
   if (result.changes === 0) {

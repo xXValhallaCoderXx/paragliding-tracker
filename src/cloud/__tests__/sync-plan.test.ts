@@ -109,7 +109,7 @@ describe('sync gate', () => {
     expect(evaluateSyncGate({ ...retry, authStatus: 'signed_out' })).toEqual({ run: false, reason: 'signed_out' });
   });
 
-  it('throttles automatic triggers but never a manual one', () => {
+  it('throttles automatic reads but lets explicit saves and manual retries run', () => {
     const recent = { ...READY, lastSyncAt: NOW - 1_000 };
     expect(evaluateSyncGate(recent)).toEqual({ run: false, reason: 'throttled' });
     expect(evaluateSyncGate({ ...recent, trigger: 'logbook-focus' })).toEqual({
@@ -118,6 +118,9 @@ describe('sync gate', () => {
     });
     // If a pilot taps "Sync now", something visible has to happen.
     expect(evaluateSyncGate({ ...recent, trigger: 'manual' })).toMatchObject({ run: true });
+    expect(evaluateSyncGate({ ...recent, trigger: 'post-save' })).toMatchObject({ run: true });
+    expect(evaluateSyncGate({ ...recent, trigger: 'post-save', nextAttemptAt: NOW + 1 })).toEqual({ run: false, reason: 'backoff' });
+    expect(evaluateSyncGate({ ...recent, trigger: 'post-save', unfinishedSessionStatus: 'recording' })).toEqual({ run: false, reason: 'recording' });
   });
 
   it('stops throttling once the interval has passed', () => {

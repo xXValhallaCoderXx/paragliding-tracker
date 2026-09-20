@@ -288,7 +288,7 @@ export function BackupStep({
     <View style={styles.block}>
       <Text style={styles.heading}>Last one — a backup.</Text>
       <Text style={styles.body}>
-        Stop recording after landing to save a flight on this phone. An optional account can back up eligible summaries and IGC files when connected. Restoring cloud flights to a new phone is planned.
+        Stop recording after landing to save a flight on this phone. An optional account backs up eligible summaries and IGC files, and restores them into your logbook on another phone. Archived routes download over Wi-Fi by default.
       </Text>
       <Card className="px-[16px] py-[4px]">
         <ListRow

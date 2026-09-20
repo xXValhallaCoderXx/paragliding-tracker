@@ -1,4 +1,4 @@
-import type { FlightMetricsRecord, FlightSummary, PilotProfile } from '@/recorder/types';
+import type { FlightMetricsRecord, PilotProfile, RecordedFlightSummary } from '@/recorder/types';
 
 export function metrics(overrides: Partial<FlightMetricsRecord> = {}): FlightMetricsRecord {
   return {
@@ -8,7 +8,7 @@ export function metrics(overrides: Partial<FlightMetricsRecord> = {}): FlightMet
     quality: 'healthy', computedAt: 0, ...overrides,
   };
 }
-export function flight(overrides: Partial<FlightSummary> = {}): FlightSummary {
+export function flight(overrides: Partial<RecordedFlightSummary> = {}): RecordedFlightSummary {
   return {
     id: 'f1', recordingSessionId: 's1', status: 'completed', sessionStatus: 'completed',
     startedAt: Date.UTC(2026, 7, 16, 6, 42), endedAt: Date.UTC(2026, 7, 16, 9, 54),

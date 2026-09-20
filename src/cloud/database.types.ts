@@ -36,6 +36,7 @@ export type Database = {
           recorder_schema_version: number | null
           recording_session_id: string
           site: string | null
+          site_source: string | null
           started_at: number
           status: Database["public"]["Enums"]["flight_status"]
           timezone_offset_minutes: number | null
@@ -70,6 +71,7 @@ export type Database = {
           recorder_schema_version?: number | null
           recording_session_id: string
           site?: string | null
+          site_source?: string | null
           started_at: number
           status: Database["public"]["Enums"]["flight_status"]
           timezone_offset_minutes?: number | null
@@ -104,12 +106,49 @@ export type Database = {
           recorder_schema_version?: number | null
           recording_session_id?: string
           site?: string | null
+          site_source?: string | null
           started_at?: number
           status?: Database["public"]["Enums"]["flight_status"]
           timezone_offset_minutes?: number | null
           title?: string | null
           track_distance_metres?: number | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      private_flight_deletions: {
+        Row: {
+          deleted_at: string
+          flight_id: string
+          recording_session_id: string | null
+          storage_cleaned_at: string | null
+          storage_cleanup_attempts: number
+          storage_cleanup_last_error: string | null
+          storage_cleanup_pending: boolean
+          storage_object_path: string
+          user_id: string
+        }
+        Insert: {
+          deleted_at?: string
+          flight_id: string
+          recording_session_id?: string | null
+          storage_cleaned_at?: string | null
+          storage_cleanup_attempts?: number
+          storage_cleanup_last_error?: string | null
+          storage_cleanup_pending?: boolean
+          storage_object_path: string
+          user_id: string
+        }
+        Update: {
+          deleted_at?: string
+          flight_id?: string
+          recording_session_id?: string | null
+          storage_cleaned_at?: string | null
+          storage_cleanup_attempts?: number
+          storage_cleanup_last_error?: string | null
+          storage_cleanup_pending?: boolean
+          storage_object_path?: string
           user_id?: string
         }
         Relationships: []
@@ -152,7 +191,90 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      acknowledge_private_flight_cleanup: {
+        Args: { p_error?: string; p_flight_id: string }
+        Returns: {
+          deleted_at: string
+          flight_id: string
+          recording_session_id: string | null
+          storage_cleaned_at: string | null
+          storage_cleanup_attempts: number
+          storage_cleanup_last_error: string | null
+          storage_cleanup_pending: boolean
+          storage_object_path: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "private_flight_deletions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      delete_private_flight: {
+        Args: { p_flight_id: string }
+        Returns: {
+          deleted_at: string
+          flight_id: string
+          recording_session_id: string | null
+          storage_cleaned_at: string | null
+          storage_cleanup_attempts: number
+          storage_cleanup_last_error: string | null
+          storage_cleanup_pending: boolean
+          storage_object_path: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "private_flight_deletions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      write_private_flight: {
+        Args: { p_flight: Json; p_metadata_only?: boolean }
+        Returns: {
+          client_created_at: number
+          client_updated_at: number
+          created_at: string
+          device_platform: string | null
+          duration_ms: number | null
+          ended_at: number | null
+          fix_count: number | null
+          id: string
+          igc_artifact_version: number | null
+          igc_byte_count: number | null
+          igc_object_path: string | null
+          igc_sha256: string | null
+          max_gps_altitude: number | null
+          max_ground_speed: number | null
+          max_source_gap_ms: number | null
+          median_source_gap_ms: number | null
+          metrics_algorithm_version: number | null
+          metrics_computed_at: number | null
+          min_gps_altitude: number | null
+          notes: string | null
+          p95_source_gap_ms: number | null
+          quality: Database["public"]["Enums"]["track_quality"] | null
+          recorder_schema_version: number | null
+          recording_session_id: string
+          site: string | null
+          site_source: string | null
+          started_at: number
+          status: Database["public"]["Enums"]["flight_status"]
+          timezone_offset_minutes: number | null
+          title: string | null
+          track_distance_metres: number | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "flights"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       flight_status: "recording" | "processing" | "completed" | "partial"

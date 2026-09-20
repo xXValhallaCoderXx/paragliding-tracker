@@ -57,6 +57,8 @@ export function FlightHero({
     } else {
       summaryLine = `${formatMetres(metrics.maxGpsAltitude)} max altitude · ${formatThousands(metrics.fixCount)} fixes`;
     }
+  } else if (flight.source === 'archive') {
+    summaryLine = 'Restored flight summary. Detailed statistics are unavailable.';
   } else if (flight.endedAt === null) {
     summaryLine = 'This flight is still open.';
   } else {
@@ -110,6 +112,7 @@ export function FlightHero({
           {showOffset ? ` · ${formatUtcOffset(tz)}` : ''}
         </Text>
         <Chip label={status.label} tone={status.tone} />
+        {flight.source === 'archive' ? <Chip label="Restored" tone="muted" /> : null}
       </View>
     </View>
   );

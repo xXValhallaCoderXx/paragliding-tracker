@@ -7,7 +7,7 @@ import type {
   SessionRecord,
 } from './types';
 
-export const LATEST_DATABASE_VERSION = 8;
+export const LATEST_DATABASE_VERSION = 9;
 
 export const EXPECTED_V1_TABLE_COLUMNS = Object.freeze({
   sessions: [
@@ -195,6 +195,22 @@ export const EXPECTED_V7_TABLE_COLUMNS = Object.freeze({
 export const EXPECTED_V7_INDEX_NAMES = Object.freeze([] as const);
 
 export const EXPECTED_V8_INDEX_NAMES = Object.freeze(['location_fixes_map_source_order'] as const);
+
+export const EXPECTED_V9_TABLE_COLUMNS = Object.freeze({
+  flights: ['cloud_owner_user_id'],
+  flight_deletions: ['owner_user_id'],
+  archive_flights: ['owner_user_id', 'flight_id', 'recording_session_id', 'summary_json', 'started_at',
+    'client_updated_at', 'remote_updated_at', 'dirty_updated_at', 'metadata_attempt_count', 'metadata_next_attempt_at',
+    'metadata_error', 'igc_object_path', 'igc_sha256', 'igc_byte_count', 'igc_artifact_version', 'track_state',
+    'downloaded_at', 'download_attempt_count', 'download_next_attempt_at', 'download_error'],
+  archive_artifacts: ['owner_user_id', 'flight_id', 'sha256', 'artifact_version', 'byte_count', 'bytes', 'stored_at', 'track_json'],
+  archive_deletions: ['owner_user_id', 'flight_id', 'recording_session_id', 'deleted_at', 'attempt_count',
+    'next_attempt_at', 'last_error', 'acknowledged_at'],
+  archive_cursors: ['owner_user_id', 'updated_at', 'flight_id'],
+  archive_owner_settings: ['owner_user_id', 'restore_paused'],
+  archive_settings: ['id', 'last_owner_user_id'],
+} as const);
+export const EXPECTED_V9_INDEX_NAMES = Object.freeze(['archive_flights_owner_order', 'archive_deletions_retry_order'] as const);
 
 export const CREATE_V1_SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS sessions (
@@ -566,6 +582,45 @@ export const MIGRATE_V8_SCHEMA_SQL = `
       AND latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180;
 `;
 
+export const MIGRATE_V9_SCHEMA_SQL = `
+  ALTER TABLE flights ADD COLUMN cloud_owner_user_id TEXT;
+  UPDATE flights SET cloud_owner_user_id = (SELECT user_id FROM cloud_link WHERE id = 1)
+    WHERE EXISTS (SELECT 1 FROM flight_sync_state s WHERE s.flight_id = flights.id
+      AND (s.pushed_updated_at IS NOT NULL OR s.igc_pushed_at IS NOT NULL));
+  -- Old tombstones have no ownership proof. Never assign them on a future rebind.
+  ALTER TABLE flight_deletions ADD COLUMN owner_user_id TEXT;
+
+  CREATE TABLE archive_flights (
+    owner_user_id TEXT NOT NULL, flight_id TEXT NOT NULL, recording_session_id TEXT NOT NULL,
+    summary_json TEXT NOT NULL CHECK (json_valid(summary_json)), started_at INTEGER NOT NULL,
+    client_updated_at INTEGER NOT NULL, remote_updated_at TEXT NOT NULL, dirty_updated_at INTEGER,
+    metadata_attempt_count INTEGER NOT NULL DEFAULT 0, metadata_next_attempt_at INTEGER NOT NULL DEFAULT 0,
+    metadata_error TEXT, igc_object_path TEXT, igc_sha256 TEXT, igc_byte_count INTEGER, igc_artifact_version INTEGER,
+    track_state TEXT NOT NULL CHECK (track_state IN ('pending','downloading','ready','error','missing')),
+    downloaded_at INTEGER, download_attempt_count INTEGER NOT NULL DEFAULT 0,
+    download_next_attempt_at INTEGER NOT NULL DEFAULT 0, download_error TEXT,
+    PRIMARY KEY (owner_user_id, flight_id)
+  );
+  CREATE INDEX archive_flights_owner_order ON archive_flights (owner_user_id, started_at DESC, flight_id);
+  CREATE TABLE archive_artifacts (
+    owner_user_id TEXT NOT NULL, flight_id TEXT NOT NULL, sha256 TEXT NOT NULL, artifact_version INTEGER NOT NULL,
+    byte_count INTEGER NOT NULL CHECK (byte_count >= 0), bytes BLOB NOT NULL CHECK (length(bytes) = byte_count),
+    stored_at INTEGER NOT NULL, track_json TEXT, PRIMARY KEY (owner_user_id, flight_id),
+    FOREIGN KEY (owner_user_id, flight_id) REFERENCES archive_flights(owner_user_id, flight_id) ON DELETE CASCADE
+  );
+  CREATE TABLE archive_deletions (
+    owner_user_id TEXT NOT NULL, flight_id TEXT NOT NULL, recording_session_id TEXT,
+    deleted_at INTEGER NOT NULL, attempt_count INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at INTEGER NOT NULL DEFAULT 0, last_error TEXT, acknowledged_at INTEGER,
+    PRIMARY KEY (owner_user_id, flight_id)
+  );
+  CREATE INDEX archive_deletions_retry_order ON archive_deletions (owner_user_id, next_attempt_at, flight_id);
+  CREATE TABLE archive_cursors (owner_user_id TEXT PRIMARY KEY NOT NULL, updated_at TEXT NOT NULL, flight_id TEXT NOT NULL);
+  CREATE TABLE archive_owner_settings (owner_user_id TEXT PRIMARY KEY NOT NULL, restore_paused INTEGER NOT NULL DEFAULT 0 CHECK (restore_paused IN (0, 1)));
+  CREATE TABLE archive_settings (id INTEGER PRIMARY KEY CHECK (id = 1), last_owner_user_id TEXT);
+  INSERT INTO archive_settings (id) VALUES (1);
+`;
+
 export function getSchemaMigrationSteps(
   currentVersion: number,
   isNewDatabase: boolean,
@@ -607,6 +662,10 @@ export function getSchemaMigrationSteps(
   }
   if (version < 8) {
     steps.push({ version: 8, statements: [MIGRATE_V8_SCHEMA_SQL] });
+    version = 8;
+  }
+  if (version < 9) {
+    steps.push({ version: 9, statements: [MIGRATE_V9_SCHEMA_SQL] });
   }
   return steps;
 }

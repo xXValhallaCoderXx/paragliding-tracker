@@ -1,20 +1,31 @@
 import { flight as makeFlight, metrics as makeMetrics } from '../../../../tests/support/fixtures';
-import type { FlightMetricsRecord, FlightSummary } from '@/recorder/types';
+import type { FlightMetricsRecord, RecordedFlightSummary } from '@/recorder/types';
 
 import {
   buildLogbookLayout,
   flightInsight,
   flightInsightText,
   seasonSummary,
+  flightChips,
+  isFlightProcessing,
 } from '../logbook';
 
 const HOUR = 3_600_000;
+
+it('includes restored cloud summary metrics in normal journal totals without a recorder session', () => {
+  const archived = { ...flight({ id: 'archive' }), source: 'archive' as const, ownerUserId: 'pilot',
+    sessionStatus: null, archive: { trackState: 'pending' as const, error: null, downloadedAt: null } };
+  expect(buildLogbookLayout([archived]).open).toBeNull();
+  expect(seasonSummary([archived], 2026)).toMatchObject({ flightCount: 1, airtimeMs: HOUR, bestDistanceMetres: 10_000 });
+  expect(flightChips(archived)).toContainEqual({ label: 'Restored', tone: 'muted' });
+  expect(isFlightProcessing({ ...archived, metrics: null })).toBe(false);
+});
 
 const metrics = (overrides: Partial<FlightMetricsRecord> = {}) => makeMetrics({
   flightId: 'f', trackDistanceMetres: 10_000, maxGpsAltitude: 1200, maxGroundSpeed: 12,
   fixCount: 3600, maxSourceGapMs: 2000, ...overrides,
 });
-function flight(overrides: Partial<FlightSummary> & { id: string }): FlightSummary {
+function flight(overrides: Partial<RecordedFlightSummary> & { id: string }): RecordedFlightSummary {
   const startedAt = overrides.startedAt ?? Date.UTC(2026, 7, 16, 6, 42);
   return makeFlight({
     recordingSessionId: `session-${overrides.id}`, startedAt, endedAt: startedAt + HOUR,
