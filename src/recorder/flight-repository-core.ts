@@ -7,7 +7,7 @@ import type {
   SessionRecord,
 } from './types';
 
-export const LATEST_DATABASE_VERSION = 7;
+export const LATEST_DATABASE_VERSION = 8;
 
 export const EXPECTED_V1_TABLE_COLUMNS = Object.freeze({
   sessions: [
@@ -193,6 +193,8 @@ export const EXPECTED_V7_TABLE_COLUMNS = Object.freeze({
 } as const);
 
 export const EXPECTED_V7_INDEX_NAMES = Object.freeze([] as const);
+
+export const EXPECTED_V8_INDEX_NAMES = Object.freeze(['location_fixes_map_source_order'] as const);
 
 export const CREATE_V1_SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS sessions (
@@ -555,6 +557,15 @@ export const MIGRATE_V7_SCHEMA_SQL = `
   );
 `;
 
+export const MIGRATE_V8_SCHEMA_SQL = `
+  -- A last-known map position remains cheap even after a long mocked/invalid tail.
+  -- Local index only: raw recorder evidence and the cloud schema are unchanged.
+  CREATE INDEX location_fixes_map_source_order
+    ON location_fixes (session_id, source_timestamp DESC, sequence DESC)
+    WHERE mocked = 0
+      AND latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180;
+`;
+
 export function getSchemaMigrationSteps(
   currentVersion: number,
   isNewDatabase: boolean,
@@ -592,6 +603,10 @@ export function getSchemaMigrationSteps(
   }
   if (version < 7) {
     steps.push({ version: 7, statements: [MIGRATE_V7_SCHEMA_SQL] });
+    version = 7;
+  }
+  if (version < 8) {
+    steps.push({ version: 8, statements: [MIGRATE_V8_SCHEMA_SQL] });
   }
   return steps;
 }

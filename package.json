@@ -84,6 +84,7 @@
     "test:types": "node scripts/test.mjs types",
     "test:lint": "node scripts/test.mjs lint",
     "test:unit": "node scripts/test.mjs unit",
+    "test:functions": "node scripts/test.mjs functions",
     "test:db": "node scripts/test.mjs db",
     "db:types": "node scripts/test-db.mjs --update-types",
     "test:regressions": "node scripts/check-test-regressions.mjs"

@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import type { FlightMapProps } from './types';
 
 export { MAPBOX_STYLE_URI } from './config';
-export type { FlightMapProps } from './types';
+export type { FlightMapProps, LiveCameraIntent } from './types';
 export const isFlightMapAvailable = false;
 
 /** Web keeps the existing Grid renderer and never loads the native map SDK. */

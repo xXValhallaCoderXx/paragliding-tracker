@@ -1,4 +1,6 @@
 import { readFlightReplay } from './replay-repository-core';
+import { readLiveMapPage } from './live-map-repository-core';
+import type { LiveMapRead } from '../lib/live/types';
 import * as SQLite from 'expo-sqlite';
 
 import {
@@ -14,6 +16,7 @@ import {
   EXPECTED_V6_TABLE_COLUMNS,
   EXPECTED_V7_INDEX_NAMES,
   EXPECTED_V7_TABLE_COLUMNS,
+  EXPECTED_V8_INDEX_NAMES,
   LATEST_DATABASE_VERSION,
   flightStatusForSession,
   getSchemaMigrationSteps,
@@ -274,9 +277,13 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
   // Folding the newest version into the `=== LATEST` check leaves the one below it verified
   // by nothing on a database that is about to be migrated past it — which is exactly how v6
   // shipped unchecked.
-  if (currentVersion === LATEST_DATABASE_VERSION) {
+  if (currentVersion >= 7) {
     await validateExpectedSchema(database, EXPECTED_V7_TABLE_COLUMNS);
     await validateExpectedIndexes(database, EXPECTED_V7_INDEX_NAMES);
+  }
+
+  if (currentVersion === LATEST_DATABASE_VERSION) {
+    await validateExpectedIndexes(database, EXPECTED_V8_INDEX_NAMES);
     await assertDatabaseIntegrity(database);
     return;
   }
@@ -318,6 +325,7 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
     await validateExpectedIndexes(database, EXPECTED_V6_INDEX_NAMES);
     await validateExpectedSchema(database, EXPECTED_V7_TABLE_COLUMNS);
     await validateExpectedIndexes(database, EXPECTED_V7_INDEX_NAMES);
+    await validateExpectedIndexes(database, EXPECTED_V8_INDEX_NAMES);
     await assertDatabaseIntegrity(database);
     if (backupName) await SQLite.deleteDatabaseAsync(backupName);
   } catch (error) {
@@ -1102,6 +1110,10 @@ export async function listSessionTrackFixes(sessionId: string): Promise<TrackFix
 
 export async function getFlightReplay(flightId: string) {
   return readFlightReplay(await openDatabase(), flightId);
+}
+
+export async function getLiveMapPage(input: LiveMapRead) {
+  return readLiveMapPage(await openDatabase(), input);
 }
 
 export async function listFlights(): Promise<FlightSummary[]> {

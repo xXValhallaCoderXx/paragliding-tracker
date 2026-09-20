@@ -2,6 +2,8 @@
 
 Map and navigation updates reviewed on 13 September 2026 at `a348f6c`.
 The original core implementation review was on 6 September 2026 at `d22d095`.
+The optional in-flight map and replay recovery fix were added locally on 19 September 2026;
+their [Android acceptance remains pending](./in-flight-map.md).
 
 Flight Log Alpha is a personal paragliding journal built around recording a flight on your
 phone, reviewing what happened, and keeping a shareable memory of it. It is an Android-first
@@ -16,7 +18,7 @@ pilot's primary recording equipment.
 | Area | Current features |
 | --- | --- |
 | Setup | Guided first run, pilot and glider details, permission checks and optional backup. Open Settings from its row on Account to revisit setup and app settings. |
-| Record | Start a flight manually, record GPS locally with background-location support, view airtime, GPS altitude, ground speed and capture health, then hold to stop. Leaving the recording screen does not stop capture. |
+| Record | Start a flight manually, record GPS locally with background-location support, view airtime, GPS altitude, ground speed and capture health, then hold to stop. Optionally open Map for recorded position and a bounded recent trail with Grid fallback. Leaving the recording screen does not stop capture. |
 | Recover | Reconcile an unfinished recording after reopening; Resume or Save Partial when interrupted; retry a failed save. A persisted manual Stop remains terminal. |
 | Flight journal | Browse locally recorded flights grouped by month, return to an unfinished flight, and see static route maps with Start/Stop labels, season totals and personal milestones derived from this phone's history. Only visible cards request map images. |
 | Flight detail | View a static route map, airtime, track distance, altitude, speed, route quality and recording evidence. Edit title, launch site and private notes. Delete a finished flight after confirmation. |
@@ -51,8 +53,8 @@ Downloaded map areas and guaranteed offline basemaps are not implemented.
 Playback respects the saved recording bounds, pauses when leaving or backgrounding, and does
 not resume automatically. Gaps longer than 15 seconds and unavailable telemetry remain visible
 as missing data rather than invented movement. Samples are released when leaving replay.
-A known Home/return reset to zero is tracked in PAR-3: recorder recovery currently remounts the
-player, and preserving replay position must retain that recovery safeguard.
+The PAR-33 fix retains a small paused position/speed bookmark across the recovery remount while
+still releasing samples. A new replay entry starts at zero; named-device confirmation remains pending.
 
 Samsung Android checks have confirmed static card/detail map placement and attribution, replay
 pan/refit, and the recent Settings/layout changes. Physical automatic fallback/retry, offline
@@ -82,7 +84,7 @@ Signing in alone is not proof that an upload finished. Hosted email setup is doc
 
 - Flights are recorded on this device; there is no manual flight creation or file import.
 - No friends, public pilot profiles, social feed, shared-flight links, remote replay or live viewing.
-- No in-flight or 3D maps, airspace tools, automatic takeoff/landing detection, Bluetooth vario,
+- No 3D maps, airspace tools, automatic takeoff/landing detection, Bluetooth vario,
   calibrated climb-rate instrument, competition signing or XContest integration.
 - Units are metric. Recorded pressure depends on the JavaScript sensor listener staying active;
   continuous locked-screen pressure capture has not been established.

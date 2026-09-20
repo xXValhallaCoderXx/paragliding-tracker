@@ -1,4 +1,5 @@
 import type { FlightReplay } from '../lib/replay/model';
+import type { LiveMapPage, LiveMapRead } from '../lib/live/types';
 import type { TrackSegments } from '../lib/track/types';
 
 export type RecorderState =
@@ -275,6 +276,8 @@ export interface FlightRepository {
   getTrack(flightId: string): Promise<TrackSegments>;
   /** Full timestamped GPS data, loaded only by the replay screen. */
   getReplay(flightId: string): Promise<FlightReplay>;
+  /** Bounded, committed evidence for the optional visible in-flight map. */
+  getLiveMapPage(input: LiveMapRead): Promise<LiveMapPage>;
 }
 
 /**

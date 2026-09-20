@@ -3,7 +3,8 @@ import { Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { LoadingScreen } from '@/components/ui';
-import { InstrumentView } from '@/features/record/components/instrument';
+import { RecordingView } from '@/features/record/components/recording-view';
+import { clearRecordingViewIntent } from '@/features/record/recording-view-intent';
 import { InterruptedView } from '@/features/record/components/interrupted';
 import { PreflightView } from '@/features/record/components/preflight';
 import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
@@ -33,11 +34,15 @@ export default function RecordFlightScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const intentHandled = useRef(false);
+  const actionInFlight = useRef(false);
 
   useEffect(() => {
     let mounted = true;
     const unsubscribe = recorderService.subscribe((nextSnapshot) => {
       if (!mounted) return;
+      if (nextSnapshot.state === 'completed' || nextSnapshot.state === 'idle') {
+        clearRecordingViewIntent();
+      }
       setSnapshot(nextSnapshot);
       if (nextSnapshot.flightId) setActiveFlightId(nextSnapshot.flightId);
     });
@@ -53,6 +58,8 @@ export default function RecordFlightScreen() {
   }, [router]);
 
   const runAction = useCallback(async (label: string, action: () => Promise<void>) => {
+    if (actionInFlight.current) return;
+    actionInFlight.current = true;
     setBusy(label);
     setActionError(null);
     try {
@@ -60,6 +67,7 @@ export default function RecordFlightScreen() {
     } catch (error) {
       setActionError(errorMessage(error));
     } finally {
+      actionInFlight.current = false;
       setBusy(null);
     }
   }, []);
@@ -219,7 +227,9 @@ export default function RecordFlightScreen() {
     );
   } else if (showInstrument) {
     content = (
-      <InstrumentView
+      <RecordingView
+        key={snapshot.sessionId ?? 'starting'}
+        recovering={recorderLifecycle.recovering}
         snapshot={snapshot}
         capture={capture}
         notices={notices}
@@ -254,4 +264,3 @@ export default function RecordFlightScreen() {
 
   return content;
 }
-

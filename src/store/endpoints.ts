@@ -1,4 +1,5 @@
 import type { FlightReplay } from '@/lib/replay/model';
+import type { LiveMapData } from '@/lib/live/types';
 import {
   appSettingsRepository,
   flightRepository,
@@ -20,6 +21,7 @@ import type { TrackSegments } from '@/lib/track/types';
 
 import { api } from './api';
 import { repositoryQuery as read } from './query-fn';
+import { activeLiveMapCaches, emptyLiveMap, startLiveMapPolling } from './live-map-cache';
 
 /**
  * Every read the app performs, behind one cache.
@@ -44,6 +46,42 @@ import { repositoryQuery as read } from './query-fn';
 
 export const dataApi = api.injectEndpoints({
   endpoints: (build) => ({
+    getLiveMap: build.query<LiveMapData, string>({
+      queryFn: (sessionId) => ({ data: emptyLiveMap(sessionId) }),
+      serializeQueryArgs: ({ queryArgs }) => `live-map:${queryArgs}`,
+      keepUnusedDataFor: 0,
+      async onCacheEntryAdded(sessionId, { cacheDataLoaded, cacheEntryRemoved, getCacheEntry, updateCachedData, dispatch }) {
+        const owner = dispatch;
+        const key = `live-map:${sessionId}`;
+        const previous = activeLiveMapCaches.get(owner);
+        if (previous) {
+          previous.close();
+          if (previous.key !== key) dispatch(api.internalActions.removeQueryResult({
+            queryCacheKey: previous.key as Parameters<typeof api.internalActions.removeQueryResult>[0]['queryCacheKey'],
+          }));
+        }
+        let removed = false;
+        let stop = () => {};
+        const active = { key, close: () => { removed = true; stop(); } };
+        activeLiveMapCaches.set(owner, active);
+        void cacheEntryRemoved.then(() => {
+          active.close();
+          if (activeLiveMapCaches.get(owner) === active) activeLiveMapCaches.delete(owner);
+        });
+        try {
+          await cacheDataLoaded;
+          if (removed) return;
+          stop = startLiveMapPolling({
+            load: (input) => flightRepository.getLiveMapPage(input),
+            current: () => getCacheEntry().data ?? emptyLiveMap(sessionId),
+            publish: (data) => { updateCachedData(() => data); },
+          });
+        } catch {
+          // The entry may disappear before its initial empty value is available.
+          active.close();
+        }
+      },
+    }),
     getFlights: build.query<FlightSummary[], void>({
       queryFn: () => read(() => flightRepository.listFlights()),
       // One tag per flight plus the list itself, so editing a flight's metadata
@@ -184,6 +222,7 @@ async function siteLookup(
 }
 
 export const {
+  useGetLiveMapQuery,
   useGetFlightsQuery,
   useGetFlightQuery,
   useGetFlightTracksQuery,
