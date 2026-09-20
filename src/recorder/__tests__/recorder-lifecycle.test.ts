@@ -80,6 +80,19 @@ beforeEach(() => {
 });
 afterEach(() => { unsubscribe(); jest.clearAllTimers(); jest.useRealTimers(); });
 
+it('passive activity observation adds no polling and yields synchronously before recovery', async () => {
+  unsubscribe();
+  const activity = jest.fn();
+  const stopObserving = service.subscribeActivity(activity);
+  await jest.advanceTimersByTimeAsync(3_000);
+  expect(db.getUnfinishedSession).not.toHaveBeenCalled();
+  const recovery = service.recover();
+  expect(activity).toHaveBeenLastCalledWith({ state: 'idle', lifecycleBusy: true });
+  await recovery;
+  expect(activity).toHaveBeenLastCalledWith({ state: 'recording', lifecycleBusy: false });
+  stopObserving();
+});
+
 it('starts persisting Stop immediately even while recovery occupies the lifecycle queue', async () => {
   await service.recover();
   pending = storedAttempt();

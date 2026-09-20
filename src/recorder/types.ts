@@ -132,6 +132,13 @@ export interface CaptureService {
   resume(sessionId: string): Promise<void>;
   finalizeInterrupted(sessionId: string): Promise<void>;
   subscribe(listener: (snapshot: RecorderSnapshot) => void): () => void;
+  /** Passive lifecycle observation: no polling, sensor subscription or database reads. */
+  subscribeActivity(listener: (activity: RecorderActivity) => void): () => void;
+}
+
+export interface RecorderActivity {
+  state: RecorderState;
+  lifecycleBusy: boolean;
 }
 
 export interface ArtifactService {

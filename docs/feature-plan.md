@@ -8,6 +8,10 @@ with Android acceptance still pending. Its [implementation and acceptance guide]
 supersedes the provisional in-flight direction below. PAR-32 archive pagination and PAR-33 replay
 bookmark maintenance are included as separate changes; hosted/device acceptance is still distinct.
 
+20 September implementation update: PAR-28 downloadable map areas are implemented locally.
+The [offline maps guide](./offline-maps.md) records the agreed defaults, native/persistence
+design and remaining cold-start, storage-size and overlap/deletion Android checks.
+
 The direction is a useful personal flight journal that becomes more enjoyable with friends:
 share a flight, know when friends are recording, and eventually explore their flights together.
 Keep recording available offline and without an account as the social features grow.
@@ -15,8 +19,8 @@ Keep recording available offline and without an account as the social features g
 The first personal Android test was accepted on 12 September: the standalone app launched offline
 after reboot, recorded and saved a walk, retained it after a full app restart, replayed it, and
 opened postcard/IGC/JSON share sheets. Exact recording and locked-screen durations were unmeasured;
-this does not establish long-flight reliability. The next approved work is a geographic map for
-saved replay. An eventual map during the pilot's own recording should influence its design.
+this does not establish long-flight reliability. Saved replay, the optional live map and
+downloaded map areas now have local implementations with separate physical acceptance gates.
 
 ## Suggested order
 
@@ -36,8 +40,8 @@ do not need 3D maps. Shared completed flights can initially use the existing 2D 
 Cloud restoration is a separate supporting track; social viewing must not require inventing
 local recorder evidence for somebody else's flight.
 
-Downloadable map areas remain future work. The optional map during the pilot's own recording
-now has a local implementation; its measured Android acceptance is the next feature-specific gate.
+Downloadable map areas and the optional map during the pilot's own recording are implemented
+locally. Their measured Android acceptance remains the next feature-specific gate.
 
 ## 1. Add a geographic map to saved replay
 
@@ -74,8 +78,9 @@ PAR-27 retains forced failure/offline/retry, Malaysian coverage and long-list st
 - Use `@rnmapbox/maps` 10.3.5, its default Android Mapbox SDK 11.23.1, and the explicit style
   `mapbox://styles/mapbox/outdoors-v12`. [Outdoors is a classic style](https://docs.mapbox.com/map-styles/reference/outdoors/)
   that remains available but is no longer actively maintained; this is the owner's chosen style.
-  The selected Android setup uses a public `pk.` token only. Keep SDK ambient-cache defaults;
-  no app-enforced numeric cache bound or downloaded-area guarantee is claimed.
+  The selected Android setup uses a public `pk.` token only. PAR-28 now adds explicit downloaded
+  regions and a shared store; [its storage policy](./offline-maps.md#transfer-and-storage-policy)
+  preserves a recording reserve without claiming a measured country-size limit or device acceptance.
 - Aim for worldwide online map coverage, with Singapore walks and Malaysian flying areas as the
   primary coverage checks, not a geographic restriction. Saved walks are valid test recordings;
   the recorder still uses manual Start/Stop and GPS without requiring detected flight.
@@ -84,14 +89,14 @@ PAR-27 retains forced failure/offline/retry, Malaysian coverage and long-list st
   its phone pan/refit evidence is recorded in the map guide.
   Use the existing playback timestamp and original retained fixes; preserve gaps and
   partial-flight labels. Geographic context must not change route/chart/telemetry timing.
-- Keep the map component focused on presentation. Use separate saved-replay and future live-recorder
-  adapters; a future in-flight map must consume recorder-captured fixes without starting a second
+- Keep the map component focused on presentation. Use separate saved-replay and live-recorder
+  adapters; the in-flight map consumes recorder-captured fixes without starting a second
   GPS watcher or making capture depend on map rendering/network access.
 - Open Map whenever configured, with no Map/Grid selector. Automatically use Grid for missing
   configuration, native failure or a 15-second initial-load timeout; offer **Retry map** after
   a failed attempt. Preserve replay position/playback through automatic fallback and retry.
-  Region downloads and dependable offline basemaps belong to PAR-28; Mapbox's documented regional
-  offline path informs that later design without implementing downloads now.
+  PAR-28 adds explicit region downloads for both native map consumers; its cold-start offline
+  acceptance remains separate from the fallback implementation.
 - PAR-27 owns focused Android checks for placement, camera controls, fallback/attribution,
   playback regressions and relevant performance. Broader replay/lifecycle and long-flight suites
   remain PAR-3/PAR-5 in Backlog; PAR-5 is not an implementation prerequisite for PAR-20.
@@ -100,8 +105,9 @@ PAR-27 retains forced failure/offline/retry, Malaysian coverage and long-list st
 placed correctly, replay timing remains honest, and the offline grid works when tiles cannot load.
 The [map implementation guide](./saved-replay-maps.md) records the chosen configuration and checks.
 
-**Map work:** PAR-28 remains future downloadable map areas for offline flying and replay;
-it needs permitted provider terms, storage limits, attribution and deletion behavior.
+**Map work:** PAR-28's [local implementation](./offline-maps.md) provides destination search,
+downloaded areas, storage/attribution and recoverable deletion. It still needs measured
+local/province/small-country downloads and physical offline/overlap acceptance.
 PAR-29's local optional in-flight map consumes captured fixes and awaits PAR-37 Android acceptance.
 Neither feature publishes live location to anyone else.
 

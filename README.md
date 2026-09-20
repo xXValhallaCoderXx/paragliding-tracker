@@ -9,15 +9,21 @@ recorder carried on a flight.
 ## Documentation
 
 - [Project overview](./docs/project-overview.md): current features, backup behavior and limits.
-- [Feature plan and roadmap](./docs/feature-plan.md): saved replay maps, broader sharing/replay
-  acceptance, then friends, shared-flight viewing and future maps.
+- [Feature plan and roadmap](./docs/feature-plan.md): map/download acceptance, broader sharing/replay
+  acceptance, then friends and shared-flight viewing.
 - [Saved replay maps](./docs/saved-replay-maps.md): Mapbox decision, configuration and Android checks.
 - [Optional in-flight map](./docs/in-flight-map.md): implementation, bounded live data and pending Android acceptance.
+- [Offline map areas](./docs/offline-maps.md): PAR-28 downloads, storage/recovery policy and pending Android acceptance.
 - [Email setup](./docs/email-setup.md): hosted sign-in email configuration.
 
 Postcard PNG sharing and offline 2D replay are implemented. Full device acceptance remains
 pending; the roadmap carries the remaining checks. Recording works without an account, and
 backup does not yet restore a logbook onto a new phone. Development and test commands follow.
+
+PAR-28 is implemented locally: **Settings → Offline maps** searches destinations, previews named
+coverage and manages multiple downloaded areas for live recording and saved replay. It requires
+a new Android build. Cold-start airplane-mode use, measured download sizes and overlap/deletion
+behavior still need the [physical acceptance checks](./docs/offline-maps.md#android-physical-acceptance--all-pending).
 
 ## Mapbox configuration
 
@@ -35,6 +41,8 @@ The native map module/config plugin requires an Android rebuild; Fast Refresh or
 cannot add it. Preserve the existing signing key and phone logbook, follow the in-place prebuild
 and compatible installation steps below, then run the [map phone checklist](./docs/saved-replay-maps.md#android-acceptance).
 Native compatibility and acceptance results are tracked separately in that document and Linear.
+PAR-28 extends the pinned Mapbox native patch with a shared tile store, style/tile downloads and
+verified completion receipts; [its guide](./docs/offline-maps.md) records the storage and rebuild contract.
 The approved replay UI opens Map when configured, automatically falls back to Grid for missing
 configuration, native failure or a 15-second timeout, and offers **Retry map** after a failed
 attempt. There is no Map/Grid selector. The approved **Fit flight** target icon sits inside the

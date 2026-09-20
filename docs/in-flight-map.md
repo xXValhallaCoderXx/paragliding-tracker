@@ -30,7 +30,9 @@ evidence and retries reads while visible; it does not change recorder health. Mi
 configuration, map loading errors or the 15-second initial deadline show Grid. Grid fits the
 bounded route, with no geographic camera controls. Configured map failures offer **Retry map**;
 there is no automatic basemap retry loop. Network availability alone does not trigger fallback,
-and usable cached tiles remain usable. Downloaded offline areas remain PAR-28.
+and usable cached tiles remain usable. PAR-28 now supplies shared downloaded coverage through
+[Settings → Offline maps](./offline-maps.md). Offline live-map cold-start acceptance remains
+pending; partial/missing viewport coverage is labelled and recording remains independent.
 
 Selecting Instruments, leaving the screen, backgrounding, foreground recovery and saving unmount
 the live query and native map. The cache, timers and trail arrays are released. Re-entry loads

@@ -22,6 +22,7 @@ import { CloudSyncProvider } from '@/features/account/cloud-sync-provider';
 import { FirstRunProvider } from '@/features/onboarding/first-run-provider';
 import { FirstRunGate } from '@/features/onboarding/components/first-run-gate';
 import { RecorderLifecycleProvider } from '@/features/record/recorder-lifecycle';
+import { OfflineMapsProvider } from '@/offline-maps/runtime';
 import { store } from '@/store';
 import { paper } from '@/ui/theme';
 
@@ -69,6 +70,7 @@ export default function RootLayout() {
     <Provider store={store}>
       <CloudAuthProvider>
         <RecorderLifecycleProvider>
+          <OfflineMapsProvider>
           <CloudSyncProvider>
             <FirstRunProvider>
               {fontsSettled ? (
@@ -86,6 +88,7 @@ export default function RootLayout() {
               ) : null}
             </FirstRunProvider>
           </CloudSyncProvider>
+          </OfflineMapsProvider>
         </RecorderLifecycleProvider>
       </CloudAuthProvider>
     </Provider>

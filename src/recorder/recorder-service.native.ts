@@ -10,6 +10,7 @@ import * as Sharing from 'expo-sharing';
 import * as TaskManager from 'expo-task-manager';
 
 import { LOCATION_TASK_NAME, RECORDER_CONFIG } from './config';
+import { RecorderActivityChannel } from './activity';
 import {
   beginSessionRecoveryAttempt,
   completeSession,
@@ -49,6 +50,7 @@ import {
   type ExportArtifact,
   type PowerReading,
   type RecorderCapabilities,
+  type RecorderActivity,
   type RecorderFailure,
   type RecorderFailureCode,
   type RecorderPermission,
@@ -185,6 +187,7 @@ async function getLocationTaskState(): Promise<LocationTaskState> {
 class NativeRecorderService implements RecorderService {
   private snapshot = initialSnapshot();
   private readonly listeners = new Set<(snapshot: RecorderSnapshot) => void>();
+  private readonly activity = new RecorderActivityChannel();
   private state: RecorderState = 'idle';
   private activeFlightId: string | null = null;
   private activeSessionId: string | null = null;
@@ -881,8 +884,13 @@ class NativeRecorderService implements RecorderService {
     };
   }
 
+  subscribeActivity(listener: (activity: RecorderActivity) => void): () => void {
+    return this.activity.subscribe(listener);
+  }
+
   private runLifecycleOperation<T>(operation: () => Promise<T>): Promise<T> {
-    return this.lifecycle.run(operation);
+    const finishActivity = this.activity.begin();
+    return this.lifecycle.run(operation).finally(finishActivity);
   }
 
   private async finalizeFlightStats(sessionId: string): Promise<RecorderFailure | null> {
@@ -1280,6 +1288,7 @@ class NativeRecorderService implements RecorderService {
   }
 
   private publish() {
+    this.activity.setState(this.snapshot.state);
     for (const listener of this.listeners) listener(this.snapshot);
   }
 }

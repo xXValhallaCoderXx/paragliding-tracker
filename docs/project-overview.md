@@ -4,6 +4,8 @@ Map and navigation updates reviewed on 13 September 2026 at `a348f6c`.
 The original core implementation review was on 6 September 2026 at `d22d095`.
 The optional in-flight map and replay recovery fix were added locally on 19 September 2026;
 their [Android acceptance remains pending](./in-flight-map.md).
+Downloadable map areas were added locally on 20 September 2026; [PAR-28 physical acceptance
+remains pending](./offline-maps.md).
 
 Flight Log Alpha is a personal paragliding journal built around recording a flight on your
 phone, reviewing what happened, and keeping a shareable memory of it. It is an Android-first
@@ -24,13 +26,15 @@ pilot's primary recording equipment.
 | Flight detail | View a static route map, airtime, track distance, altitude, speed, route quality and recording evidence. Edit title, launch site and private notes. Delete a finished flight after confirmation. |
 | Launch sites | Look up nearby ParaglidingEarth launches or search names through OSM/Photon. Enter a name manually when offline or no suitable result exists. Saved catalogue choices retain attribution. |
 | Saved replay | Play a saved route on a geographic map with a moving pilot marker, GPS-altitude chart and synchronized telemetry. Pan, zoom and Fit flight; pause, scrub, seek by 10 seconds, and choose 1×, 10× or 60× speed. An offline grid remains the fallback. |
+| Offline maps | Settings searches destinations, previews suggested coverage and manages multiple Android map downloads for live recording and replay. Pause, Resume/Retry, Cancel, Update and Delete are implemented; physical offline acceptance is pending. |
 | Postcard sharing | Compose a Square or Story PNG with one of three illustrations, the saved route, flight statistics, a temporary caption and optional pilot signature. Open the phone's share menu to choose a receiving app. |
 | File export | Export deterministic unsigned IGC files and diagnostic JSON through native sharing. Pilot/glider details populate applicable IGC headers. |
 | Pilot and backup | Keep a local profile, optionally sign in with an email code, inspect backup progress/errors, retry sync, sign out or delete the cloud account while retaining the local logbook. |
 
-The journal uses bundled illustrations and fonts. Map backgrounds need a connection or cached
-data; static previews show the local route grid while loading or after failure. Recording
-instruments remain focused on readability and capture status.
+The journal uses bundled illustrations and fonts. Live/replay map backgrounds can use a
+connection, cache or completed downloaded coverage. Static previews use their separate image
+cache and show the local route grid while loading or after failure. Recording instruments
+remain focused on readability and capture status.
 
 ## Sharing and replay: implemented, still being finished
 
@@ -48,7 +52,9 @@ photo-library access is needed. Hosted links, video export and Save to Photos ar
 **Saved replay opens Mapbox Outdoors by default when configured.** It supports pan/zoom and
 Fit flight, with automatic Grid fallback for missing configuration, map failure or an initial
 load timeout. Retry map is available after a failed attempt; there is no Map/Grid selector.
-Downloaded map areas and guaranteed offline basemaps are not implemented.
+Android [downloaded map areas](./offline-maps.md) are implemented locally with shared storage,
+verified completion and recovery. Cold-start airplane-mode basemap behavior, storage measurements
+and overlap/deletion remain physical acceptance gates.
 
 Playback respects the saved recording bounds, pauses when leaving or backgrounding, and does
 not resume automatically. Gaps longer than 15 seconds and unavailable telemetry remain visible
@@ -104,6 +110,7 @@ That is evidence for the checked implementation, not a field-reliability claim. 
 | Routes and screens | [src/app](../src/app) |
 | Capture, persistence, recovery, metrics and exports | [src/recorder](../src/recorder) |
 | Flight detail and replay UI | [src/features/flights](../src/features/flights) |
+| Offline map search, downloads and recovery | [src/offline-maps](../src/offline-maps), [src/features/offline-maps](../src/features/offline-maps) |
 | Postcard composition and image export | [src/features/postcard](../src/features/postcard) |
 | Track and replay calculations | [src/lib/track](../src/lib/track), [src/lib/replay](../src/lib/replay) |
 | Cached screen data | [src/store](../src/store) |
