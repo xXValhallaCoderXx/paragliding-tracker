@@ -30,7 +30,11 @@ export default function FeedScreen() {
       ListHeaderComponent={<View style={styles.section}>
         <View><Text style={styles.eyebrow}>A SMALL CIRCLE</Text><Text style={styles.title}>Friends</Text>
           <Text style={styles.body}>Flights from the pilots you know.</Text></View>
-        <Button label="Manage friends" onPress={() => router.push('/friends/manage')} />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={{ flex: 1 }}><Button label="Find pilots" onPress={() => router.push('/friends/search')} /></View>
+          <View style={{ flex: 1 }}><Button label="Manage friends" onPress={() => router.push('/friends/manage')} /></View>
+        </View>
+        {!friends.profile?.username ? <Notice title="Complete your profile">Choose a unique @username in Manage friends before finding pilots. Your existing feed and friends stay available.</Notice> : null}
         {showFlights ? <AutomaticSharingCard key={feed.identityKey} /> : <Notice title="Connect to see shared flights">The feed and shared replays are available while you are online.</Notice>}
         {feed.error ? <Notice tone="danger" title="Could not refresh shared flights">{feed.error}</Notice> : null}
         {friends.error ? <Notice tone="danger" title="Could not load Friends">{friends.error}</Notice> : null}

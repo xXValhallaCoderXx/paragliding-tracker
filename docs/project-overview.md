@@ -6,8 +6,8 @@ The optional in-flight map and replay recovery fix were added locally on 19 Sept
 their [Android acceptance remains pending](./in-flight-map.md).
 Downloadable map areas were added locally on 20 September 2026; [PAR-28 physical acceptance
 remains pending](./offline-maps.md).
-Friends profiles and private invitations were added on 21 September 2026;
-[Friends v1](./friends.md) records validation and delivery evidence separately.
+Friends profiles were added on 21 September 2026; pilot search and mutual requests now replace
+private invitation codes. [Friends](./friends.md) records validation and delivery evidence separately.
 The accepted-friends feed and explicitly shared flight detail/replay are implemented and deployed;
 [shared flights](./shared-flights.md) tracks their separate release and device gates.
 [Kudos](./kudos.md) adds reversible support and a names-and-initials list to published flights,
@@ -36,7 +36,7 @@ pilot's primary recording equipment.
 | Postcard sharing | Compose a Square or Story PNG with one of three illustrations, the saved route, flight statistics, a temporary caption and optional pilot signature. Open the phone's share menu to choose a receiving app. |
 | File export | Export deterministic unsigned IGC files and diagnostic JSON through native sharing. Pilot/glider details populate applicable IGC headers. |
 | Pilot and backup | Keep a local profile, optionally sign in with an email code, inspect backup progress/errors, retry sync, sign out or delete the cloud account while retaining the local logbook. |
-| Friends | View deliberately published flights from accepted friends and preview your own posts; open shared detail and 2D replay. Manage friends keeps display names, invite codes, requests/connections and backed-up flight counts. Online only. |
+| Friends | View deliberately published flights from accepted friends and preview your own posts; open shared detail and 2D replay. Find pilots by name or editable username and send a mutual request. Manage friends keeps search visibility, requests/connections, blocking and backed-up flight counts. Online only. |
 | Share with friends | Manually publish a saved flight or opt into automatic sharing of future recordings, off by default. Full route and approved summary fields are shared; private notes, pilot/export details and diagnostics are excluded. Hide and durable retry status live on your own flight detail. |
 
 The journal uses bundled illustrations and fonts. Live/replay map backgrounds can use a

@@ -81,7 +81,7 @@ it('opens a shared preview separately and clears confirmation on an account swit
   await run(() => control('Preview shared flight').props.onPress());
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/shared-flights/[id]', params: { id: 'activity-1' } });
   await run(() => control('Hide from friends…').props.onPress());
-  mockFriends = friendsContext({ identityKey: 'owner-b', profile: { userId: 'owner-b', displayName: 'Other', backedUpFlightCount: 0 } });
+  mockFriends = friendsContext({ identityKey: 'owner-b', profile: { userId: 'owner-b', displayName: 'Other', username: 'other', discoverable: true, backedUpFlightCount: 0 } });
   await run(() => rendered.update(React.createElement(FlightSharingSection, { flightId: 'flight-1' })));
   expect(control('Hide this flight')).toBeUndefined();
 });

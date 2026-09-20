@@ -189,21 +189,27 @@ export type Database = {
       social_profiles: {
         Row: {
           created_at: string
+          discoverable: boolean
           display_name: string
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           created_at?: string
+          discoverable?: boolean
           display_name: string
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           created_at?: string
+          discoverable?: boolean
           display_name?: string
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -281,6 +287,7 @@ export type Database = {
         Args: { p_activity_id: string; p_owner: string; p_upload_token: string }
         Returns: Json
       }
+      social_block_pilot: { Args: { p_user_id: string }; Returns: undefined }
       social_change_relationship: {
         Args: {
           p_action: string
@@ -333,11 +340,18 @@ export type Database = {
         }
         Returns: Json
       }
-      social_request_friend: { Args: { p_code: string }; Returns: Json }
-      social_rotate_invite_code: { Args: never; Returns: string }
+      social_request_pilot: { Args: { p_user_id: string }; Returns: Json }
       social_save_profile: {
-        Args: { p_display_name: string }
+        Args: {
+          p_discoverable: boolean
+          p_display_name: string
+          p_username: string
+        }
         Returns: undefined
+      }
+      social_search_pilots: {
+        Args: { p_cursor?: Json; p_query: string }
+        Returns: Json
       }
       social_set_auto_share: { Args: { p_enabled: boolean }; Returns: Json }
       social_set_kudos: {

@@ -15,6 +15,7 @@ export function RelationshipCard({ relation, disabled, onAction, onProfile }: {
       <Avatar initials={friendInitials(relation.displayName)} />
       <View style={styles.rowText}>
         <Text style={styles.name}>{relation.displayName}</Text>
+        {relation.username ? <Text style={styles.body}>@{relation.username}</Text> : null}
         {relation.state === 'incoming' ? <Text style={styles.helper}>Wants to be your friend</Text> : null}
         {relation.state === 'outgoing' ? <Text style={styles.helper}>Waiting for their reply</Text> : null}
         {relation.state === 'blocked' ? <Text style={styles.helper}>Unblocking does not add them as a friend.</Text> : null}

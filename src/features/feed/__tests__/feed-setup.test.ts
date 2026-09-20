@@ -45,7 +45,7 @@ type Request = { resolve(value: SocialState): void; reject(error: Error): void }
 let requests: Request[];
 let rendered: ReturnType<typeof create> | undefined;
 type Node = { props: Record<string, any> };
-const empty: SocialState = { profile: null, inviteCode: null, relationships: [] };
+const empty: SocialState = { profile: null, relationships: [] };
 const run = async (operation: () => unknown) => { await act(async () => { await operation(); }); };
 const input = () => (rendered!.root.findAllByType(Input) as Node[]).find(node => node.props.label === 'Display name');
 const control = (label: string) => [...rendered!.root.findAllByType(Button), ...rendered!.root.findAllByType(LinkButton)]
@@ -104,10 +104,11 @@ it('preserves the setup draft through refresh failure, offline and reconnect wit
 it('switches to the feed only after an explicitly created profile is confirmed', async () => {
   await mount(); await finishReads();
   await run(() => input()!.props.onChangeText('Consenting pilot'));
+  await run(() => (rendered!.root.findAllByType(Input) as Node[]).find(node => node.props.label === 'Username')!.props.onChangeText('consenting_pilot'));
   await run(() => control('Create my Friends profile')!.props.onPress());
-  expect(mockSaveProfile).toHaveBeenCalledWith('Consenting pilot', expect.any(AbortSignal));
+  expect(mockSaveProfile).toHaveBeenCalledWith({ displayName: 'Consenting pilot', username: 'consenting_pilot', discoverable: true }, expect.any(AbortSignal));
   expect(rendered!.root.findAllByType(FriendsScreen)).toHaveLength(1);
-  await finishReads({ ...empty, profile: { userId: OWNER, displayName: 'Consenting pilot', backedUpFlightCount: 0 } });
+  await finishReads({ ...empty, profile: { userId: OWNER, displayName: 'Consenting pilot', username: 'consenting_pilot', discoverable: true, backedUpFlightCount: 0 } });
   expect(rendered!.root.findAllByType(FriendsScreen)).toHaveLength(0);
   expect(control('Manage friends')).toBeDefined();
   expect(mockFeed.refresh).toHaveBeenCalledTimes(1);

@@ -58,7 +58,7 @@ export async function verifySharedFlights(url, publicKey, adminKey) {
   const auto = (account, enabled) => rpc(account, 'social_set_auto_share', { p_enabled: enabled });
   const relationship = async (account, other, action, id) => rpc(account, 'social_change_relationship', {
     p_other_user_id: other.id, p_action: action, ...(id ? { p_request_id: id } : {}) });
-  const invite = async (account, other) => rpc(account, 'social_request_friend', { p_code: (await state(other)).inviteCode });
+  const invite = async (account, other) => rpc(account, 'social_request_pilot', { p_user_id: other.id });
   const accept = async (account, other) => {
     const pending = (await state(account)).relationships.find(row => row.userId === other.id);
     await relationship(account, other, 'accept', pending.id); return pending.id;
@@ -96,7 +96,10 @@ export async function verifySharedFlights(url, publicKey, adminKey) {
     check(new Set(accounts.map(account => account.id)).size === 3, 'three disposable Auth sessions are independent');
     check((await prefs(a)).enabled === false && (await prefs(a)).generation === null, 'automatic sharing defaults off');
     check(!!(await anonymous.rpc('social_list_feed')).error, 'anonymous feed reads are denied');
-    for (const [index, account] of accounts.entries()) await rpc(account, 'social_save_profile', { p_display_name: `Fixture Pilot ${index + 1}` });
+    for (const [index, account] of accounts.entries()) await rpc(account, 'social_save_profile', {
+      p_display_name: `Fixture Pilot ${index + 1}`,
+      p_username: `qa_s_${account.id.replaceAll('-', '').slice(0, 18)}`, p_discoverable: true,
+    });
     const flight = await seed(a);
     check((await publication(a, flight)).state === 'private', 'older backed-up flight stays private without a manual request');
     const prepared = await prepare(a, flight, 0);

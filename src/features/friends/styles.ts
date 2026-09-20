@@ -19,7 +19,6 @@ export const friendsStyles = StyleSheet.create({
   actionText: { fontFamily: fonts.sansSemi, fontSize: 12, color: paper.ink },
   danger: { color: paper.danger },
   disabled: { opacity: 0.45 },
-  code: { fontFamily: fonts.monoSemi, fontSize: 23, letterSpacing: 1.2, color: paper.ink, textAlign: 'center', paddingVertical: 8 },
   profile: { alignItems: 'center', gap: 12, paddingVertical: 20 },
   count: { fontFamily: fonts.sansBold, fontSize: 42, color: paper.ink },
   centered: { textAlign: 'center' },

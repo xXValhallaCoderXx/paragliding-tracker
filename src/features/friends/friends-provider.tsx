@@ -17,9 +17,10 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   const status = auth.status === 'signed_in' ? 'ready' : auth.status;
   const actions = useMemo(() => ({
     refresh: async () => { controller.assertOwner(identityKey); await controller.refresh(); },
-    saveProfile: async (name: string) => { controller.assertOwner(identityKey); await controller.saveProfile(name); },
-    rotateInviteCode: async () => { controller.assertOwner(identityKey); return controller.rotateInviteCode(); },
-    requestFriend: async (code: string) => { controller.assertOwner(identityKey); return controller.requestFriend(code); },
+    saveProfile: async (...args: Parameters<FriendsController['saveProfile']>) => { controller.assertOwner(identityKey); await controller.saveProfile(...args); },
+    requestPilot: async (userId: string) => { controller.assertOwner(identityKey); return controller.requestPilot(userId); },
+    blockPilot: async (userId: string) => { controller.assertOwner(identityKey); await controller.blockPilot(userId); },
+    searchPilots: async (...args: Parameters<FriendsController['searchPilots']>) => { controller.assertOwner(identityKey); return controller.searchPilots(...args); },
     changeRelationship: async (...args: Parameters<FriendsController['changeRelationship']>) => {
       controller.assertOwner(identityKey); await controller.changeRelationship(...args);
     },
@@ -58,7 +59,7 @@ export function FriendsProvider({ children }: { children: ReactNode }) {
   }, [controller]);
 
   // Auth context changes during render before effects run. Never expose a previous
-  // owner's cached names, relationships or invite code in that intervening render.
+  // owner's cached names or relationships in that intervening render.
   const value = useMemo<FriendsContextValue>(() => {
     const visible = identityKey && snapshot.identityKey === identityKey ? snapshot : {
       ...EMPTY_FRIENDS, identityKey, revision: snapshot.revision,

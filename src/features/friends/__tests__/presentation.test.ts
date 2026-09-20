@@ -1,4 +1,4 @@
-import { displayInviteCode, friendInitials, REQUEST_STATUS, relationshipActions, validDisplayName } from '../presentation';
+import { friendInitials, REQUEST_STATUS, relationshipActions, validDisplayName, validUsername } from '../presentation';
 
 it('previews chosen initials without inventing a name and handles Unicode code points', () => {
   expect(friendInitials('')).toBe('');
@@ -8,10 +8,11 @@ it('previews chosen initials without inventing a name and handles Unicode code p
   expect(validDisplayName('   ')).toBe(false);
   expect(validDisplayName('🪂'.repeat(60))).toBe(true);
   expect(validDisplayName('a'.repeat(61))).toBe(false);
-  expect(displayInviteCode('ABCD1234WXYZ')).toBe('ABCD 1234 WXYZ');
+  expect(validUsername('pilot_123')).toBe(true);
+  for (const value of ['ab', 'a'.repeat(25), 'Ada', '@ada', 'ada wong', '陈陈陈']) expect(validUsername(value)).toBe(false);
 });
 
-it('keeps failed request codes and only exposes valid relationship actions', () => {
+it('explains unsuccessful requests and only exposes valid relationship actions', () => {
   expect(REQUEST_STATUS.unavailable.success).toBe(false);
   expect(REQUEST_STATUS.rate_limited.success).toBe(false);
   expect(REQUEST_STATUS.incoming.message).toContain('Accept');

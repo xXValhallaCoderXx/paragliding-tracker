@@ -1,11 +1,11 @@
-import { useCallback, useState } from 'react';
-import { Alert, ScrollView, Share, Text, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { Alert, ScrollView, Switch, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Avatar, BusyRow, Button, Card, Input, LinkButton, Notice, Screen, SectionLabel, TopBar } from '@/components/ui';
 import { errorMessage } from '@/lib/format/error-message';
-import type { FriendRequestStatus, FriendshipAction, FriendshipSummary } from '@/social/types';
+import type { FriendshipAction, FriendshipSummary } from '@/social/types';
 import { useFriends } from './friends-provider';
-import { displayInviteCode, friendInitials, REQUEST_STATUS, validDisplayName } from './presentation';
+import { friendInitials, validDisplayName, validUsername } from './presentation';
 import { RelationshipCard } from './relationship-card';
 import { friendsStyles as styles } from './styles';
 
@@ -41,29 +41,33 @@ function FriendsContent() {
   const [name, setName] = useState('');
   const [editing, setEditing] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [code, setCode] = useState('');
-  const [requestStatus, setRequestStatus] = useState<FriendRequestStatus | null>(null);
+  const [username, setUsername] = useState('');
+  const [discoverable, setDiscoverable] = useState(true);
   const [localError, setLocalError] = useState<string | null>(null);
   const [working, setWorking] = useState<string | null>(null);
+  const scope = useRef({ active: false, version: 0 });
+  useFocusEffect(useCallback(() => {
+    scope.current = { active: friends.available, version: scope.current.version + 1 };
+    setWorking(null);
+    return () => { scope.current = { active: false, version: scope.current.version + 1 }; };
+  }, [friends.available]));
   const disabled = friends.busy || working !== null || !friends.available;
   const run = async (label: string, operation: () => Promise<unknown>) => {
-    if (disabled) return;
+    if (disabled || !scope.current.active) return;
+    const version = scope.current.version;
     setWorking(label); setLocalError(null);
     try { await operation(); }
-    catch (error) { setLocalError(errorMessage(error)); }
-    finally { setWorking(null); }
+    catch (error) { if (scope.current.version === version) setLocalError(errorMessage(error)); }
+    finally { if (scope.current.version === version) setWorking(null); }
   };
   const save = () => run('Saving profile…', async () => {
-    await friends.saveProfile(name); setEditing(false); setCreating(false);
-  });
-  const request = () => run('Sending request…', async () => {
-    setRequestStatus(null);
-    const result = await friends.requestFriend(code);
-    setRequestStatus(result);
-    if (REQUEST_STATUS[result].success) setCode('');
+    const version = scope.current.version;
+    await friends.saveProfile({ displayName: name, username, discoverable });
+    if (scope.current.version === version) { setEditing(false); setCreating(false); }
   });
   const change = (relation: FriendshipSummary, action: FriendshipAction) => {
-    const apply = () => void run('Updating connection…', () => friends.changeRelationship(relation, action));
+    const version = scope.current.version;
+    const apply = () => { if (scope.current.version === version) void run('Updating connection…', () => friends.changeRelationship(relation, action)); };
     if (action === 'remove' || action === 'block') {
       // Native alerts can outlive the React screen during an account switch.
       // Keep names in the account-scoped screen, outside the native dialog.
@@ -73,10 +77,6 @@ function FriendsContent() {
         [{ text: 'Cancel', style: 'cancel' }, { text: action === 'block' ? 'Block' : 'Remove friend', style: 'destructive', onPress: apply }]);
     } else apply();
   };
-  const regenerate = () => Alert.alert('Replace your friend code?', 'Your old code will stop working. Existing friends and requests will stay as they are.', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Replace code', onPress: () => void run('Replacing code…', friends.rotateInviteCode) },
-  ]);
   const firstUse = !friends.profile && !friends.loading && !friends.error && friends.available;
   const showNameForm = editing || firstUse || creating;
   const message = localError ?? friends.error;
@@ -89,49 +89,42 @@ function FriendsContent() {
     </View> : null}
     {working ? <BusyRow label={working} /> : friends.loading ? <BusyRow label="Loading Friends…" /> : null}
     {showNameForm ? <Card><View style={styles.card}>
-      <SectionLabel>{editing ? 'Edit your name' : 'Your Friends profile'}</SectionLabel>
+      <SectionLabel>{editing ? 'Edit your profile' : 'Your Friends profile'}</SectionLabel>
       <Text style={styles.name}>Choose how friends see you</Text>
       <View style={styles.row}><Avatar initials={friendInitials(name)} /><Text style={styles.helper}>Your initials preview</Text></View>
       <Input label="Display name" value={name} onChangeText={value => { setName(value); if (!editing) setCreating(true); }} placeholder="The name your friends know"
-        maxLength={120} editable={!disabled} hint="1–60 characters. Separate from your private pilot details." last />
-      <Text style={styles.helper}>Your name appears with requests. Accepted friends can see your name, initials and backed-up flight count.</Text>
+        maxLength={120} editable={!disabled} hint="1–60 characters. Separate from your private pilot details." />
+      <Input label="Username" value={username} onChangeText={value => { setUsername(value.toLowerCase()); if (!editing) setCreating(true); }}
+        placeholder="your_username" autoCapitalize="none" autoComplete="off" maxLength={24}
+        editable={!disabled} hint="3–24 lowercase letters, numbers or underscores. Your @username is unique and editable." last />
+      <View style={styles.row}><View style={styles.rowText}><Text style={styles.name}>Show me in search</Text>
+        <Text style={styles.helper}>Other signed-in pilots can find your name, initials and @username. No flight count or flights appear in search.</Text></View>
+        <Switch accessibilityLabel="Show me in search" value={discoverable} onValueChange={setDiscoverable} disabled={disabled} /></View>
+      <Text style={styles.helper}>Turning this off prevents new incoming requests. Existing friends and requests stay, and you can still find pilots and send requests.</Text>
+      <Text style={styles.helper}>Your name and @username appear with requests. Accepted friends can see your profile and backed-up flight count.</Text>
       <Text style={styles.helper}>If you give kudos, your name and initials are visible to everyone who can view that flight, including people outside your friends.</Text>
-      <Button label={editing ? 'Save name' : 'Create my Friends profile'} variant="primary" disabled={disabled || !validDisplayName(name)} onPress={() => void save()} />
+      <Button label={editing ? 'Save profile' : 'Create my Friends profile'} variant="primary" disabled={disabled || !validDisplayName(name) || !validUsername(username)} onPress={() => void save()} />
       {editing ? <LinkButton label="Cancel editing" disabled={disabled} onPress={() => setEditing(false)} /> : null}
     </View></Card> : friends.profile ? <Card><View style={styles.card}>
       <View style={styles.row}><Avatar initials={friendInitials(friends.profile.displayName)} /><View style={styles.rowText}>
         <Text style={styles.helper}>YOUR FRIENDS PROFILE</Text><Text style={styles.name}>{friends.profile.displayName}</Text>
+        {friends.profile.username ? <Text style={styles.body}>@{friends.profile.username}</Text> : null}
       </View></View>
-      <LinkButton label="Edit display name" disabled={disabled} onPress={() => { setName(friends.profile!.displayName); setEditing(true); }} />
+      <Text style={styles.helper}>{friends.profile.discoverable ? 'Visible in pilot search' : 'Hidden from pilot search'}</Text>
+      {!friends.profile.username ? <Notice title="Complete your profile">Choose a unique @username before finding pilots or sending new requests. Your existing friends and shared flights stay available.</Notice> : null}
+      <LinkButton label={friends.profile.username ? 'Edit profile' : 'Complete profile'} disabled={disabled} onPress={() => {
+        setName(friends.profile!.displayName); setUsername(friends.profile!.username ?? '');
+        setDiscoverable(friends.profile!.discoverable); setEditing(true);
+      }} />
     </View></Card> : null}
-    {friends.profile || code.length > 0 ? <>
-      <View style={styles.section}>
-        <SectionLabel>Invite a friend</SectionLabel>
-        {friends.profile ? <Card><View style={styles.card}>
-          <Text style={styles.body}>Share this private code with someone you want to add.</Text>
-          {friends.inviteCode ? <>
-            <Text selectable accessibilityLabel={`Your friend code: ${friends.inviteCode}`} style={styles.code}>{displayInviteCode(friends.inviteCode)}</Text>
-            <Button label="Share friend code" disabled={disabled} onPress={() => void run('Opening share sheet…', () => Share.share({
-              message: `Add me on Flight Log Alpha. My friend code is ${friends.inviteCode}. Enter it in the Friends tab to send a request.`,
-            }))} />
-            <LinkButton label="Replace friend code" disabled={disabled} onPress={regenerate} />
-          </> : <Text style={styles.helper}>Your code could not be loaded. Refresh friends to try again.</Text>}
-        </View></Card> : null}
-        <Card><View style={styles.card}>
-          <Input label="Their friend code" value={code} onChangeText={value => { setCode(value); setRequestStatus(null); }}
-            placeholder="Enter their 12-character code" maxLength={40} autoCapitalize="characters" autoComplete="off" editable={!disabled} last />
-          <Button label="Send friend request" variant="primary" disabled={disabled || code.replace(/[\s-]/g, '').length !== 12} onPress={() => void request()} />
-          {requestStatus ? <Notice tone={REQUEST_STATUS[requestStatus].success ? 'good' : 'warning'} title={REQUEST_STATUS[requestStatus].title}>
-            {REQUEST_STATUS[requestStatus].message}
-          </Notice> : null}
-        </View></Card>
-      </View>
+    {friends.profile ? <>
+      <Button label="Find pilots" disabled={disabled || !friends.profile.username} onPress={() => router.push('/friends/search')} />
       {(['incoming', 'accepted', 'outgoing', 'blocked'] as const).map(state => {
         const entries = friends.relationships.filter(relation => relation.state === state);
         if (!entries.length && (state !== 'accepted' || !friends.profile || friends.loading || friends.error || !friends.available)) return null;
         return <View key={state} style={styles.section}>
           <SectionLabel>{{ incoming: 'Incoming requests', accepted: 'Your friends', outgoing: 'Sent requests', blocked: 'Blocked' }[state]}</SectionLabel>
-          {!entries.length ? <Text style={styles.body}>No friends yet. Share your code or enter a friend’s code to get started.</Text> : entries.map(relation =>
+          {!entries.length ? <Text style={styles.body}>No friends yet. Find a pilot and send a request to start your circle.</Text> : entries.map(relation =>
             <RelationshipCard key={relation.id} relation={relation} disabled={disabled}
               onAction={action => change(relation, action)} onProfile={() => router.push({ pathname: '/friends/[id]', params: { id: relation.userId } })} />)}
         </View>;

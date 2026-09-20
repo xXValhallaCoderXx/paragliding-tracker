@@ -16,6 +16,9 @@ const mockNetworkRead = jest.fn();
 const mockGetState = jest.fn();
 const mockSaveProfile = jest.fn();
 const mockGetProfile = jest.fn();
+const mockSearch = jest.fn();
+const mockRequestPilot = jest.fn();
+const mockBlockPilot = jest.fn();
 jest.mock('@/features/account/auth-provider', () => ({ useCloudAuth: () => mockAuth }));
 jest.mock('@/cloud/auth-service', () => ({ cloudAuthService: {
   getSnapshot: () => mockAuth,
@@ -30,9 +33,12 @@ jest.mock('expo-network', () => ({
 jest.mock('../api', () => ({ socialService: {
   getState: (...args: unknown[]) => mockGetState(...args), saveProfile: (...args: unknown[]) => mockSaveProfile(...args),
   getFriendProfile: (...args: unknown[]) => mockGetProfile(...args),
+  searchPilots: (...args: unknown[]) => mockSearch(...args),
+  requestPilot: (...args: unknown[]) => mockRequestPilot(...args),
+  blockPilot: (...args: unknown[]) => mockBlockPilot(...args),
 } }));
 const wifi = { isConnected: true, isInternetReachable: true };
-const dto = (userId = A) => ({ profile: { userId, displayName: userId === A ? 'First pilot' : 'Second pilot', backedUpFlightCount: 1 }, inviteCode: 'ABCD2345EFGH', relationships: [] });
+const dto = (userId = A) => ({ profile: { userId, displayName: userId === A ? 'First pilot' : 'Second pilot', backedUpFlightCount: 1, username: userId === A ? 'pilot_a' : 'pilot_b', discoverable: false }, relationships: [] });
 let observed: FriendsContextValue;
 let renders: FriendsContextValue[];
 function Observer() {
@@ -57,6 +63,9 @@ beforeEach(() => {
   mockGetState.mockReset().mockImplementation(async () => dto(mockAuth.userId!));
   mockSaveProfile.mockReset().mockResolvedValue(undefined);
   mockGetProfile.mockReset().mockResolvedValue(dto(B).profile);
+  mockSearch.mockReset().mockResolvedValue({ status: 'ok', items: [], nextCursor: null });
+  mockRequestPilot.mockReset().mockResolvedValue('sent');
+  mockBlockPilot.mockReset().mockResolvedValue(undefined);
   AppState.currentState = 'active';
   jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
     mockAppListeners.add(listener); return { remove: () => { mockAppListeners.delete(listener); } };
@@ -71,7 +80,6 @@ it.each(['signout', 'switch'] as const)('hides A in the first render after %s be
   mockAuth = { ...mockAuth, status: change === 'signout' ? 'signed_out' : 'signed_in', userId: change === 'signout' ? null : B };
   await render();
   expect(renders[0].profile).toBeNull();
-  expect(renders[0].inviteCode).toBeNull();
   expect(renders[0].relationships).toEqual([]);
   expect(renders.every(snapshot => snapshot.profile?.userId !== A)).toBe(true);
 });
@@ -81,11 +89,16 @@ it('keeps read callbacks stable through cache revisions and rejects an old owner
   await act(async () => { await observed.refresh(); });
   expect(observed.refresh).toBe(old.refresh);
   expect(observed.getFriendProfile).toBe(old.getFriendProfile);
+  expect(observed.searchPilots).toBe(old.searchPilots);
   expect(observed.revision).toBeGreaterThan(old.revision);
   mockAuth = { ...mockAuth, userId: B };
   await render();
-  await expect(old.saveProfile('Wrong account')).rejects.toMatchObject({ code: 'stale' });
+  await expect(old.saveProfile({ displayName: 'Wrong account', username: 'pilot_a', discoverable: false })).rejects.toMatchObject({ code: 'stale' });
   expect(mockSaveProfile).not.toHaveBeenCalled();
+  await expect(old.searchPilots('pilot')).rejects.toMatchObject({ code: 'stale' });
+  await expect(old.requestPilot(B)).rejects.toMatchObject({ code: 'stale' });
+  await expect(old.blockPilot(B)).rejects.toMatchObject({ code: 'stale' });
+  expect(mockSearch).not.toHaveBeenCalled(); expect(mockRequestPilot).not.toHaveBeenCalled(); expect(mockBlockPilot).not.toHaveBeenCalled();
 });
 it('clears memory in the background and fetches fresh state on foreground without polling', async () => {
   await render();
@@ -94,7 +107,7 @@ it('clears memory in the background and fetches fresh state on foreground withou
     AppState.currentState = 'background';
     for (const listener of mockAppListeners) listener('background');
   });
-  expect(observed).toMatchObject({ profile: null, inviteCode: null, available: false });
+  expect(observed).toMatchObject({ profile: null, available: false });
   expect(mockGetState).toHaveBeenCalledTimes(calls);
   await act(async () => {
     AppState.currentState = 'active';
@@ -121,8 +134,24 @@ it('rejects a pending mutation after unmount instead of delivering a stale succe
   const reply = deferred<void>();
   mockSaveProfile.mockReturnValueOnce(reply.promise);
   let mutation!: Promise<void>;
-  await act(async () => { mutation = observed.saveProfile('Draft'); });
+  await act(async () => { mutation = observed.saveProfile({ displayName: 'Draft', username: 'pilot_a', discoverable: false }); });
   const rejected = expect(mutation).rejects.toMatchObject({ code: 'stale' });
   await act(async () => { rendered!.unmount(); rendered = undefined; reply.resolve(); });
   await rejected;
+});
+it('forwards external search cancellation and rejects a late page after sign-out', async () => {
+  await render();
+  const reply = deferred<{ status: 'ok'; items: []; nextCursor: null }>();
+  mockSearch.mockReturnValueOnce(reply.promise);
+  const abort = new AbortController();
+  const search = observed.searchPilots('pilot', null, abort.signal);
+  const rejected = expect(search).rejects.toMatchObject({ code: 'stale' });
+  abort.abort();
+  expect(mockSearch.mock.calls[0][2].aborted).toBe(true);
+  mockAuth = { ...mockAuth, status: 'signed_out', userId: null };
+  await render();
+  reply.resolve({ status: 'ok', items: [], nextCursor: null });
+  await rejected;
+  expect(observed.profile).toBeNull();
+  expect(observed.relationships).toEqual([]);
 });

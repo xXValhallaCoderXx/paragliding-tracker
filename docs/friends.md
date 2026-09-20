@@ -1,4 +1,51 @@
-# Friends v1: profiles and flight counts
+# Friends: pilot search and mutual requests
+
+## Current discovery contract — 21 September 2026
+
+PAR-14 replaces invitation codes with **Find pilots**, available from the Friends feed
+and Manage friends. Choose a display name and editable unique `@username`, then search
+for another pilot and send a request. The recipient must accept before profile counts,
+published flights or replay become accessible. Crossed requests never accept themselves.
+
+Usernames contain 3–24 lowercase ASCII letters, digits or underscores. Names can be shared
+by multiple pilots; usernames distinguish them. Changing a username keeps the same account,
+friendships, publications and kudos. A released username can be claimed again.
+
+New Friends profiles default **Show me in search** on with visible disclosure. Signing in
+alone creates no profile. Existing profiles remain hidden with no username until their
+owner completes setup; existing friendships and feed access continue. Turning search off
+prevents new incoming requests and removes discovery visibility, while preserving pending
+requests and accepted friends. Hidden pilots can still search and request visible pilots.
+
+Search starts after two characters, waits 350 ms after typing, and returns pages of 20.
+It matches a literal display-name substring or username prefix without case sensitivity;
+leading `@` searches usernames only. Exact usernames sort first. Results show only names,
+usernames, initials and connection state. They support Add friend, Cancel, Accept/Decline,
+View profile and confirmed blocking, including blocking someone before a request exists.
+Both directions of a block and accounts being deleted are excluded by the server.
+
+Results are online, foreground and memory-only. Query, account, connectivity, app lifecycle
+and relationship revisions fence late responses. Backgrounding, offline state and sign-out
+clear results; return/reconnect refresh current permissions. Failed requests are not queued
+offline. The server allows 60 searches per minute and 20 request attempts per ten minutes;
+expected failures consume those limits. Blank queries never enumerate pilots.
+
+### Schema and pre-release cutover
+
+`20260921160000_pilot_search.sql` preserves existing profile and relationship IDs, blocks,
+publications, kudos and private flights. It adds username/discovery fields, search and
+ID-based request/block RPCs, and explicitly removes code tables/functions. No wipe is needed.
+Private backup policies remain unchanged. Search and new requests require the caller to
+choose a username; legacy relationship management remains available before completion.
+
+Build and verify the matching app before applying the hosted migration, then install that
+build. Old social builds are unsupported after this coordinated pre-release cutover because
+their invitation RPCs and one-field profile-save contract are removed. No native dependency
+or permission is added. The [pilot-search acceptance report](./pilot-search-2026-09-21.md)
+records current automated/build results and explicit pending hosted/device checks; the records
+below describe earlier versions.
+
+## Historical Friends v1 foundation
 
 Selected 21 September 2026. PAR-12 records the scope decisions; PAR-13 owns server
 permissions and PAR-14 owns the app experience. Validation and delivery evidence are
@@ -139,6 +186,6 @@ requests/acceptance were performed through authenticated fixture APIs where spec
 
 The QA package used the current kudos JavaScript bundle with separate app data. It was removed
 afterward, along with all three disposable accounts and their files; the original owner app,
-15-flight journal and downloaded maps were preserved. PAR-14 stays In Progress: code sharing/
-rotation, decline/cancel/error and concurrent-request device cases, plus exact normal-APK
+15-flight journal and downloaded maps were preserved. Code sharing/rotation are superseded by
+pilot search above. Decline/cancel/error and concurrent-request device cases, plus exact normal-APK
 acceptance, were not covered by this run. See the linked report for precise evidence boundaries.

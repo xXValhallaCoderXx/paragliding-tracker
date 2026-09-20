@@ -8,7 +8,7 @@ insert into auth.users(id,email) values
 select is((select count(*)::int from public.social_profiles),0,'sign-up does not silently create a social profile');
 select ok((select relrowsecurity from pg_class where oid='public.social_profiles'::regclass),'social profiles use RLS');
 select ok((select bool_and(relrowsecurity) from pg_class where oid in (
- 'private.social_invites'::regclass,'private.social_relationships'::regclass,
+ 'private.social_search_limits'::regclass,'private.social_relationships'::regclass,
  'private.social_blocks'::regclass,'private.social_request_limits'::regclass)),'private social tables all use RLS');
 
 -- Three complete summaries (including partial and zero-track); six incomplete
@@ -28,39 +28,39 @@ insert into storage.objects(bucket_id,name,metadata) values
 
 set local role authenticated;
 set local request.jwt.claims='{"sub":"51000000-0000-0000-0000-000000000001","role":"authenticated"}';
-select is(public.social_get_state(),'{"profile":null,"inviteCode":null,"relationships":[]}'::jsonb,'new account has an explicit empty social state');
-select throws_ok($$select public.social_rotate_invite_code()$$,'22023',null,'cannot create a code before choosing a profile');
-select throws_ok($$select public.social_request_friend('ABCDEFGH2345')$$,'22023',null,'requesting friends requires a chosen profile');
-select throws_ok($$select public.social_save_profile(null)$$,'22023',null,'null display name refused');
-select throws_ok($$select public.social_save_profile('  ')$$,'22023',null,'empty display name refused');
-select throws_ok($$select public.social_save_profile(repeat('x',61))$$,'22023',null,'overlong display name refused');
-select lives_ok($$select public.social_save_profile(E'  Pilot\t A\n ')$$,'explicit profile save succeeds');
+select is(public.social_get_state(),'{"profile":null,"relationships":[]}'::jsonb,'new account has an explicit empty social state');
+select throws_ok($$select public.social_search_pilots('pi')$$,'22023',null,'search requires a completed social profile');
+select throws_ok($$select public.social_request_pilot('51000000-0000-0000-0000-000000000001')$$,'22023',null,'requesting friends requires a chosen profile');
+select throws_ok($$select public.social_save_profile(null,'pilot_a',true)$$,'22023',null,'null display name refused');
+select throws_ok($$select public.social_save_profile('  ','pilot_a',true)$$,'22023',null,'empty display name refused');
+select throws_ok($$select public.social_save_profile(repeat('x',61),'pilot_a',true)$$,'22023',null,'overlong display name refused');
+select lives_ok($$select public.social_save_profile(E'  Pilot\t A\n ',' Pilot_A ',true)$$,'explicit profile save succeeds');
 select is(public.social_get_state()->'profile'->>'displayName','Pilot A','display name whitespace is normalized');
 select is((public.social_get_state()->'profile'->>'backedUpFlightCount')::int,0,'owner with no backed-up flights sees zero');
-select ok((public.social_get_state()->>'inviteCode') ~ '^[A-HJ-NP-Z2-9]{12}$','first save creates a random twelve-character invite code');
-do $$begin perform set_config('test.a_code',public.social_get_state()->>'inviteCode',true); end$$;
-select lives_ok($$select public.social_save_profile('A New Name')$$,'social name can be edited');
-select is(public.social_get_state()->>'inviteCode',current_setting('test.a_code'),'editing a profile retains its private code');
+select is(public.social_get_state()->'profile'->>'username','pilot_a','username is normalized');
+select is(public.social_get_state()->'profile'->>'discoverable','true','new profile opts into search');
+select ok(not(public.social_get_state() ? 'inviteCode'),'state no longer exposes invitation codes');
+select lives_ok($$select public.social_save_profile('A New Name','pilot_a',true)$$,'social name can be edited');
+select is(public.social_get_state()->'profile'->>'username','pilot_a','editing a name retains its username');
 select is((select pilot_name from public.profiles),null::text,'social name never overwrites the private IGC pilot name');
 select throws_ok($$insert into public.social_profiles(user_id,display_name) values ('51000000-0000-0000-0000-000000000002','Forged')$$,'42501',null,'client cannot create another social profile directly');
 select throws_ok($$update public.social_profiles set display_name='Bypass'$$,'42501',null,'profile writes must use the narrow RPC');
-select throws_ok($$select * from private.social_invites$$,'42501',null,'clients cannot enumerate invite codes');
+select throws_ok($$select * from private.social_search_limits$$,'42501',null,'clients cannot enumerate search quotas');
 select throws_ok($$select * from private.social_relationships$$,'42501',null,'clients cannot enumerate relationships');
 select throws_ok($$select private.social_profile_json('51000000-0000-0000-0000-000000000002')$$,'42501',null,'private aggregate helper cannot bypass friendship checks');
-select is(public.social_request_friend('invalid')->>'status','unavailable','malformed code has generic unavailable response');
-select is(public.social_request_friend(current_setting('test.a_code'))->>'status','unavailable','self request refused');
+select is(public.social_request_pilot(null)->>'status','unavailable','null discovery identity has generic unavailable response');
+select is(public.social_request_pilot('51000000-0000-0000-0000-000000000001')->>'status','unavailable','self request refused');
 
 set local request.jwt.claims='{"sub":"51000000-0000-0000-0000-000000000002","role":"authenticated"}';
-select lives_ok($$select public.social_save_profile('Pilot B')$$,'B explicitly creates a social profile');
+select lives_ok($$select public.social_save_profile('Pilot B','pilot_b',true)$$,'B explicitly creates a social profile');
 select is((public.social_get_state()->'profile'->>'backedUpFlightCount')::int,3,'count includes partial/no-track but excludes every incomplete bundle and unfinished status');
-do $$begin perform set_config('test.b_code',public.social_get_state()->>'inviteCode',true); end$$;
 select is((select count(*)::int from public.social_profiles),1,'B can directly read only their own social profile');
 select throws_ok($$select public.social_get_friend_profile('51000000-0000-0000-0000-000000000001')$$,'42501',null,'unrelated profile is unavailable');
 
 set local request.jwt.claims='{"sub":"51000000-0000-0000-0000-000000000001","role":"authenticated"}';
-select is(public.social_request_friend(lower(substr(current_setting('test.b_code'),1,4)||' - '||substr(current_setting('test.b_code'),5)))->>'status',
- 'sent','invite lookup accepts lowercase, spaces and hyphens');
-select is(public.social_request_friend(current_setting('test.b_code'))->>'status','outgoing','retry does not create a second request');
+select is(public.social_request_pilot('51000000-0000-0000-0000-000000000002')->>'status',
+ 'sent','stable discovery identity creates a request');
+select is(public.social_request_pilot('51000000-0000-0000-0000-000000000002')->>'status','outgoing','retry does not create a second request');
 select is(jsonb_array_length(public.social_get_state()->'relationships'),1,'one pair produces one relationship');
 select is(public.social_get_state()->'relationships'->0->>'state','outgoing','sender sees outgoing state');
 select is(public.social_get_state()->'relationships'->0->>'displayName','Pilot B','pending request reveals only chosen identity');
@@ -71,7 +71,7 @@ select throws_ok($$select public.social_change_relationship('51000000-0000-0000-
 select throws_ok($$select public.social_change_relationship('51000000-0000-0000-0000-000000000002','decline',current_setting('test.request_id')::uuid)$$,'42501',null,'requester cannot decline as the recipient');
 
 set local request.jwt.claims='{"sub":"51000000-0000-0000-0000-000000000002","role":"authenticated"}';
-select is(public.social_request_friend(current_setting('test.a_code'))->>'status','incoming','crossed invitation does not auto-accept');
+select is(public.social_request_pilot('51000000-0000-0000-0000-000000000001')->>'status','incoming','crossed invitation does not auto-accept');
 select is(public.social_get_state()->'relationships'->0->>'state','incoming','recipient sees incoming state');
 select throws_ok($$select public.social_change_relationship('51000000-0000-0000-0000-000000000001','cancel',current_setting('test.request_id')::uuid)$$,'42501',null,'recipient cannot cancel as sender');
 select throws_ok($$select public.social_change_relationship('51000000-0000-0000-0000-000000000001','accept')$$,'22023',null,'accept requires the exact request identity');
@@ -81,9 +81,9 @@ select is(public.social_get_state()->'relationships'->0->>'state','accepted','ac
 
 set local request.jwt.claims='{"sub":"51000000-0000-0000-0000-000000000001","role":"authenticated"}';
 select is(public.social_get_friend_profile('51000000-0000-0000-0000-000000000002'),
- '{"userId":"51000000-0000-0000-0000-000000000002","displayName":"Pilot B","backedUpFlightCount":3}'::jsonb,
+ '{"userId":"51000000-0000-0000-0000-000000000002","displayName":"Pilot B","username":"pilot_b","backedUpFlightCount":3}'::jsonb,
  'accepted profile contains exactly chosen identity and backed-up count');
-select is(public.social_request_friend(current_setting('test.b_code'))->>'status','accepted','accepted invite retry preserves friendship');
+select is(public.social_request_pilot('51000000-0000-0000-0000-000000000002')->>'status','accepted','accepted invite retry preserves friendship');
 select is((select count(*)::int from public.flights),0,'friendship grants no access to private flight rows');
 select is((select count(*)::int from public.profiles),1,'friendship grants no access to private pilot profile');
 select is((select count(*)::int from public.social_profiles),1,'friend name remains accessible only through the authorized RPC');
@@ -92,7 +92,7 @@ select lives_ok($$select public.social_change_relationship('51000000-0000-0000-0
 select is(public.social_get_state()->'relationships'->0->>'state','accepted','late cancellation does not remove an accepted friendship');
 
 set local request.jwt.claims='{"sub":"51000000-0000-0000-0000-000000000003","role":"authenticated"}';
-select lives_ok($$select public.social_save_profile('Pilot C')$$,'C creates a social profile');
+select lives_ok($$select public.social_save_profile('Pilot C','pilot_c',true)$$,'C creates a social profile');
 select throws_ok($$select public.social_get_friend_profile('51000000-0000-0000-0000-000000000002')$$,'42501',null,'third account cannot read an accepted pair profile');
 select lives_ok($$select public.social_change_relationship('51000000-0000-0000-0000-000000000002','block')$$,'unknown pair block safely resolves');
 select is(public.social_get_state()->'relationships','[]'::jsonb,'arbitrary UUID block cannot become a name lookup');
@@ -102,7 +102,7 @@ set local request.jwt.claims='{"sub":"51000000-0000-0000-0000-000000000001","rol
 select is(public.social_get_state()->'relationships'->0->>'state','accepted','third party cannot remove the pair');
 select lives_ok($$select public.social_change_relationship('51000000-0000-0000-0000-000000000002','remove',current_setting('test.request_id')::uuid)$$,'either accepted friend can remove');
 select throws_ok($$select public.social_get_friend_profile('51000000-0000-0000-0000-000000000002')$$,'42501',null,'removal immediately revokes profile access');
-select is(public.social_request_friend(current_setting('test.b_code'))->>'status','sent','removed friend needs a new invitation');
+select is(public.social_request_pilot('51000000-0000-0000-0000-000000000002')->>'status','sent','removed friend needs a new invitation');
 select isnt(public.social_get_state()->'relationships'->0->>'id',current_setting('test.request_id'),'new invitation has a new identity');
 do $$begin perform set_config('test.new_request_id',public.social_get_state()->'relationships'->0->>'id',true); end$$;
 select lives_ok($$select public.social_change_relationship('51000000-0000-0000-0000-000000000002','cancel',current_setting('test.request_id')::uuid)$$,'old cancellation is a harmless retry');
@@ -117,30 +117,30 @@ select is(public.social_get_state()->'relationships'->0->>'state','accepted','ol
 select lives_ok($$select public.social_change_relationship('51000000-0000-0000-0000-000000000002','block')$$,'accepted friend can be blocked');
 select is(public.social_get_state()->'relationships'->0->>'state','blocked','blocker sees a removable block entry');
 select throws_ok($$select public.social_get_friend_profile('51000000-0000-0000-0000-000000000002')$$,'42501',null,'block revokes profile access');
-select is(public.social_request_friend(current_setting('test.b_code'))->>'status','unavailable','blocker cannot send until unblocking');
+select is(public.social_request_pilot('51000000-0000-0000-0000-000000000002')->>'status','unavailable','blocker cannot send until unblocking');
 set local request.jwt.claims='{"sub":"51000000-0000-0000-0000-000000000002","role":"authenticated"}';
 select is(public.social_get_state()->'relationships','[]'::jsonb,'blocked person does not receive a blocker identity or block status');
-select is(public.social_request_friend(current_setting('test.a_code'))->>'status','unavailable','blocked account cannot send in reverse direction');
+select is(public.social_request_pilot('51000000-0000-0000-0000-000000000001')->>'status','unavailable','blocked account cannot send in reverse direction');
 select lives_ok($$select public.social_change_relationship('51000000-0000-0000-0000-000000000001','unblock')$$,'unblocking another owner block cannot change it');
-select is(public.social_request_friend(current_setting('test.a_code'))->>'status','unavailable','only the blocker can remove their block');
+select is(public.social_request_pilot('51000000-0000-0000-0000-000000000001')->>'status','unavailable','only the blocker can remove their block');
 set local request.jwt.claims='{"sub":"51000000-0000-0000-0000-000000000001","role":"authenticated"}';
 select lives_ok($$select public.social_change_relationship('51000000-0000-0000-0000-000000000002','unblock')$$,'blocker can unblock');
 select is(public.social_get_state()->'relationships','[]'::jsonb,'unblock does not recreate friendship');
 select throws_ok($$select public.social_get_friend_profile('51000000-0000-0000-0000-000000000002')$$,'42501',null,'unblock alone does not authorize a count');
 
 set local request.jwt.claims='{"sub":"51000000-0000-0000-0000-000000000002","role":"authenticated"}';
-select isnt(public.social_rotate_invite_code(),current_setting('test.b_code'),'rotation generates a different code');
+select lives_ok($$select public.social_save_profile('Pilot B','pilot_b_new',true)$$,'username can be edited');
 set local request.jwt.claims='{"sub":"51000000-0000-0000-0000-000000000001","role":"authenticated"}';
-select is(public.social_request_friend(current_setting('test.b_code'))->>'status','unavailable','rotated old code no longer sends requests');
+select is(public.social_request_pilot('51000000-0000-0000-0000-000000000002')->>'status','sent','stable account identity survives username edit');
 select throws_ok($$select public.social_change_relationship('51000000-0000-0000-0000-000000000001','block')$$,'22023',null,'self block is invalid');
 select throws_ok($$select public.social_change_relationship('51000000-0000-0000-0000-000000000002','invented')$$,'22023',null,'unknown transition rejected');
 
 set local role anon;
 set local request.jwt.claims='{}';
 select throws_ok($$select public.social_get_state()$$,'42501',null,'anonymous cannot get social state');
-select throws_ok($$select public.social_save_profile('Anon')$$,'42501',null,'anonymous cannot create a social profile');
-select throws_ok($$select public.social_rotate_invite_code()$$,'42501',null,'anonymous cannot rotate codes');
-select throws_ok($$select public.social_request_friend('ABCDEFGH2345')$$,'42501',null,'anonymous cannot resolve invite codes');
+select throws_ok($$select public.social_save_profile('Anon','anon_pilot',true)$$,'42501',null,'anonymous cannot create a social profile');
+select throws_ok($$select public.social_search_pilots('pi')$$,'42501',null,'anonymous cannot search pilots');
+select throws_ok($$select public.social_request_pilot('51000000-0000-0000-0000-000000000001')$$,'42501',null,'anonymous cannot request discovery identities');
 select throws_ok($$select public.social_change_relationship('51000000-0000-0000-0000-000000000002','block')$$,'42501',null,'anonymous cannot mutate relationships');
 select throws_ok($$select public.social_get_friend_profile('51000000-0000-0000-0000-000000000002')$$,'42501',null,'anonymous cannot read friend profiles');
 select throws_ok($$select * from public.social_profiles$$,'42501',null,'anonymous cannot enumerate social profiles');

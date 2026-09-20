@@ -6,30 +6,55 @@ insert into auth.users(id,email) values
  ('54000000-0000-0000-0000-000000000003','friend-rate-c@example.com');
 set role authenticated;
 set request.jwt.claims='{"sub":"54000000-0000-0000-0000-000000000001","role":"authenticated"}';
-select lives_ok($$select public.social_save_profile('Rate A')$$,'rate-test pilot chooses a profile');
-select is(public.social_request_friend(null)->>'status','unavailable','null lookup commits an unavailable result');
-select is(public.social_request_friend(repeat('a',129))->>'status','unavailable','oversized lookup commits an unavailable result');
+select lives_ok($$select public.social_save_profile('Rate A','rate_a',true)$$,'rate-test pilot chooses a profile');
+select is(public.social_request_pilot(null)->>'status','unavailable','null lookup commits an unavailable result');
+select is(public.social_request_pilot('54000000-0000-0000-0000-000000000001')->>'status','unavailable','self lookup commits an unavailable result');
 select is((select count(*)::int from generate_series(1,18) where
- public.social_request_friend('BADCODE')->>'status'='unavailable'),18,'all remaining attempts in the window commit');
+ public.social_request_pilot('54000000-0000-0000-0000-000000000099')->>'status'='unavailable'),18,'all remaining attempts in the window commit');
 reset role;
 select is((select attempt_count from private.social_request_limits where user_id='54000000-0000-0000-0000-000000000001'),20,
  'failed lookups persisted their complete counter across transactions');
 set role authenticated;
 set request.jwt.claims='{"sub":"54000000-0000-0000-0000-000000000002","role":"authenticated"}';
-select lives_ok($$select public.social_save_profile('Rate B')$$,'another account is independent of the exhausted window');
-do $$begin perform set_config('test.valid_code',public.social_get_state()->>'inviteCode',false); end$$;
+select lives_ok($$select public.social_save_profile('Rate B','rate_b',true)$$,'another account is independent of the exhausted window');
 set request.jwt.claims='{"sub":"54000000-0000-0000-0000-000000000001","role":"authenticated"}';
-select is(public.social_request_friend(current_setting('test.valid_code'))->>'status','rate_limited','even a valid code cannot bypass the limit');
-select is(public.social_request_friend('BADCODE')->>'status','rate_limited','repeated limited requests stay bounded');
+select is(public.social_request_pilot('54000000-0000-0000-0000-000000000002')->>'status','rate_limited','even a valid target cannot bypass the limit');
+select is(public.social_request_pilot('54000000-0000-0000-0000-000000000099')->>'status','rate_limited','repeated limited requests stay bounded');
 reset role;
 select is((select attempt_count from private.social_request_limits where user_id='54000000-0000-0000-0000-000000000001'),21,'counter saturates without overflow');
 update private.social_request_limits set window_started_at=clock_timestamp()-interval '11 minutes'
  where user_id='54000000-0000-0000-0000-000000000001';
 set role authenticated;
 set request.jwt.claims='{"sub":"54000000-0000-0000-0000-000000000001","role":"authenticated"}';
-select is(public.social_request_friend(current_setting('test.valid_code'))->>'status','sent','new window permits a legitimate request');
+select is(public.social_request_pilot('54000000-0000-0000-0000-000000000002')->>'status','sent','new window permits a legitimate request');
 reset role;
 select is((select attempt_count from private.social_request_limits where user_id='54000000-0000-0000-0000-000000000001'),1,'new window resets the bounded counter');
+
+-- Searches have their own committed, bounded one-minute allowance.
+set role authenticated;
+set request.jwt.claims='{"sub":"54000000-0000-0000-0000-000000000001","role":"authenticated"}';
+select is((select count(*)::int from generate_series(1,60) where
+ public.social_search_pilots('rate')->>'status'='ok'),60,'all sixty searches in one window succeed');
+select is(public.social_search_pilots('rate'),'{"status":"rate_limited","items":[],"nextCursor":null}'::jsonb,
+ 'sixty-first search has an explicit empty rate-limited response');
+select is(public.social_search_pilots('rate')->>'status','rate_limited','repeated limited searches remain bounded');
+reset role;
+select is((select attempt_count from private.social_search_limits where user_id='54000000-0000-0000-0000-000000000001'),61,
+ 'search attempts saturate at sixty-one across committed requests');
+select is((select attempt_count from private.social_request_limits where user_id='54000000-0000-0000-0000-000000000001'),1,
+ 'searches do not consume friend-request allowance');
+set role authenticated;
+set request.jwt.claims='{"sub":"54000000-0000-0000-0000-000000000002","role":"authenticated"}';
+select is(public.social_search_pilots('rate')->>'status','ok','another pilot has an independent search window');
+reset role;
+update private.social_search_limits set window_started_at=clock_timestamp()-interval '2 minutes'
+ where user_id='54000000-0000-0000-0000-000000000001';
+set role authenticated;
+set request.jwt.claims='{"sub":"54000000-0000-0000-0000-000000000001","role":"authenticated"}';
+select is(public.social_search_pilots('rate')->>'status','ok','the next search window permits discovery');
+reset role;
+select is((select attempt_count from private.social_search_limits where user_id='54000000-0000-0000-0000-000000000001'),1,
+ 'a new search window resets its counter');
 
 -- Both FK positions cascade, while unrelated accounts/relationships survive.
 insert into public.social_profiles(user_id,display_name) values ('54000000-0000-0000-0000-000000000003','Rate C');
@@ -41,7 +66,7 @@ insert into private.social_blocks(blocker_id,blocked_id) values
  ('54000000-0000-0000-0000-000000000003','54000000-0000-0000-0000-000000000001');
 delete from auth.users where id='54000000-0000-0000-0000-000000000001';
 select is((select count(*)::int from public.social_profiles where user_id='54000000-0000-0000-0000-000000000001'),0,'account deletion removes chosen social identity');
-select is((select count(*)::int from private.social_invites where user_id='54000000-0000-0000-0000-000000000001'),0,'account deletion removes private code');
+select is((select count(*)::int from private.social_search_limits where user_id='54000000-0000-0000-0000-000000000001'),0,'account deletion removes search quota');
 select is((select count(*)::int from private.social_request_limits where user_id='54000000-0000-0000-0000-000000000001'),0,'account deletion removes lookup quota');
 select is((select count(*)::int from private.social_relationships where '54000000-0000-0000-0000-000000000001' in (user_low,user_high)),0,'account deletion removes both relationship directions');
 select is((select count(*)::int from private.social_blocks where '54000000-0000-0000-0000-000000000001' in (blocker_id,blocked_id)),0,'account deletion removes both block directions');

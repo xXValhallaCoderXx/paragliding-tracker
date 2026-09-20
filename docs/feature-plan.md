@@ -165,8 +165,9 @@ profile. [Friends v1](./friends.md) is the implementation and acceptance record 
 
 - Add a minimal social profile with a chosen display name and initials, separate from private
   email, registration details and the local pilot profile used for export.
-- Use a private rotatable invite code with native text sharing. Support send, accept, decline,
-  cancel, remove and block. Contact uploads and a searchable email directory are unnecessary.
+- Find pilots by display name or editable unique username, with a search-visibility switch.
+  Send an explicit request; support accept, decline, cancel, remove and block. This approved
+  PAR-14 expansion replaces invitation codes. Contact uploads and email search remain excluded.
 - Add a Friends tab with accepted connections, pending requests and a blocked list. Accepted
   profiles show only display identity and a server-derived **Backed-up flights** count.
 - Enforce access on the server, including pending, removed and blocked relationships. Keep
@@ -176,7 +177,7 @@ profile. [Friends v1](./friends.md) is the implementation and acceptance record 
 their private activity, and removal/blocking stops future access and notifications.
 
 The v1 foundation deliberately excluded individual flights and replay. The next selected slice
-now implements the accepted-friends feed and shared replay described below. Kudos follows as
+now implements the accepted-friends feed and shared replay described below. Kudos is implemented as
 PAR-39; notifications remain deferred. Social viewing is online and held only in memory for the current signed-in
 account. External postcard sharing remains separate. Signing in alone does not publish a profile
 or a flight.

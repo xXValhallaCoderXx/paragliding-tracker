@@ -14,10 +14,8 @@ end$$;
 insert into auth.users(id,email) values
  ('55000000-0000-0000-0000-000000000001','friends-race-a@example.com'),
  ('55000000-0000-0000-0000-000000000002','friends-race-b@example.com');
-insert into public.social_profiles(user_id,display_name) values
- ('55000000-0000-0000-0000-000000000001','Race A'),('55000000-0000-0000-0000-000000000002','Race B');
-insert into private.social_invites(user_id,code) values
- ('55000000-0000-0000-0000-000000000001','ABCDEFGH2345'),('55000000-0000-0000-0000-000000000002','JKLMNPQR6789');
+insert into public.social_profiles(user_id,display_name,username,discoverable) values
+ ('55000000-0000-0000-0000-000000000001','Race A','race_a',true),('55000000-0000-0000-0000-000000000002','Race B','race_b',true);
 do $$begin
   perform dblink_connect('friends_race','hostaddr='||host(inet_server_addr())||' dbname='||current_database()||' user=postgres password=postgres');
   perform dblink_exec('friends_race',$remote$
@@ -30,9 +28,9 @@ insert into friends_race_backend select pid from dblink('friends_race','select p
 begin;
 set local role authenticated;
 set local request.jwt.claims='{"sub":"55000000-0000-0000-0000-000000000001","role":"authenticated"}';
-select is(public.social_request_friend('JKLMNPQR6789')->>'status','sent','first crossed request starts pending');
+select is(public.social_request_pilot('55000000-0000-0000-0000-000000000002')->>'status','sent','first crossed request starts pending');
 reset role;
-do $$begin perform dblink_send_query('friends_race',$remote$select public.social_request_friend('ABCDEFGH2345')$remote$); end$$;
+do $$begin perform dblink_send_query('friends_race',$remote$select public.social_request_pilot('55000000-0000-0000-0000-000000000001')$remote$); end$$;
 select ok(pg_temp.wait_for_friends_lock(),'crossed request waits on the common pair lock');
 commit;
 select is((select value->>'status' from dblink_get_result('friends_race') as response(value jsonb)),'incoming','waiting crossed request sees incoming, never auto-accepts');
@@ -61,7 +59,7 @@ select is((select count(*)::int from private.social_blocks where blocker_id='550
 set role authenticated;
 set request.jwt.claims='{"sub":"55000000-0000-0000-0000-000000000001","role":"authenticated"}';
 do $$begin perform public.social_change_relationship('55000000-0000-0000-0000-000000000002','unblock');
-  perform public.social_request_friend('JKLMNPQR6789'); end$$;
+  perform public.social_request_pilot('55000000-0000-0000-0000-000000000002'); end$$;
 reset role;
 do $$begin perform set_config('test.race_request',(select id::text from private.social_relationships
  where user_low='55000000-0000-0000-0000-000000000001'),false); end$$;

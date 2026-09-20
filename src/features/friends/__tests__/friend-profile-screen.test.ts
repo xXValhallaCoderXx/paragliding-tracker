@@ -27,12 +27,12 @@ async function update(patch: Partial<FriendsContextValue>) {
   mockFriends = { ...mockFriends, ...patch };
   await run(() => rendered.update(React.createElement(FriendProfileScreen)));
 }
-const profile: SocialProfile = { userId: 'friend-a', displayName: 'Amélie Wong', backedUpFlightCount: 17 };
+const profile: SocialProfile = { userId: 'friend-a', displayName: 'Amélie Wong', username: 'amelie_wong', backedUpFlightCount: 17 };
 
 beforeEach(() => {
   mockFriends = { status: 'ready', identityKey: 'owner-a', available: true, revision: 0, loading: false, busy: false, error: null,
-    profile: null, inviteCode: null, relationships: [], refresh: jest.fn(), saveProfile: jest.fn(), rotateInviteCode: jest.fn(),
-    requestFriend: jest.fn(), changeRelationship: jest.fn(), getFriendProfile: jest.fn().mockResolvedValue(profile),
+    profile: null, relationships: [], refresh: jest.fn(), saveProfile: jest.fn(), searchPilots: jest.fn(), blockPilot: jest.fn(),
+    requestPilot: jest.fn(), changeRelationship: jest.fn(), getFriendProfile: jest.fn().mockResolvedValue(profile),
   };
 });
 afterEach(async () => { if (rendered) await act(async () => rendered.unmount()); });
@@ -46,6 +46,7 @@ it('shows loading without a fabricated count and only renders server-provided pr
   await run(() => resolve(profile));
   expect(text()).toContain('17');
   expect(text()).toContain('Backed-up flights');
+  expect(text()).toContainEqual(['@', 'amelie_wong']);
   expect(rendered.root.findAllByType(Avatar)[0].props.initials).toBe('AW');
   expect(mockFriends.getFriendProfile).toHaveBeenCalledWith('friend-a');
 });

@@ -3,16 +3,17 @@ import { normalizeSocialName, parseSocialState } from '../validation';
 
 const owner = '11111111-1111-4111-8111-111111111111';
 const other = '22222222-2222-4222-8222-222222222222';
-const relation = { id: '33333333-3333-4333-8333-333333333333', userId: other, displayName: 'Friend', state: 'accepted' as const };
-const profile = { userId: owner, displayName: 'Pilot', backedUpFlightCount: 12 };
-const state = { profile, inviteCode: 'ABCD2345EFGH', relationships: [relation] };
+const relation = { id: '33333333-3333-4333-8333-333333333333', userId: other, displayName: 'Friend', username: 'friend', state: 'accepted' as const };
+const profile = { userId: owner, displayName: 'Pilot', username: 'pilot', discoverable: false, backedUpFlightCount: 12 };
+const input = { displayName: 'Pilot', username: 'pilot', discoverable: false };
+const state = { profile, relationships: [relation] };
 const signal = () => new AbortController().signal;
 let rpc: jest.Mock;
 let service: ReturnType<typeof createSocialService>;
 beforeEach(() => { rpc = jest.fn().mockResolvedValue({ data: state, error: null }); service = createSocialService(rpc); });
 
 it('validates and copies the state DTO without exposing extra backend fields', async () => {
-  rpc.mockResolvedValue({ data: { ...state, email: 'private', profile: { ...profile, notes: 'private' } }, error: null });
+  rpc.mockResolvedValue({ data: { ...state, inviteCode: 'obsolete', email: 'private', profile: { ...profile, notes: 'private' } }, error: null });
   expect(await service.getState(signal())).toEqual(state);
 });
 it.each([
@@ -21,7 +22,8 @@ it.each([
   { ...state, profile: { ...profile, backedUpFlightCount: 1.5 } },
   { ...state, profile: { ...profile, userId: 'not-a-user' } },
   { ...state, profile: { ...profile, displayName: ' ' } },
-  { ...state, inviteCode: 'short' },
+  { ...state, profile: { ...profile, username: 'UPPERCASE' } },
+  { ...state, profile: { ...profile, discoverable: undefined } },
   { ...state, relationships: [{ ...relation, state: 'rejected' }] },
   { ...state, relationships: [relation, relation] },
   { ...state, relationships: null },
@@ -29,33 +31,31 @@ it.each([
   rpc.mockResolvedValue({ data, error: null });
   await expect(service.getState(signal())).rejects.toMatchObject({ code: 'invalid_response' });
 });
-it('supports an explicit profile opt-in with no preexisting code', () => {
-  expect(parseSocialState({ profile: null, inviteCode: null, relationships: [] })).toEqual({ profile: null, inviteCode: null, relationships: [] });
+it('supports no profile and explicit legacy null usernames', () => {
+  expect(parseSocialState({ profile: null, relationships: [] })).toEqual({ profile: null, relationships: [] });
+  expect(parseSocialState({ ...state, profile: { ...profile, username: null }, relationships: [{ ...relation, username: null }] }))
+    .toMatchObject({ profile: { username: null, discoverable: false }, relationships: [{ username: null }] });
 });
-it('normalizes display names by Unicode codepoints and invite-code case/separators', async () => {
+it('normalizes display names and optional username @ while preserving discovery consent', async () => {
   rpc.mockResolvedValue({ data: null, error: null });
-  await service.saveProfile('  Pilot   One  ', signal());
-  expect(rpc).toHaveBeenLastCalledWith({ name: 'social_save_profile', args: { p_display_name: 'Pilot One' } }, expect.any(AbortSignal));
+  await service.saveProfile({ displayName: '  Pilot   One  ', username: ' @Pilot_One ', discoverable: true }, signal());
+  expect(rpc).toHaveBeenLastCalledWith({ name: 'social_save_profile', args: { p_display_name: 'Pilot One', p_username: 'pilot_one', p_discoverable: true } }, expect.any(AbortSignal));
   expect(normalizeSocialName('🪂'.repeat(60))).toHaveLength(120);
   expect(() => normalizeSocialName('🪂'.repeat(61))).toThrow('60');
-  rpc.mockResolvedValue({ data: { status: 'sent' }, error: null });
-  expect(await service.requestFriend('abcd-2345 efgh', signal())).toBe('sent');
-  expect(rpc).toHaveBeenLastCalledWith({ name: 'social_request_friend', args: { p_code: 'ABCD2345EFGH' } }, expect.any(AbortSignal));
 });
 it('does not dispatch invalid input', async () => {
-  await expect(service.saveProfile(' ', signal())).rejects.toMatchObject({ code: 'invalid_input' });
-  await expect(service.requestFriend('guess', signal())).rejects.toMatchObject({ code: 'invalid_input' });
+  await expect(service.saveProfile({ ...input, displayName: ' ' }, signal())).rejects.toMatchObject({ code: 'invalid_input' });
+  await expect(service.requestPilot('guess', signal())).rejects.toMatchObject({ code: 'invalid_input' });
+  await expect(service.blockPilot('guess', signal())).rejects.toMatchObject({ code: 'invalid_input' });
   expect(rpc).not.toHaveBeenCalled();
 });
 it.each(['sent', 'incoming', 'outgoing', 'accepted', 'unavailable', 'rate_limited'] as const)('preserves request result %s', async status => {
   rpc.mockResolvedValue({ data: { status }, error: null });
-  expect(await service.requestFriend(state.inviteCode, signal())).toBe(status);
+  expect(await service.requestPilot(other, signal())).toBe(status);
 });
-it('requires a recognized request status and a valid rotated code', async () => {
+it('requires a recognized request status', async () => {
   rpc.mockResolvedValue({ data: { status: 'success' }, error: null });
-  await expect(service.requestFriend(state.inviteCode, signal())).rejects.toMatchObject({ code: 'invalid_response' });
-  rpc.mockResolvedValue({ data: null, error: null });
-  await expect(service.rotateInviteCode(signal())).rejects.toMatchObject({ code: 'invalid_response' });
+  await expect(service.requestPilot(other, signal())).rejects.toMatchObject({ code: 'invalid_response' });
 });
 it.each(['accept', 'decline', 'cancel', 'remove'] as const)('sends the exact relation ID for %s', async action => {
   rpc.mockResolvedValue({ data: null, error: null });
@@ -72,7 +72,7 @@ it.each(['block', 'unblock'] as const)('does not tie %s to an obsolete request',
 it('distinguishes an inaccessible profile from connectivity and withholds raw backend messages', async () => {
   rpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'private SQL detail' } });
   await expect(service.getFriendProfile(other, signal())).rejects.toThrow('This profile is no longer available. Refresh Friends.');
-  await expect(service.getState(signal())).rejects.toThrow('Could not reach Friends');
+  await expect(service.getState(signal())).rejects.toMatchObject({ code: 'unavailable' });
   rpc.mockResolvedValue({ data: null, error: { code: 'PGRST202', message: 'private SQL detail' } });
   await expect(service.getState(signal())).rejects.toThrow('Friends is not available on this server yet');
   rpc.mockRejectedValue(new Error('private network detail'));
@@ -82,12 +82,16 @@ it('rejects the wrong friend identity', async () => {
   rpc.mockResolvedValue({ data: profile, error: null });
   await expect(service.getFriendProfile(other, signal())).rejects.toMatchObject({ code: 'invalid_response' });
 });
+it('does not expose the owner-only discovery preference on a friend profile', async () => {
+  rpc.mockResolvedValue({ data: { ...profile, userId: other }, error: null });
+  expect(await service.getFriendProfile(other, signal())).toEqual({ userId: other, displayName: 'Pilot', username: 'pilot', backedUpFlightCount: 12 });
+});
 it('rejects a late successful mutation after cancellation', async () => {
   let complete!: (value: unknown) => void;
   rpc.mockReturnValue(new Promise(resolve => { complete = resolve; }));
   const controller = new AbortController();
-  const request = service.rotateInviteCode(controller.signal);
+  const request = service.saveProfile(input, controller.signal);
   controller.abort();
-  complete({ data: 'ABCD2345EFGH', error: null });
+  complete({ data: null, error: null });
   await expect(request).rejects.toMatchObject({ code: 'stale' });
 });

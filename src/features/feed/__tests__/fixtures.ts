@@ -30,9 +30,10 @@ export const feedContext = (patch: Partial<FeedContextValue> = {}): FeedContextV
 
 export const friendsContext = (patch: Partial<FriendsContextValue> = {}): FriendsContextValue => ({
   status: 'ready', identityKey: 'owner-a', available: true, revision: 0, loading: false, busy: false, error: null,
-  profile: { userId: 'owner-a', displayName: 'My Name', backedUpFlightCount: 3 }, inviteCode: 'ABCD2345WXYZ', relationships: [],
+  profile: { userId: 'owner-a', displayName: 'My Name', username: 'my_name', discoverable: true, backedUpFlightCount: 3 }, relationships: [],
   refresh: jest.fn().mockResolvedValue(undefined), saveProfile: jest.fn().mockResolvedValue(undefined),
-  rotateInviteCode: jest.fn().mockResolvedValue('REPLACED2345'), requestFriend: jest.fn().mockResolvedValue('sent'),
+  requestPilot: jest.fn().mockResolvedValue('sent'), blockPilot: jest.fn().mockResolvedValue(undefined),
+  searchPilots: jest.fn().mockResolvedValue({ status: 'ok', items: [], nextCursor: null }),
   changeRelationship: jest.fn().mockResolvedValue(undefined), getFriendProfile: jest.fn(), ...patch,
 });
 

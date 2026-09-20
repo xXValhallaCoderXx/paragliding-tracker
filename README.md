@@ -9,7 +9,7 @@ recorder carried on a flight.
 ## Documentation
 
 - [Project overview](./docs/project-overview.md): current features, backup behavior and limits.
-- [Friends v1](./docs/friends.md): private invitations, friend profiles and backed-up flight counts.
+- [Friends](./docs/friends.md): pilot search, mutual requests, friend profiles and backed-up flight counts.
 - [Shared flights](./docs/shared-flights.md): accepted-friends feed, publication consent, safe replay and release acceptance.
 - [Kudos](./docs/kudos.md): reversible support, supporter names, visibility rules and release acceptance.
 - [Feature plan and roadmap](./docs/feature-plan.md): map/download acceptance, broader sharing/replay
@@ -88,8 +88,8 @@ The pilot profile is stored locally and does not mean a cloud account is signed 
 Account shows the current sign-in state: **Sign in** opens the email-code form;
 an active session shows its email and **Log out**. Upload progress is shown separately.
 
-**Friends** adds a separate chosen display name, private invite codes and accepted-friend
-profiles showing backed-up flight counts. Its feed now supports explicitly shared finished
+**Friends** adds a separate chosen display name, editable `@username`, optional search visibility
+and mutual friendship requests. Accepted-friend profiles show backed-up flight counts. Its feed supports explicitly shared finished
 flights and 2D replay, plus optional automatic posting of future recordings, off by default.
 Give or remove kudos on a friend's published flight and open its supporter names and initials.
 Signing in alone publishes neither a social profile nor a flight. Current accepted friends see

@@ -37,7 +37,7 @@ export async function verifyKudos(url, publicKey, adminKey) {
   const change = (account, other, action, id) => rpc(account, 'social_change_relationship', {
     p_other_user_id: other.id, p_action: action, ...(id ? { p_request_id: id } : {}) });
   const befriend = async (account, other) => {
-    await rpc(account, 'social_request_friend', { p_code: (await state(other)).inviteCode });
+    await rpc(account, 'social_request_pilot', { p_user_id: other.id });
     const pending = (await state(other)).relationships.find(row => row.userId === account.id);
     await change(other, account, 'accept', pending.id); return pending.id;
   };
@@ -54,7 +54,11 @@ export async function verifyKudos(url, publicKey, adminKey) {
       accounts.push(account);
       const signedIn = ok(await account.client.auth.signInWithPassword({ email, password }), 'Authenticate disposable account');
       account.token = signedIn.session.access_token;
-      await rpc(account, 'social_save_profile', { p_display_name: label === 'author' ? 'Fixture Author' : 'Same Pilot' });
+      account.username = `qa_k_${account.id.replaceAll('-', '').slice(0, 18)}`;
+      await rpc(account, 'social_save_profile', {
+        p_display_name: label === 'author' ? 'Fixture Author' : 'Same Pilot',
+        p_username: account.username, p_discoverable: true,
+      });
     }
     const [a, b, c] = accounts;
     check(new Set(accounts.map(account => account.id)).size === 3, 'three independent disposable accounts authenticate');
@@ -80,7 +84,7 @@ export async function verifyKudos(url, publicKey, adminKey) {
     check(await denied(a, 'social_set_kudos', { p_activity_id: activityId, p_given: true }), 'author cannot give self-kudos');
     check(await denied(c, 'social_list_kudos', { p_activity_id: activityId }) &&
       await denied(c, 'social_set_kudos', { p_activity_id: activityId, p_given: true }), 'unrelated account cannot list or react');
-    await rpc(a, 'social_request_friend', { p_code: (await state(b)).inviteCode });
+    await rpc(a, 'social_request_pilot', { p_user_id: b.id });
     check(await denied(b, 'social_list_kudos', { p_activity_id: activityId }) &&
       await denied(b, 'social_set_kudos', { p_activity_id: activityId, p_given: true }), 'pending friendship cannot list or react');
     let ab = (await state(b)).relationships.find(row => row.userId === a.id).id;
@@ -106,7 +110,7 @@ export async function verifyKudos(url, publicKey, adminKey) {
       duplicates.items[0].id !== duplicates.items[1].id, 'duplicate display names remain distinct supporters');
     const firstPage = await list(a, activityId, null, 1);
     check(firstPage.count === 2 && firstPage.items.length === 1 && !!firstPage.nextCursor, 'first names page reports full count and bounded cursor');
-    await rpc(b, 'social_save_profile', { p_display_name: 'Renamed Pilot' });
+    await rpc(b, 'social_save_profile', { p_display_name: 'Renamed Pilot', p_username: b.username, p_discoverable: true });
     const secondPage = await list(a, activityId, firstPage.nextCursor, 1);
     check(secondPage.items.length === 1 && secondPage.items[0].id !== firstPage.items[0].id && secondPage.items[0].displayName === 'Renamed Pilot',
       'renaming a supporter does not change page ordering or duplicate entries');

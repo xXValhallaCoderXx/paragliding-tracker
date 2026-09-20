@@ -1,7 +1,7 @@
 import type { AuthSnapshot } from '@/cloud/types';
-import { SocialError, type FriendsSnapshot, type FriendshipAction, type FriendshipSummary, type SocialService } from './types';
+import { SocialError, type FriendsSnapshot, type FriendshipAction, type FriendshipSummary, type PilotSearchCursor, type PilotSearchPage, type SaveSocialProfileInput, type SocialService } from './types';
 
-const empty = { profile: null, inviteCode: null, relationships: [] } as const;
+const empty = { profile: null, relationships: [] } as const;
 export const EMPTY_FRIENDS: FriendsSnapshot = {
   ...empty, relationships: [], identityKey: null, available: false, revision: 0,
   loading: false, busy: false, error: null,
@@ -110,10 +110,10 @@ export class FriendsController {
   private async mutate<T>(action: (signal: AbortSignal) => Promise<T>): Promise<T> {
     if (this.snapshot.busy) throw new SocialError('busy', 'Wait for the current Friends change to finish.');
     const scope = this.begin();
-    // A response fetched before this change cannot restore an obsolete relation/code.
+    // Invalidate displayed search/profile data as soon as a relationship can change.
     this.refreshSequence += 1;
     this.refreshAbort?.abort();
-    this.publish({ loading: false, busy: true, error: null });
+    this.publish({ loading: false, busy: true, error: null, revision: this.snapshot.revision + 1 });
     try {
       const result = await action(scope.controller.signal);
       scope.guard();
@@ -131,11 +131,45 @@ export class FriendsController {
       if (scope.current()) this.publish({ busy: false });
     }
   }
-  saveProfile = (displayName: string): Promise<void> => this.mutate(signal => this.service.saveProfile(displayName, signal));
-  rotateInviteCode = (): Promise<string> => this.mutate(signal => this.service.rotateInviteCode(signal));
-  requestFriend = (code: string) => this.mutate(signal => this.service.requestFriend(code, signal));
+  private requireDiscoveryProfile(): void {
+    if (!this.snapshot.profile?.username) throw new SocialError('profile_required', 'Choose a username in your Friends profile to find and add pilots.');
+  }
+  saveProfile = (input: SaveSocialProfileInput): Promise<void> => this.mutate(signal => this.service.saveProfile(input, signal));
+  requestPilot = (userId: string) => this.mutate(signal => {
+    this.requireDiscoveryProfile();
+    return this.service.requestPilot(userId, signal);
+  });
+  blockPilot = (userId: string): Promise<void> => this.mutate(signal => {
+    this.requireDiscoveryProfile();
+    return this.service.blockPilot(userId, signal);
+  });
   changeRelationship = (relationship: FriendshipSummary, action: FriendshipAction): Promise<void> =>
     this.mutate(signal => this.service.changeRelationship(relationship, action, signal));
+  searchPilots = async (query: string, cursor: PilotSearchCursor | null = null, signal?: AbortSignal): Promise<PilotSearchPage> => {
+    const scope = this.begin();
+    const revision = this.snapshot.revision;
+    const abort = () => scope.controller.abort();
+    signal?.addEventListener('abort', abort, { once: true });
+    try {
+      if (signal?.aborted) abort();
+      scope.guard();
+      if (this.snapshot.busy) throw new SocialError('busy', 'Wait for the current Friends change to finish.');
+      this.requireDiscoveryProfile();
+      const result = await this.service.searchPilots(query, cursor, scope.controller.signal);
+      scope.guard();
+      if (revision !== this.snapshot.revision) throw stale();
+      if (result.items.some(row => row.userId === scope.owner)) {
+        throw new SocialError('invalid_response', 'Friends returned an unexpected account. Search again.');
+      }
+      return result;
+    } catch (error) {
+      if (!scope.current() || scope.controller.signal.aborted || revision !== this.snapshot.revision) throw stale();
+      throw failure(error);
+    } finally {
+      signal?.removeEventListener('abort', abort);
+      this.operations.delete(scope.controller);
+    }
+  };
   getFriendProfile = async (userId: string) => {
     const scope = this.begin();
     const revision = this.snapshot.revision;
@@ -145,7 +179,7 @@ export class FriendsController {
       if (revision !== this.snapshot.revision) throw stale();
       return profile;
     } catch (error) {
-      if (!scope.current()) throw stale();
+      if (!scope.current() || revision !== this.snapshot.revision) throw stale();
       throw failure(error);
     } finally { this.operations.delete(scope.controller); }
   };

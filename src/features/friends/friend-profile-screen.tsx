@@ -53,6 +53,7 @@ function ProfileContent({ userId }: { userId: string }) {
     <View style={styles.profile}>
       <Avatar initials={friendInitials(read.profile.displayName)} size={76} />
       <Text style={[styles.title, styles.centered]}>{read.profile.displayName}</Text>
+      {read.profile.username ? <Text style={styles.body}>@{read.profile.username}</Text> : null}
       <Text style={styles.helper}>Your friend on Flight Log Alpha</Text>
     </View>
     <Card><View style={[styles.card, styles.profile]}>

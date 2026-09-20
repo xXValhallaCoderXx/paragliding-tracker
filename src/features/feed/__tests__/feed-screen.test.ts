@@ -50,6 +50,8 @@ it('includes own published flights, links authors correctly, and keeps managemen
   expect(mockPush).toHaveBeenLastCalledWith({ pathname: '/friends/[id]', params: { id: 'friend-b' } });
   await run(() => cards[1].props.onAuthor());
   expect(mockPush).toHaveBeenLastCalledWith('/friends/manage');
+  await run(() => control('Find pilots').props.onPress());
+  expect(mockPush).toHaveBeenLastCalledWith('/friends/search');
   await run(() => control('Manage friends').props.onPress());
   expect(mockPush).toHaveBeenLastCalledWith('/friends/manage');
 });
@@ -66,4 +68,12 @@ it('offers pagination only while a server cursor exists and clears cards on conn
   mockFeed.available = true; mockFriends.identityKey = 'owner-b';
   await run(() => rendered.update(React.createElement(FeedScreen)));
   expect(rendered.root.findAllByType(SharedFlightCard)).toHaveLength(0);
+});
+
+it('keeps the existing feed available for a profile that still needs a username', async () => {
+  mockFriends.profile = { ...mockFriends.profile!, username: null };
+  await run(() => { rendered = create(React.createElement(FeedScreen)); });
+  expect(rendered.root.findAllByType(FriendsScreen)).toHaveLength(0);
+  expect(rendered.root.findAllByType(SharedFlightCard)).toHaveLength(1);
+  expect(control('Manage friends')).toBeDefined();
 });

@@ -31,14 +31,19 @@ export async function verifyFriends(url, publicKey, adminKey) {
   const change = async (account, other, action, requestId) => ok(await account.client.rpc('social_change_relationship', {
     p_other_user_id: other.id, p_action: action, ...(requestId ? { p_request_id: requestId } : {}),
   }), `Relationship ${action}`);
-  const request = async (account, code) => ok(await account.client.rpc('social_request_friend', { p_code: code }), 'Send request');
+  const request = async (account, other) => ok(await account.client.rpc('social_request_pilot', { p_user_id: other.id }), 'Send request');
+  const search = async (account, query) => ok(await account.client.rpc('social_search_pilots', { p_query: query }), 'Find pilots');
+  const save = async (account, displayName, discoverable = true) => ok(await account.client.rpc('social_save_profile', {
+    p_display_name: displayName, p_username: account.username, p_discoverable: discoverable,
+  }), 'Save social profile');
   const profile = async (account, other) => ok(await account.client.rpc('social_get_friend_profile', { p_user_id: other.id }), 'Read friend profile');
   try {
     for (const label of ['a', 'b', 'c']) {
       const email = `${label}-${randomUUID()}@friends-http.example.test`;
       const password = `Aa1!${randomUUID()}`;
       const { user } = ok(await admin.auth.admin.createUser({ email, password, email_confirm: true }), 'Create disposable account');
-      const account = { id: user.id, client: createClient(url, publicKey, options), deleted: false };
+      const account = { id: user.id, username: `qa_f_${user.id.replaceAll('-', '').slice(0, 18)}`,
+        client: createClient(url, publicKey, options), deleted: false };
       accounts.push(account);
       const signedIn = ok(await account.client.auth.signInWithPassword({ email, password }), 'Sign in disposable account');
       assert.equal(signedIn.user.id, user.id);
@@ -47,11 +52,32 @@ export async function verifyFriends(url, publicKey, adminKey) {
     check(new Set(accounts.map(account => account.id)).size === 3, 'three independent accounts authenticate');
     check((await state(a)).profile === null, 'sign-in does not automatically publish a social profile');
     check(!!(await anonymous.rpc('social_get_state')).error, 'anonymous social reads are denied');
-    for (const [index, account] of accounts.entries()) {
-      ok(await account.client.rpc('social_save_profile', { p_display_name: `  Test   Pilot ${index + 1}  ` }), 'Choose social name');
-    }
+    check(!!(await anonymous.rpc('social_search_pilots', { p_query: 'Pilot' })).error, 'anonymous discovery is denied');
+    check(!!(await anonymous.rpc('social_request_pilot', { p_user_id: b.id })).error, 'anonymous requests are denied');
+    for (const [index, account] of [a, b].entries()) await save(account, `  Test   Pilot ${index + 1}  `);
+    ok(await admin.from('social_profiles').insert({ user_id: c.id, display_name: 'Legacy Pilot' }), 'Create legacy fixture profile');
+    check((await state(c)).profile.username === null && !(await state(c)).profile.discoverable,
+      'legacy profiles remain readable and hidden before claiming a username');
+    check(!!(await c.client.rpc('social_search_pilots', { p_query: 'Pilot' })).error &&
+      !!(await c.client.rpc('social_request_pilot', { p_user_id: a.id })).error,
+      'legacy pilots must choose a username before discovery or new requests');
+    await save(c, 'Test Pilot 3');
     const initialA = await state(a), initialB = await state(b);
-    check(initialA.profile.displayName === 'Test Pilot 1' && /^[A-HJ-NP-Z2-9]{12}$/.test(initialA.inviteCode), 'explicit profile setup normalizes name and issues a private code');
+    check(initialA.profile.displayName === 'Test Pilot 1' && initialA.profile.username === a.username &&
+      initialA.profile.discoverable && !('inviteCode' in initialA), 'profile setup normalizes the name and publishes the chosen username without invite codes');
+    check(!!(await c.client.rpc('social_save_profile', { p_display_name: 'Conflict', p_username: a.username.toUpperCase(), p_discoverable: true })).error,
+      'case-insensitive username uniqueness is enforced');
+    const foundB = (await search(a, `@${b.username.toUpperCase()}`)).items;
+    check(foundB.length === 1 && foundB[0].userId === b.id && foundB[0].relationshipState === 'none' &&
+      Object.keys(foundB[0]).sort().join(',') === 'displayName,relationshipId,relationshipState,userId,username',
+      'username search exposes only discovery identity and relationship state');
+    check(!(await search(a, `@${a.username}`)).items.some(item => item.userId === a.id), 'search excludes the caller');
+    check(!!(await a.client.rpc('social_search_pilots', { p_query: ' ' })).error, 'empty search never browses the directory');
+    await save(c, `Literal %_ ${c.username}`);
+    check((await search(a, '%_')).items.some(item => item.userId === c.id) &&
+      !(await search(a, '%_')).items.some(item => item.userId === b.id), 'SQL wildcard characters are literal name text');
+    check(!(await search(a, '@literal')).items.some(item => item.userId === c.id), 'leading @ restricts matching to usernames');
+    await save(c, 'Test Pilot 3');
     check(!!(await c.client.rpc('social_get_friend_profile', { p_user_id: a.id })).error, 'unrelated account cannot read a profile or count');
     const metadata = { status: 'completed', started_at: 1000, ended_at: 61000, client_created_at: 1000,
       client_updated_at: 1000, title: 'Private HTTP fixture', site: null, site_source: null,
@@ -66,16 +92,23 @@ export async function verifyFriends(url, publicKey, adminKey) {
       } }), 'Back up private fixture');
     }
     check((await state(a)).profile.backedUpFlightCount === 2, 'count includes completed/partial no-track summaries and excludes incomplete metrics');
-    check((await request(a, initialB.inviteCode.toLowerCase().match(/.{1,4}/g).join('-'))).status === 'sent', 'normalized private code creates a request');
+    await save(b, 'Test Pilot 2', false);
+    check(!(await search(a, `@${b.username}`)).items.some(item => item.userId === b.id) &&
+      (await request(a, b)).status === 'unavailable', 'hiding removes search visibility and rejects a stale result request');
+    check((await search(b, `@${a.username}`)).items.some(item => item.userId === a.id), 'hidden pilots can still search');
+    await save(b, 'Test Pilot 2');
+    check((await request(a, b)).status === 'sent', 'search result identity creates an explicit request');
     const pendingB = (await state(b)).relationships[0];
-    check(pendingB.state === 'incoming' && Object.keys(pendingB).sort().join(',') === 'displayName,id,state,userId', 'pending requests expose only display identity and relationship state');
+    check(pendingB.state === 'incoming' && Object.keys(pendingB).sort().join(',') === 'displayName,id,state,userId,username', 'pending requests expose only display identity and relationship state');
     check(!!(await b.client.rpc('social_get_friend_profile', { p_user_id: a.id })).error, 'pending request cannot read flight count');
-    check((await request(a, initialB.inviteCode)).status === 'outgoing', 'duplicate request is retry-safe');
-    check((await request(b, initialA.inviteCode)).status === 'incoming', 'crossed request does not silently accept');
+    check((await request(a, b)).status === 'outgoing', 'duplicate request is retry-safe');
+    check((await request(b, a)).status === 'incoming', 'crossed request does not silently accept');
     check(!!(await a.client.rpc('social_change_relationship', { p_other_user_id: b.id, p_action: 'accept', p_request_id: pendingB.id })).error, 'sender cannot accept their own request');
+    await save(b, 'Test Pilot 2', false);
+    check((await state(b)).relationships[0].id === pendingB.id, 'hiding preserves pending requests');
     await change(b, a, 'accept', pendingB.id);
     const sharedA = await profile(b, a);
-    check(sharedA.backedUpFlightCount === 2 && Object.keys(sharedA).sort().join(',') === 'backedUpFlightCount,displayName,userId', 'accepted friend receives only name and aggregate count');
+    check(sharedA.backedUpFlightCount === 2 && Object.keys(sharedA).sort().join(',') === 'backedUpFlightCount,displayName,userId,username', 'accepted friend receives only identity and aggregate count');
     check((await profile(a, b)).backedUpFlightCount === 0, 'accepted access is mutual and true zero is preserved');
     check(ok(await b.client.from('flights').select('id,notes').eq('user_id', a.id), 'Private flight denial').length === 0, 'friendship does not widen private flight access');
     check(ok(await b.client.from('profiles').select('*').eq('id', a.id), 'Private profile denial').length === 0, 'friendship does not widen private pilot/export profile access');
@@ -83,36 +116,50 @@ export async function verifyFriends(url, publicKey, adminKey) {
     check(!!(await c.client.rpc('social_get_friend_profile', { p_user_id: a.id })).error, 'third account remains excluded after friendship acceptance');
     ok(await a.client.rpc('delete_private_flight', { p_flight_id: flightIds[0] }), 'Delete backed-up fixture');
     check((await profile(b, a)).backedUpFlightCount === 1, 'server count follows private flight deletion');
-    const replacement = ok(await b.client.rpc('social_rotate_invite_code'), 'Rotate code');
-    check(replacement !== initialB.inviteCode && (await request(c, initialB.inviteCode)).status === 'unavailable', 'rotation invalidates old code');
-    check((await profile(a, b)).userId === b.id, 'rotation preserves accepted friendship');
+    b.username = `new_${b.id.replaceAll('-', '').slice(0, 18)}`;
+    await save(b, 'Renamed Pilot');
+    check(!(await search(c, `@${initialB.profile.username}`)).items.some(item => item.userId === b.id) &&
+      (await search(c, `@${b.username}`)).items.some(item => item.userId === b.id), 'renamed usernames update discovery');
+    check((await profile(a, b)).username === b.username && (await state(a)).relationships[0].id === pendingB.id,
+      'renaming and hiding preserve the exact friendship identity');
     await change(a, b, 'remove', pendingB.id);
     check(!!(await b.client.rpc('social_get_friend_profile', { p_user_id: a.id })).error, 'removal revokes future profile reads');
-    await request(a, replacement);
+    await request(a, b);
     const second = (await state(b)).relationships[0];
     await change(b, a, 'accept', second.id);
     await change(a, b, 'remove', pendingB.id);
     check((await profile(b, a)).userId === a.id, 'stale removal cannot delete a newer friendship');
     await change(a, b, 'block');
-    check((await request(b, initialA.inviteCode)).status === 'unavailable' && !!(await b.client.rpc('social_get_friend_profile', { p_user_id: a.id })).error, 'blocking revokes reads and new requests');
+    check((await request(b, a)).status === 'unavailable' && !!(await b.client.rpc('social_get_friend_profile', { p_user_id: a.id })).error, 'blocking revokes reads and new requests');
+    check(!(await search(a, `@${b.username}`)).items.some(item => item.userId === b.id) &&
+      !(await search(b, `@${a.username}`)).items.some(item => item.userId === a.id), 'blocking removes both directions from discovery');
     check((await state(a)).relationships[0].state === 'blocked' && (await state(b)).relationships.length === 0, 'only blocker sees their blocked list');
     await change(a, b, 'unblock');
     check((await state(a)).relationships.length === 0 && !!(await b.client.rpc('social_get_friend_profile', { p_user_id: a.id })).error, 'unblocking does not restore friendship');
-    await request(a, replacement);
+    await request(a, b);
     const third = (await state(b)).relationships[0];
     await change(b, a, 'decline', third.id);
     check((await state(a)).relationships.length === 0, 'recipient can decline request');
-    await request(a, replacement);
+    await request(a, b);
     const fourth = (await state(a)).relationships[0];
     await change(a, b, 'cancel', fourth.id);
     check((await state(b)).relationships.length === 0, 'sender can cancel request');
-    await request(a, replacement);
+    ok(await c.client.rpc('social_block_pilot', { p_user_id: a.id }), 'Block discovery stranger');
+    check(!(await search(c, `@${a.username}`)).items.some(item => item.userId === a.id) &&
+      (await request(a, c)).status === 'unavailable', 'a discoverable stranger can be blocked before any friendship');
+    await change(c, a, 'unblock');
+    await request(a, b);
     await change(b, a, 'accept', (await state(b)).relationships[0].id);
     let limited = false;
     for (let attempt = 0; attempt < 22; attempt++) {
-      if ((await request(c, 'INVALID')).status === 'rate_limited') { limited = true; break; }
+      if ((await request(c, { id: randomUUID() })).status === 'rate_limited') { limited = true; break; }
     }
-    check(limited, 'failed code lookups consume a committed rate limit');
+    check(limited, 'failed request attempts consume a committed rate limit');
+    let searchLimited = false;
+    for (let attempt = 0; attempt < 62; attempt++) {
+      if ((await search(c, '@no_such_fixture')).status === 'rate_limited') { searchLimited = true; break; }
+    }
+    check(searchLimited, 'empty discovery attempts consume the separate search rate limit');
     ok(await admin.auth.admin.deleteUser(a.id), 'Delete disposable account'); a.deleted = true;
     check((await state(b)).relationships.length === 0 && !!(await b.client.rpc('social_get_friend_profile', { p_user_id: a.id })).error, 'account deletion cascades relationships and revokes profile reads');
     return checks;
