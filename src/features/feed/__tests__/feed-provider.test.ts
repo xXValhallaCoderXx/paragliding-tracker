@@ -2,7 +2,7 @@ import React from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import type { NetworkState } from 'expo-network';
 import type { AuthSnapshot } from '@/cloud/types';
-import type { FeedContextValue } from '@/social/feed-types';
+import type { FeedContextValue, KudosResult } from '@/social/feed-types';
 import { FeedProvider, useFeed } from '../feed-provider';
 import { create, act } from '../../../../tests/support/renderer';
 import { replayArtifact, sharedFlight } from './fixtures';
@@ -23,6 +23,8 @@ const mockSetAutoShare = jest.fn();
 const mockGetDetail = jest.fn();
 const mockGetReplay = jest.fn();
 const mockGetPublication = jest.fn();
+const mockSetKudos = jest.fn();
+const mockGetKudos = jest.fn();
 const mockRememberPreferences = jest.fn();
 const mockPublicationAuth = jest.fn();
 const mockPublicationEnvironment = jest.fn();
@@ -47,6 +49,7 @@ jest.mock('@/social/feed-api', () => ({ feedService: {
   getFeed: (...args: unknown[]) => mockGetFeed(...args), getPreferences: (...args: unknown[]) => mockGetPreferences(...args),
   setAutoShare: (...args: unknown[]) => mockSetAutoShare(...args), getDetail: (...args: unknown[]) => mockGetDetail(...args),
   getReplay: (...args: unknown[]) => mockGetReplay(...args), getPublication: (...args: unknown[]) => mockGetPublication(...args),
+  setKudos: (...args: unknown[]) => mockSetKudos(...args), getKudos: (...args: unknown[]) => mockGetKudos(...args),
 } }));
 jest.mock('@/cloud/publication-service', () => ({ publicationService: {
   setPreferences: (...args: unknown[]) => mockRememberPreferences(...args), authChanged: () => mockPublicationAuth(),
@@ -78,6 +81,8 @@ beforeEach(() => {
   mockGetDetail.mockReset().mockResolvedValue(sharedFlight());
   mockGetReplay.mockReset().mockResolvedValue(replayArtifact());
   mockGetPublication.mockReset().mockResolvedValue({ flightId: 'flight-1', state: 'private', activityId: null, revision: 0 });
+  mockSetKudos.mockReset().mockImplementation(async (activityId, given) => ({ activityId, count: given ? 1 : 0, givenByMe: given }));
+  mockGetKudos.mockReset().mockImplementation(async activityId => ({ activityId, count: 0, givenByMe: false, items: [], nextCursor: null }));
   mockRememberPreferences.mockReset().mockResolvedValue(undefined); mockPublicationAuth.mockReset().mockResolvedValue(undefined);
   AppState.currentState = 'active';
   jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
@@ -94,6 +99,7 @@ it.each(['signout', 'switch'] as const)('clears old feed data in the first commi
   await render();
   expect(snapshots[0].items).toEqual([]);
   expect(snapshots[0].preferences).toBeNull();
+  expect(snapshots[0].kudosByActivity).toEqual({});
   expect(snapshots.every(value => value.items.every(item => item.activityId !== `post-${A}`))).toBe(true);
 });
 
@@ -167,10 +173,57 @@ it('keeps callbacks stable through refreshes but rejects an old-account action',
   await run(() => latest.refresh());
   expect(latest.getDetail).toBe(previous.getDetail);
   expect(latest.getPublication).toBe(previous.getPublication);
+  expect(latest.setKudos).toBe(previous.setKudos);
+  expect(latest.getKudos).toBe(previous.getKudos);
   mockAuth = { ...mockAuth, userId: B };
   await render();
   await expect(previous.setAutoShare(true)).rejects.toMatchObject({ code: 'stale' });
+  await expect(previous.setKudos('activity-1', true)).rejects.toMatchObject({ code: 'stale' });
+  await expect(previous.getKudos('activity-1', null)).rejects.toMatchObject({ code: 'stale' });
   expect(mockSetAutoShare).not.toHaveBeenCalled();
+  expect(mockSetKudos).not.toHaveBeenCalled(); expect(mockGetKudos).not.toHaveBeenCalled();
+});
+
+it('exposes immediate pending state and confirmed counts without changing replay identity or callbacks', async () => {
+  await render();
+  const before = latest; const activityId = `post-${A}`;
+  const pending = deferred<KudosResult>(); mockSetKudos.mockReturnValueOnce(pending.promise);
+  let writing!: Promise<KudosResult>;
+  await run(() => { writing = latest.setKudos(activityId, true); });
+  expect(latest.kudosByActivity[activityId]).toMatchObject({ pending: true, summary: { count: 0, givenByMe: false } });
+  expect(latest.revision).toBe(before.revision);
+  expect(latest.getReplay).toBe(before.getReplay); expect(latest.getDetail).toBe(before.getDetail);
+  await run(() => pending.resolve({ activityId, count: 1, givenByMe: true })); await writing;
+  expect(latest.kudosByActivity[activityId]).toMatchObject({ pending: false, summary: { count: 1, givenByMe: true } });
+  expect(latest.items[0].kudos).toEqual({ count: 1, givenByMe: true });
+  expect(latest.revision).toBe(before.revision);
+});
+
+it('clears shared reaction state on the first account-switch render and ignores a late write result', async () => {
+  await render();
+  const pending = deferred<KudosResult>(); mockSetKudos.mockReturnValueOnce(pending.promise);
+  let writing!: Promise<KudosResult>;
+  await run(() => { writing = latest.setKudos(`post-${A}`, true); });
+  const rejected = expect(writing).rejects.toMatchObject({ code: 'stale' });
+  snapshots = []; mockAuth = { ...mockAuth, userId: B };
+  await render();
+  expect(snapshots[0].kudosByActivity).toEqual({});
+  await run(() => pending.resolve({ activityId: `post-${A}`, count: 1, givenByMe: true })); await rejected;
+  expect(snapshots.every(value => !value.kudosByActivity[`post-${A}`])).toBe(true);
+});
+
+it('clears supporter summary state when offline, backgrounded or accepted friends change', async () => {
+  await render();
+  await run(() => latest.getKudos('supporter-only-post', null));
+  expect(latest.kudosByActivity['supporter-only-post']).toBeDefined();
+  await run(() => { for (const listener of mockNetworkListeners) listener({ isConnected: false } as NetworkState); });
+  expect(latest.kudosByActivity).toEqual({});
+  await run(() => { for (const listener of mockNetworkListeners) listener(wifi); });
+  await run(() => latest.getKudos('supporter-only-post', null));
+  mockFriendsRevision += 1; await render();
+  expect(latest.kudosByActivity['supporter-only-post']).toBeUndefined();
+  await run(() => { for (const listener of mockAppListeners) listener('background'); });
+  expect(latest.kudosByActivity).toEqual({});
 });
 
 it('removes every external listener and ignores late reads after unmount', async () => {

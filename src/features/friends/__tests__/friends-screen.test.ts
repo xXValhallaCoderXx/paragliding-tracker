@@ -61,6 +61,7 @@ it('preserves a chosen name and initials preview after profile creation fails', 
   expect(input('Display name').props.value).toBe('Ada Wong');
   expect(notices()).toContain('No connection. Try again.');
   expect(rendered.root.findAllByType(Text).some(node => String(node.props.children).includes('Accepted friends can see'))).toBe(true);
+  expect(rendered.root.findAllByType(Text).some(node => String(node.props.children).includes('including people outside your friends'))).toBe(true);
 });
 
 it('retains an unsuccessful invite code and clears it only after a successful request', async () => {

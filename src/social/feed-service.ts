@@ -1,5 +1,5 @@
 import type { FeedService, PreparedShare, SharedReplayArtifactV1 } from './feed-types';
-import { MAX_SHARED_ARTIFACT_BYTES, parseFeedPage, parseManifest, parsePreparedShare, parsePublication, parseSharedFlight, parseSharedReplay, parseSharingPreferences } from './feed-validation';
+import { MAX_SHARED_ARTIFACT_BYTES, parseFeedPage, parseKudosPage, parseKudosResult, parseManifest, parsePreparedShare, parsePublication, parseSharedFlight, parseSharedReplay, parseSharingPreferences } from './feed-validation';
 import { assertSocialUserId } from './validation';
 import { SocialError } from './types';
 
@@ -10,7 +10,9 @@ export type FeedRpcRequest =
   | { name: 'social_get_activity'; args: { p_activity_id: string } }
   | { name: 'social_get_my_publication'; args: { p_flight_id: string } }
   | { name: 'social_prepare_share'; args: { p_flight_id: string; p_operation_id: string; p_mode: 'automatic' | 'manual'; p_consent_generation: string | null; p_expected_revision: number } }
-  | { name: 'social_hide_flight'; args: { p_flight_id: string } };
+  | { name: 'social_hide_flight'; args: { p_flight_id: string } }
+  | { name: 'social_set_kudos'; args: { p_activity_id: string; p_given: boolean } }
+  | { name: 'social_list_kudos'; args: { p_activity_id: string; p_cursor_created_at: string | null; p_cursor_id: string | null; p_limit: number } };
 export type FeedEdgeRequest =
   | { action: 'upload'; activityId: string; uploadToken: string; artifact: SharedReplayArtifactV1 }
   | { action: 'read'; activityId: string; generation: string }
@@ -24,6 +26,7 @@ export function feedError(error: unknown): SocialError {
   const row = error && typeof error === 'object' ? error as Record<string, unknown> : {};
   const message = String(row.message ?? row.error ?? error ?? '');
   const known: [string, SocialError['code'], string][] = [
+    ['kudos_self_not_allowed', 'invalid_input', 'You can give kudos to your friends’ flights.'],
     ['shared_consent_changed', 'consent_changed', 'Automatic sharing changed. This flight stays private unless you share it again.'],
     ['shared_publication_changed', 'publication_changed', 'This flight’s sharing changed. Refresh before sharing it again.'],
     ['shared_flight_not_ready', 'flight_not_ready', 'Waiting for this flight’s finished summary to back up.'],
@@ -53,7 +56,16 @@ export function createFeedService(transport: FeedTransport): FeedService {
     finally { clearTimeout(timer); signal.removeEventListener('abort', abort); }
   }
   const rpc = (request: FeedRpcRequest, signal: AbortSignal) => run(signal, async inner => {
-    const result = await transport.rpc(request, inner); if (result.error) throw result.error; return result.data;
+    const result = await transport.rpc(request, inner);
+    if (result.error) {
+      const error = result.error as { code?: string };
+      if ((request.name === 'social_set_kudos' || request.name === 'social_list_kudos') &&
+        (error.code === 'PGRST202' || error.code === '42883')) {
+        throw new SocialError('unsupported', 'Kudos are not available on this server yet. Your shared flights are still available.');
+      }
+      throw result.error;
+    }
+    return result.data;
   });
   return {
     getPreferences: async signal => parseSharingPreferences(await rpc({ name: 'social_get_sharing_preferences' }, signal)),
@@ -111,6 +123,24 @@ export function createFeedService(transport: FeedTransport): FeedService {
       const result = parsePublication(await rpc({ name: 'social_hide_flight', args: { p_flight_id: flightId } }, signal));
       if (result.flightId !== flightId || result.state !== 'hidden') throw new SocialError('invalid_response', 'Hiding this flight could not be confirmed. Try again.');
       if (!signal.aborted) void transport.edge({ action: 'cleanup' }, signal).catch(() => undefined);
+      return result;
+    },
+    setKudos: async (activityId, given, signal) => {
+      assertSocialUserId(activityId);
+      if (typeof given !== 'boolean') throw new SocialError('invalid_input', 'Choose whether to give or remove kudos.');
+      const result = parseKudosResult(await rpc({ name: 'social_set_kudos', args: { p_activity_id: activityId, p_given: given } }, signal));
+      if (result.activityId !== activityId || result.givenByMe !== given) throw new SocialError('invalid_response', 'Your kudos could not be confirmed. Refresh this flight.');
+      return result;
+    },
+    getKudos: async (activityId, cursor, signal) => {
+      assertSocialUserId(activityId);
+      if (cursor) {
+        assertSocialUserId(cursor.id);
+        if (!Number.isFinite(Date.parse(cursor.createdAt))) throw new SocialError('invalid_input', 'Refresh the kudos list to continue.');
+      }
+      const result = parseKudosPage(await rpc({ name: 'social_list_kudos', args: { p_activity_id: activityId,
+        p_cursor_created_at: cursor?.createdAt ?? null, p_cursor_id: cursor?.id ?? null, p_limit: 25 } }, signal));
+      if (result.activityId !== activityId) throw new SocialError('invalid_response', 'Kudos returned a different flight. Reopen the list.');
       return result;
     },
   };

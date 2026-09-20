@@ -49,7 +49,7 @@ export interface SocialService {
 
 export class SocialError extends Error {
   constructor(readonly code: 'invalid_input' | 'invalid_response' | 'request_failed' | 'unavailable' | 'stale' | 'busy'
-    | 'consent_changed' | 'publication_changed' | 'flight_not_ready' | 'profile_required' | 'account_deleting', message: string) {
+    | 'consent_changed' | 'publication_changed' | 'flight_not_ready' | 'profile_required' | 'account_deleting' | 'unsupported', message: string) {
     super(message);
     this.name = 'SocialError';
   }

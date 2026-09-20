@@ -5,6 +5,7 @@ import { friendInitials } from '@/features/friends/presentation';
 import { formatAirtimeShort, formatDistance, formatLongDate, formatMetres } from '@/lib/format/flight-format';
 import type { SharedFlightSummary } from '@/social/feed-types';
 import { sharedHeadline, sharedStatus } from './presentation';
+import { KudosControls } from './kudos-controls';
 import { feedStyles as styles } from './styles';
 
 export function SharedFlightCard({ flight, own, onOpen, onAuthor }: {
@@ -27,5 +28,6 @@ export function SharedFlightCard({ flight, own, onOpen, onAuthor }: {
       <Chip label={status.label} tone={status.tone} />
       <TrackPlate segments={flight.routePreview} variant="hero" state={flight.routePreview.length ? 'ready' : 'no_track'} takeoffLabel="Start" landingLabel="Stop" />
     </Pressable>
+    <KudosControls activityId={flight.activityId} summary={flight.kudos} own={own} />
   </View></Card>;
 }

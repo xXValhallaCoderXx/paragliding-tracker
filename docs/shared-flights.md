@@ -2,6 +2,7 @@
 
 Implemented and deployed on 21 September 2026, extending [Friends v1](./friends.md). This guide
 describes the current code and separates focused checks from release and device acceptance.
+[Kudos and supporter lists](./kudos.md) extend this release in PAR-39 and have a separate ledger.
 
 ## Experience and consent
 
@@ -173,6 +174,26 @@ Remaining physical two-account cases (the server paths have the separate automat
 
 Kudos, comments, notifications, public/share links, live viewing, route privacy zones, social
 offline downloads and iOS physical acceptance remain outside this delivery.
+
+## Additional three-pilot acceptance — 21 September 2026
+
+The later [isolated Samsung run](./social-qa-2026-09-21.md) supplies positive native evidence
+for the feed, accepted-friend detail, IGC replay with play/pause/speed/seek/scrub, explicit
+manual publication of a restored archive, author preview, and Hide/re-share. An offline Hide
+survived force-stop/cold launch, remained honestly pending while friends could still read it,
+then revoked server access on reconnect. Refresh kept it hidden; only explicit re-share
+restored access. Friendship removal and sequential account switching cleared access correctly.
+
+This used an isolated QA package with identical application JavaScript, separate app data and
+a different signer/package/ABI boundary. Native and API counterparty steps are identified in
+the report. All test identities/objects and the QA package were removed; original settings,
+owner sign-in, 15 flights / 3:00 airtime and three Ready offline areas were preserved.
+
+PAR-38/PAR-16 remain In Progress for their broader matrix: automatic publication of a newly
+recorded flight, consent changes during pending work, recorded-fix/partial/gapped and large
+routes, interrupted transfers, recorder priority, native pagination and exact normal-APK
+acceptance. The newly passed restored-IGC/manual-sharing checks are no longer wholly pending;
+they do not establish those unexercised recording or field cases.
 
 ## Source map
 

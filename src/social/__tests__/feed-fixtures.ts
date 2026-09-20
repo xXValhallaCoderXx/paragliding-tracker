@@ -13,5 +13,5 @@ export function flight(activityId = A): SharedFlightSummary {
     title: 'Evening flight', site: 'The ridge', siteSource: 'manual', startedAt: 1000, endedAt: 4000, timezoneOffsetMinutes: 480,
     status: 'completed', metrics: { durationMs: 3000, trackDistanceMetres: 140, minGpsAltitude: null, maxGpsAltitude: 24, maxGroundSpeed: 3, fixCount: 2, quality: 'healthy' },
     routePreview: [[1, 2, 1.001, 2.001]], provenance: 'recorded', replayAvailable: true,
-    artifact: { generation: G, sha256: 'a'.repeat(64), byteCount: 300 } };
+    artifact: { generation: G, sha256: 'a'.repeat(64), byteCount: 300 }, kudos: { count: 0, givenByMe: false } };
 }

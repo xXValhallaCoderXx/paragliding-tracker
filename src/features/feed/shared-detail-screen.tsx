@@ -11,6 +11,7 @@ import { useFriends } from '@/features/friends/friends-provider';
 import { errorMessage } from '@/lib/format/error-message';
 import type { SharedFlightDetail } from '@/social/feed-types';
 import { useFeed } from './feed-provider';
+import { KudosControls } from './kudos-controls';
 import { sharedHeroSummary, sharedStats, sharedStatus } from './presentation';
 import { feedStyles as styles } from './styles';
 
@@ -46,9 +47,11 @@ function SharedDetailContent({ activityId }: { activityId: string }) {
     return () => { current = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- Retry restarts this focus-scoped authorized read.
   }, [activityId, getDetail, retry]));
+  const revoked = read.kind === 'ready' && !feed.kudosByActivity[activityId];
+  if (revoked) setRead({ kind: 'error', message: 'This shared flight is no longer available. Refresh Friends.' });
   if (read.kind === 'loading') return <View style={styles.content}><BusyRow label="Opening shared flight…" /></View>;
-  if (read.kind === 'error') return <View style={styles.content}>
-    <Notice tone="danger" title="Shared flight unavailable">{read.message}</Notice>
+  if (read.kind === 'error' || revoked) return <View style={styles.content}>
+    <Notice tone="danger" title="Shared flight unavailable">{read.kind === 'error' ? read.message : 'This shared flight is no longer available. Refresh Friends.'}</Notice>
     <Button label="Retry shared flight" onPress={() => setRetry(value => value + 1)} />
   </View>;
   const { flight } = read;
@@ -75,6 +78,7 @@ function SharedDetailContent({ activityId }: { activityId: string }) {
       {flight.metrics.quality === 'no_track' ? <Notice title="No usable GPS track">No usable route was recorded for this flight.</Notice> : null}
     </View>
     <StatGrid cells={sharedStats(flight)} />
+    <View style={styles.detailSection}><KudosControls activityId={activityId} summary={flight.kudos} own={own} /></View>
     <View style={styles.detailSection}>
       {attribution ? <Text style={styles.helper}>{attribution}</Text> : null}
       <Notice title="About this shared flight">{flight.provenance === 'igc'

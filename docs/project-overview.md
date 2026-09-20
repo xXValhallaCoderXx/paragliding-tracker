@@ -10,6 +10,8 @@ Friends profiles and private invitations were added on 21 September 2026;
 [Friends v1](./friends.md) records validation and delivery evidence separately.
 The accepted-friends feed and explicitly shared flight detail/replay are implemented and deployed;
 [shared flights](./shared-flights.md) tracks their separate release and device gates.
+[Kudos](./kudos.md) adds reversible support and a names-and-initials list to published flights,
+with its own deployment and device evidence.
 
 Flight Log Alpha is a personal paragliding journal built around recording a flight on your
 phone, reviewing what happened, and keeping a shareable memory of it. It is an Android-first
@@ -105,7 +107,7 @@ Signing in alone is not proof that an upload finished. Hosted email setup is doc
 
 - Flights are recorded on this device; there is no manual flight creation or file import.
 - Shared flights have no per-flight recipient picker, route trimming or endpoint privacy zones.
-  No public pilot directory, kudos, comments, notifications, share links or live viewing. Friend
+  No public pilot directory, comments, notifications, share links or live viewing. Friend
   detail/replay requires connectivity; the new feed's exact-build acceptance is still pending.
 - No 3D maps, airspace tools, automatic takeoff/landing detection, Bluetooth vario,
   calibrated climb-rate instrument, competition signing or XContest integration.

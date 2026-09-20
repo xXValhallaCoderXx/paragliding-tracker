@@ -11,6 +11,7 @@ recorder carried on a flight.
 - [Project overview](./docs/project-overview.md): current features, backup behavior and limits.
 - [Friends v1](./docs/friends.md): private invitations, friend profiles and backed-up flight counts.
 - [Shared flights](./docs/shared-flights.md): accepted-friends feed, publication consent, safe replay and release acceptance.
+- [Kudos](./docs/kudos.md): reversible support, supporter names, visibility rules and release acceptance.
 - [Feature plan and roadmap](./docs/feature-plan.md): map/download acceptance, broader sharing/replay
   acceptance and the selected social stages.
 - [Saved replay maps](./docs/saved-replay-maps.md): Mapbox decision, configuration and Android checks.
@@ -90,6 +91,7 @@ an active session shows its email and **Log out**. Upload progress is shown sepa
 **Friends** adds a separate chosen display name, private invite codes and accepted-friend
 profiles showing backed-up flight counts. Its feed now supports explicitly shared finished
 flights and 2D replay, plus optional automatic posting of future recordings, off by default.
+Give or remove kudos on a friend's published flight and open its supporter names and initials.
 Signing in alone publishes neither a social profile nor a flight. Current accepted friends see
 published history; private notes, original flight rows, export details and IGCs remain owner-only.
 Social viewing follows the signed-in account and is not retained offline. See [Friends v1](./docs/friends.md)

@@ -109,7 +109,7 @@ export async function verifySharedFlights(url, publicKey, adminKey) {
     check(published.state === 'shared', 'real Edge upload activates a publication');
     const summary = await detail(a, prepared.activityId);
     check(Object.keys(summary).sort().join(',') === ['activityId', 'author', 'publishedAt', 'title', 'site', 'siteSource', 'startedAt', 'endedAt',
-      'timezoneOffsetMinutes', 'status', 'metrics', 'routePreview', 'provenance', 'replayAvailable', 'artifact'].sort().join(',') &&
+      'timezoneOffsetMinutes', 'status', 'metrics', 'routePreview', 'provenance', 'replayAvailable', 'artifact', 'kudos'].sort().join(',') &&
       !JSON.stringify(summary).includes('PRIVATE-DO-NOT-SHARE'), 'detail is an exact safe projection without notes, IGC or recording identity');
     const ownerBytes = edgeOk(await read(a, summary), 'Owner artifact read');
     check(hash(ownerBytes.bytes) === summary.artifact.sha256 && ownerBytes.bytes.length === summary.artifact.byteCount &&

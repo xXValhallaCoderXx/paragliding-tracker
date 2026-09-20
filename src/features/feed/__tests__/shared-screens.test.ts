@@ -45,7 +45,7 @@ it('opens a safe shared detail, disables map caching, and exposes no owner-only 
   expect(mockFeed.getDetail).toHaveBeenCalledWith('activity-1');
   expect(rendered.root.findByType(FlightHero).props).toMatchObject({ saved: null, insight: null, flight: { source: 'shared' } });
   expect(rendered.root.findByType(FlightMapPreview).props.cachePolicy).toBe('none');
-  expect((rendered.root.findAllByType(Button) as Node[]).map(node => node.props.label)).toEqual(['View pilot profile', 'Replay shared flight']);
+  expect((rendered.root.findAllByType(Button) as Node[]).map(node => node.props.label)).toEqual(['View pilot profile', 'Replay shared flight', 'Give kudos', 'View kudos (0)']);
   await run(() => control('Replay shared flight').props.onPress());
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/shared-flights/[id]/replay', params: { id: 'activity-1' } });
 });
@@ -58,6 +58,33 @@ it('keeps a no-track summary visible without attempting replay', async () => {
   expect(control('Replay shared flight')).toBeUndefined();
   expect(mockFeed.getReplay).not.toHaveBeenCalled();
   expect((rendered.root.findAllByType(Notice) as Node[]).some(node => node.props.title === 'No usable GPS track')).toBe(true);
+});
+
+it('clears the detail when a kudos mutation discovers the flight is no longer authorized', async () => {
+  await mount(React.createElement(SharedDetailScreen));
+  jest.mocked(mockFeed.setKudos).mockImplementationOnce(async () => {
+    mockFeed.kudosByActivity = {};
+    throw new Error('This shared flight is no longer available.');
+  });
+  const revision = mockFeed.revision;
+  await run(() => control('Give kudos').props.onPress());
+  await update(React.createElement(SharedDetailScreen));
+  expect(mockFeed.revision).toBe(revision);
+  expect(rendered.root.findAllByType(FlightHero)).toHaveLength(0);
+  expect(rendered.root.findAllByType(FlightMapPreview)).toHaveLength(0);
+  expect(control('Give kudos')).toBeUndefined();
+  expect(control('Replay shared flight')).toBeUndefined();
+  expect(control('Retry shared flight')).toBeDefined();
+});
+
+it('keeps flight detail and replay available when this server does not support kudos', async () => {
+  mockFeed.kudosByActivity['activity-1'] = { summary: null, pending: false, error: null };
+  jest.mocked(mockFeed.getDetail).mockResolvedValueOnce(sharedFlight({ kudos: null }));
+  await mount(React.createElement(SharedDetailScreen));
+  expect(rendered.root.findAllByType(FlightHero)).toHaveLength(1);
+  expect(control('Replay shared flight')).toBeDefined();
+  expect(control('Give kudos').props.disabled).toBe(true);
+  expect(control('View kudos').props.disabled).toBe(true);
 });
 
 it('removes an already displayed detail immediately on offline, blur, and sign-out', async () => {

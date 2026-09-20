@@ -12,6 +12,12 @@ export interface SharedReplayArtifactV1 {
   points: ReplayPoint[];
 }
 export interface SharedArtifactManifest { generation: string; sha256: string; byteCount: number }
+export interface KudosSummary { count: number; givenByMe: boolean }
+export interface KudosResult extends KudosSummary { activityId: string }
+export interface KudosSupporter { id: string; displayName: string }
+export interface KudosCursor { createdAt: string; id: string }
+export interface KudosPage extends KudosResult { items: KudosSupporter[]; nextCursor: KudosCursor | null }
+export interface KudosState { summary: KudosSummary | null; pending: boolean; error: string | null }
 export interface SharedFlightMetrics {
   durationMs: number;
   trackDistanceMetres: number;
@@ -38,6 +44,8 @@ export interface SharedFlightSummary {
   provenance: 'recorded' | 'igc';
   replayAvailable: boolean;
   artifact: SharedArtifactManifest;
+  /** Null means this server does not supply kudos, not that the count is zero. */
+  kudos: KudosSummary | null;
 }
 export type SharedFlightDetail = SharedFlightSummary;
 export interface FeedCursor { publishedAt: string; activityId: string }
@@ -71,6 +79,8 @@ export interface FeedService {
   prepareShare(input: PrepareShareInput, signal: AbortSignal): Promise<PreparedShare>;
   uploadShare(prepared: PreparedShare, artifact: SharedReplayArtifactV1, signal: AbortSignal): Promise<RemotePublication>;
   hideFlight(flightId: string, signal: AbortSignal): Promise<RemotePublication>;
+  setKudos(activityId: string, given: boolean, signal: AbortSignal): Promise<KudosResult>;
+  getKudos(activityId: string, cursor: KudosCursor | null, signal: AbortSignal): Promise<KudosPage>;
 }
 export interface FeedSnapshot {
   identityKey: string | null;
@@ -84,6 +94,7 @@ export interface FeedSnapshot {
   loadingMore: boolean;
   busy: boolean;
   error: string | null;
+  kudosByActivity: Record<string, KudosState>;
 }
 export interface FeedContextValue extends FeedSnapshot {
   refresh(): Promise<void>;
@@ -92,6 +103,8 @@ export interface FeedContextValue extends FeedSnapshot {
   getDetail(activityId: string): Promise<SharedFlightDetail>;
   getReplay(activityId: string, manifest: SharedArtifactManifest): Promise<SharedReplayArtifactV1>;
   getPublication(flightId: string): Promise<RemotePublication>;
+  setKudos(activityId: string, given: boolean): Promise<KudosResult>;
+  getKudos(activityId: string, cursor: KudosCursor | null): Promise<KudosPage>;
 }
 export interface FlightPublicationView {
   state: 'private' | 'pending' | 'shared' | 'hidden' | 'error';

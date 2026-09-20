@@ -1,4 +1,4 @@
-import type { FeedCursor, FeedPage, PreparedShare, RemotePublication, SharedArtifactManifest, SharedFlightDetail, SharedReplayArtifactV1, SharingPreferences } from './feed-types';
+import type { FeedCursor, FeedPage, KudosPage, KudosResult, KudosSummary, PreparedShare, RemotePublication, SharedArtifactManifest, SharedFlightDetail, SharedReplayArtifactV1, SharingPreferences } from './feed-types';
 import { SocialError } from './types';
 
 export const MAX_SHARED_ARTIFACT_BYTES = 8 * 1024 * 1024;
@@ -36,6 +36,30 @@ export function parseManifest(value: unknown): SharedArtifactManifest {
   if (typeof row.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(row.sha256)) return invalid();
   return { generation: uuid(row.generation), sha256: row.sha256, byteCount: integer(row.byteCount, 1, MAX_SHARED_ARTIFACT_BYTES) };
 }
+export function parseKudosSummary(value: unknown): KudosSummary {
+  const row = object(value);
+  const result = { count: integer(row.count), givenByMe: bool(row.givenByMe) };
+  if (result.givenByMe && result.count === 0) invalid();
+  return result;
+}
+export function parseKudosResult(value: unknown): KudosResult {
+  const row = object(value);
+  return { activityId: uuid(row.activityId), ...parseKudosSummary(row) };
+}
+export function parseKudosPage(value: unknown): KudosPage {
+  const row = object(value), summary = parseKudosResult(row);
+  if (!Array.isArray(row.items) || row.items.length > 25 || row.items.length > summary.count) return invalid();
+  const items = row.items.map(value => {
+    const item = object(value), displayName = text(item.displayName, 120);
+    if (!displayName?.trim() || Array.from(displayName).length > 60) return invalid();
+    return { id: uuid(item.id), displayName };
+  });
+  if (new Set(items.map(item => item.id)).size !== items.length) invalid();
+  const cursor = row.nextCursor === null ? null : object(row.nextCursor);
+  const nextCursor = cursor ? { createdAt: date(cursor.createdAt), id: uuid(cursor.id) } : null;
+  if (nextCursor && (!items.length || items.at(-1)!.id !== nextCursor.id)) invalid();
+  return { ...summary, items, nextCursor };
+}
 export function parseSharedFlight(value: unknown): SharedFlightDetail {
   const row = object(value), author = object(row.author), metrics = object(row.metrics);
   const displayName = text(author.displayName, 120);
@@ -60,6 +84,7 @@ export function parseSharedFlight(value: unknown): SharedFlightDetail {
       quality: enumeration(metrics.quality, ['healthy', 'gaps', 'partial', 'no_track']) },
     routePreview, provenance: enumeration(row.provenance, ['recorded', 'igc']),
     replayAvailable: bool(row.replayAvailable), artifact: parseManifest(row.artifact),
+    kudos: row.kudos === undefined || row.kudos === null ? null : parseKudosSummary(row.kudos),
   };
 }
 function cursor(value: unknown): FeedCursor {

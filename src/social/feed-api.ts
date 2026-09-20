@@ -16,6 +16,12 @@ export const feedService = createFeedService({
       // deliberately sends JSON null; the assertion changes no runtime value.
       return getSupabase().rpc(request.name, { ...request.args, p_consent_generation: request.args.p_consent_generation! }).abortSignal(signal);
     }
+    if (request.name === 'social_list_kudos') {
+      return getSupabase().rpc(request.name, { p_activity_id: request.args.p_activity_id, p_limit: request.args.p_limit,
+        ...(request.args.p_cursor_created_at && request.args.p_cursor_id ? {
+          p_cursor_created_at: request.args.p_cursor_created_at, p_cursor_id: request.args.p_cursor_id,
+        } : {}) }).abortSignal(signal);
+    }
     return getSupabase().rpc(request.name, request.args).abortSignal(signal);
   },
   edge: async (request, signal) => {

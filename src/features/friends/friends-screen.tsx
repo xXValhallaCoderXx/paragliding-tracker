@@ -95,6 +95,7 @@ function FriendsContent() {
       <Input label="Display name" value={name} onChangeText={value => { setName(value); if (!editing) setCreating(true); }} placeholder="The name your friends know"
         maxLength={120} editable={!disabled} hint="1–60 characters. Separate from your private pilot details." last />
       <Text style={styles.helper}>Your name appears with requests. Accepted friends can see your name, initials and backed-up flight count.</Text>
+      <Text style={styles.helper}>If you give kudos, your name and initials are visible to everyone who can view that flight, including people outside your friends.</Text>
       <Button label={editing ? 'Save name' : 'Create my Friends profile'} variant="primary" disabled={disabled || !validDisplayName(name)} onPress={() => void save()} />
       {editing ? <LinkButton label="Cancel editing" disabled={disabled} onPress={() => setEditing(false)} /> : null}
     </View></Card> : friends.profile ? <Card><View style={styles.card}>

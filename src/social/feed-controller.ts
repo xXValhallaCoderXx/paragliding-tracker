@@ -1,11 +1,11 @@
 import type { AuthSnapshot } from '@/cloud/types';
-import type { FeedService, FeedSnapshot, SharedArtifactManifest, SharingPreferences } from './feed-types';
+import type { FeedService, FeedSnapshot, KudosCursor, KudosState, KudosSummary, SharedArtifactManifest, SharedFlightSummary, SharingPreferences } from './feed-types';
 import { feedError } from './feed-service';
 import { SocialError } from './types';
 
 export const EMPTY_FEED: FeedSnapshot = {
   identityKey: null, available: false, recorderBusy: false, revision: 0, preferences: null,
-  items: [], nextCursor: null, loading: false, loadingMore: false, busy: false, error: null,
+  items: [], nextCursor: null, loading: false, loadingMore: false, busy: false, error: null, kudosByActivity: {},
 };
 const stale = () => new SocialError('stale', 'Your account or connection changed. Open Friends again.');
 export class FeedController {
@@ -13,6 +13,11 @@ export class FeedController {
   private readonly listeners = new Set<() => void>();
   private readonly operations = new Set<AbortController>();
   private readonly activityReadVersions = new Map<string, number>();
+  private readonly activityAuthors = new Map<string, string>();
+  private readonly kudosMutationVersions = new Map<string, number>();
+  private readonly kudosReadVersions = new Map<string, number>();
+  private readonly kudosMutations = new Map<string, AbortController>();
+  private kudosReadSequence = 0;
   private foreground = false;
   private online = false;
   private generation = 0;
@@ -31,8 +36,9 @@ export class FeedController {
     for (const operation of this.operations) operation.abort();
     this.operations.clear(); this.refreshAbort = null; this.loadMoreAbort = null;
     this.activityReadVersions.clear();
+    this.activityAuthors.clear(); this.kudosMutationVersions.clear(); this.kudosReadVersions.clear(); this.kudosMutations.clear();
     this.publish({ items: [], nextCursor: null, preferences: null, loading: false, loadingMore: false, busy: false, error: null,
-      revision: this.snapshot.revision + 1, available: Boolean(this.snapshot.identityKey && this.foreground && this.online) });
+      kudosByActivity: {}, revision: this.snapshot.revision + 1, available: Boolean(this.snapshot.identityKey && this.foreground && this.online) });
   }
   syncIdentity = () => {
     const owner = this.owner();
@@ -64,8 +70,37 @@ export class FeedController {
     };
     return { owner: owner!, controller, guard, generation, finish: () => { this.operations.delete(controller); } };
   }
+  private beginKudosRead() {
+    return { sequence: ++this.kudosReadSequence, mutations: new Map(this.kudosMutationVersions), access: new Map(this.activityReadVersions) };
+  }
+  private sameActivityAccess(activityId: string, versions: Map<string, number>) {
+    return (versions.get(activityId) ?? 0) === (this.activityReadVersions.get(activityId) ?? 0);
+  }
+  private currentKudosRead(activityId: string, read: ReturnType<FeedController['beginKudosRead']>) {
+    return this.sameActivityAccess(activityId, read.access) &&
+      (read.mutations.get(activityId) ?? 0) === (this.kudosMutationVersions.get(activityId) ?? 0) &&
+      read.sequence >= (this.kudosReadVersions.get(activityId) ?? 0);
+  }
+  private seedKudos(activityId: string, summary: KudosSummary | null, read: ReturnType<FeedController['beginKudosRead']>): void {
+    if (!this.currentKudosRead(activityId, read) || this.kudosMutations.has(activityId)) return;
+    this.kudosReadVersions.set(activityId, read.sequence);
+    this.publishKudos(activityId, { summary, pending: false, error: null });
+  }
+  private publishKudos(activityId: string, value: KudosState): void {
+    // Reactions share state across cards and detail without remounting replay.
+    this.publish({ kudosByActivity: { ...this.snapshot.kudosByActivity, [activityId]: value },
+      items: this.snapshot.items.map(item => item.activityId === activityId ? { ...item, kudos: value.summary } : item) });
+  }
+  private acceptFlightSummaries(items: SharedFlightSummary[], read: ReturnType<FeedController['beginKudosRead']>) {
+    return items.filter(item => this.sameActivityAccess(item.activityId, read.access)).map(item => {
+      this.activityAuthors.set(item.activityId, item.author.userId);
+      this.seedKudos(item.activityId, item.kudos, read);
+      return { ...item, kudos: this.snapshot.kudosByActivity[item.activityId]?.summary ?? null };
+    });
+  }
   refresh = async () => {
     const operation = this.begin();
+    const kudosRead = this.beginKudosRead();
     this.refreshAbort?.abort(); this.loadMoreAbort?.abort(); this.loadMoreAbort = null;
     this.refreshAbort = operation.controller;
     const sequence = ++this.refreshSequence;
@@ -76,7 +111,7 @@ export class FeedController {
       operation.guard(); if (sequence !== this.refreshSequence) throw stale();
       await this.rememberPreferences(operation.owner, preferences);
       operation.guard(); if (sequence !== this.refreshSequence) throw stale();
-      this.publish({ items: page.items, nextCursor: page.nextCursor, preferences });
+      this.publish({ items: this.acceptFlightSummaries(page.items, kudosRead), nextCursor: page.nextCursor, preferences });
     } catch (error) {
       if (operation.generation === this.generation && sequence === this.refreshSequence && !operation.controller.signal.aborted) this.publish({ error: feedError(error).message });
       throw feedError(error);
@@ -88,13 +123,15 @@ export class FeedController {
   loadMore = async () => {
     if (!this.snapshot.nextCursor || this.snapshot.loading || this.snapshot.loadingMore) return;
     const operation = this.begin(); const cursor = this.snapshot.nextCursor; const sequence = this.refreshSequence;
+    const kudosRead = this.beginKudosRead();
     this.loadMoreAbort = operation.controller; this.publish({ loadingMore: true, error: null });
     try {
       const page = await this.service.getFeed(cursor, operation.controller.signal); operation.guard();
       if (sequence !== this.refreshSequence) throw stale();
       const seen = new Set(this.snapshot.items.map(item => item.activityId));
       if (page.nextCursor?.activityId === cursor.activityId && page.nextCursor.publishedAt === cursor.publishedAt) throw new SocialError('invalid_response', 'Refresh Friends to continue loading flights.');
-      this.publish({ items: [...this.snapshot.items, ...page.items.filter(item => !seen.has(item.activityId))], nextCursor: page.nextCursor });
+      const items = this.acceptFlightSummaries(page.items, kudosRead);
+      this.publish({ items: [...this.snapshot.items, ...items.filter(item => !seen.has(item.activityId))], nextCursor: page.nextCursor });
     } catch (error) {
       if (operation.generation === this.generation && sequence === this.refreshSequence && !operation.controller.signal.aborted) this.publish({ error: feedError(error).message });
       throw feedError(error);
@@ -119,12 +156,13 @@ export class FeedController {
   };
   getDetail = async (activityId: string) => {
     const operation = this.begin();
+    const kudosRead = this.beginKudosRead();
     const revision = this.snapshot.revision;
     const activityVersion = this.activityReadVersions.get(activityId) ?? 0;
     try {
       const detail = await this.service.getDetail(activityId, operation.controller.signal); operation.guard();
       if (revision !== this.snapshot.revision || activityVersion !== (this.activityReadVersions.get(activityId) ?? 0)) throw stale();
-      return detail;
+      return this.acceptFlightSummaries([detail], kudosRead)[0]!;
     } catch (error) {
       if (operation.generation === this.generation && feedError(error).code === 'unavailable') this.revokeActivity(activityId);
       throw error;
@@ -149,8 +187,64 @@ export class FeedController {
   private revokeActivity(activityId: string) {
     // Fence older successful responses without repeatedly remounting a denied route.
     this.activityReadVersions.set(activityId, (this.activityReadVersions.get(activityId) ?? 0) + 1);
-    this.publish({ items: this.snapshot.items.filter(item => item.activityId !== activityId) });
+    this.kudosMutations.get(activityId)?.abort(); this.kudosMutations.delete(activityId);
+    this.activityAuthors.delete(activityId);
+    const kudosByActivity = { ...this.snapshot.kudosByActivity }; delete kudosByActivity[activityId];
+    this.publish({ items: this.snapshot.items.filter(item => item.activityId !== activityId), kudosByActivity });
   }
+  setKudos = async (activityId: string, given: boolean) => {
+    if (this.snapshot.recorderBusy) throw new SocialError('busy', 'Finish recording before changing kudos.');
+    if (this.kudosMutations.has(activityId)) throw new SocialError('busy', 'Wait for this kudos change to finish.');
+    const operation = this.begin();
+    if (this.activityAuthors.get(activityId) === operation.owner) {
+      operation.finish(); throw new SocialError('invalid_input', 'You cannot give kudos to your own flight.');
+    }
+    const access = this.activityReadVersions.get(activityId) ?? 0;
+    this.kudosMutationVersions.set(activityId, (this.kudosMutationVersions.get(activityId) ?? 0) + 1);
+    this.kudosMutations.set(activityId, operation.controller);
+    this.publishKudos(activityId, { summary: this.snapshot.kudosByActivity[activityId]?.summary ?? null, pending: true, error: null });
+    const current = () => operation.generation === this.generation && !operation.controller.signal.aborted &&
+      this.kudosMutations.get(activityId) === operation.controller && access === (this.activityReadVersions.get(activityId) ?? 0);
+    try {
+      const result = await this.service.setKudos(activityId, given, operation.controller.signal); operation.guard();
+      if (!current()) throw stale();
+      this.publishKudos(activityId, { summary: { count: result.count, givenByMe: result.givenByMe }, pending: false, error: null });
+      return result;
+    } catch (error) {
+      const failure = feedError(error);
+      if (current() && this.owner() === operation.owner) {
+        if (failure.code === 'unavailable') this.revokeActivity(activityId);
+        else this.publishKudos(activityId, { summary: failure.code === 'unsupported' ? null : this.snapshot.kudosByActivity[activityId]?.summary ?? null, pending: false, error: failure.message });
+      }
+      throw failure;
+    } finally {
+      operation.finish();
+      if (this.kudosMutations.get(activityId) === operation.controller) {
+        this.kudosMutations.delete(activityId);
+        // Reads that started during a write are stale even if they finish after it.
+        this.kudosMutationVersions.set(activityId, (this.kudosMutationVersions.get(activityId) ?? 0) + 1);
+      }
+    }
+  };
+  getKudos = async (activityId: string, cursor: KudosCursor | null) => {
+    const operation = this.begin();
+    const read = this.beginKudosRead();
+    try {
+      const page = await this.service.getKudos(activityId, cursor, operation.controller.signal); operation.guard();
+      if (!this.currentKudosRead(activityId, read) || this.kudosMutations.has(activityId)) throw stale();
+      this.seedKudos(activityId, { count: page.count, givenByMe: page.givenByMe }, read);
+      return page;
+    } catch (error) {
+      const failure = feedError(error);
+      if (operation.generation === this.generation && !operation.controller.signal.aborted && this.owner() === operation.owner) {
+        if (failure.code === 'unavailable') this.revokeActivity(activityId);
+        else if (this.currentKudosRead(activityId, read) && !this.kudosMutations.has(activityId)) {
+          this.publishKudos(activityId, { summary: failure.code === 'unsupported' ? null : this.snapshot.kudosByActivity[activityId]?.summary ?? null, pending: false, error: failure.message });
+        }
+      }
+      throw failure;
+    } finally { operation.finish(); }
+  };
   getPublication = async (flightId: string) => {
     const operation = this.begin();
     try { const publication = await this.service.getPublication(flightId, operation.controller.signal); operation.guard(); return publication; }

@@ -128,3 +128,17 @@ Remaining end-to-end/device scenarios (server behavior already has the separate 
 - The existing recorder, restoration and external sharing retain their behavior.
 
 PAR-22 production testing and PAR-28 live GPS acceptance remain deferred independently.
+
+### Additional three-pilot acceptance — 21 September 2026
+
+The later [isolated Samsung run](./social-qa-2026-09-21.md) adds positive native evidence to
+the historical setup-only record above: profile creation, sending a code-based request,
+accepting a counterparty request, accepted-profile count, unrelated-profile denial,
+block/unblock, removal, sign-out and sequential account switching all passed. Counterparty
+requests/acceptance were performed through authenticated fixture APIs where specified.
+
+The QA package used the current kudos JavaScript bundle with separate app data. It was removed
+afterward, along with all three disposable accounts and their files; the original owner app,
+15-flight journal and downloaded maps were preserved. PAR-14 stays In Progress: code sharing/
+rotation, decline/cancel/error and concurrent-request device cases, plus exact normal-APK
+acceptance, were not covered by this run. See the linked report for precise evidence boundaries.

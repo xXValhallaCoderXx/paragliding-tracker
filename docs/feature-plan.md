@@ -16,7 +16,9 @@ design and remaining cold-start, storage-size and overlap/deletion Android check
 and accepted connections. The owner selected the [shared-flight feed](./shared-flights.md) next,
 ahead of notifications and further personal replay polish. Its local implementation includes
 explicit publication, optional automatic sharing of future recordings and authorized 2D replay;
-release and physical acceptance remain separate. The numbered order below is the original proposal.
+release and physical acceptance remain separate. The next approved increment, [kudos](./kudos.md)
+(PAR-39), adds reversible support and supporter names to published flights. The numbered order
+below is the original proposal.
 
 The direction is a useful personal flight journal that becomes more enjoyable with friends:
 share a flight, know when friends are recording, and eventually explore their flights together.
@@ -174,8 +176,8 @@ profile. [Friends v1](./friends.md) is the implementation and acceptance record 
 their private activity, and removal/blocking stops future access and notifications.
 
 The v1 foundation deliberately excluded individual flights and replay. The next selected slice
-now implements the accepted-friends feed and shared replay described below; kudos and notifications
-remain deferred. Social viewing is online and held only in memory for the current signed-in
+now implements the accepted-friends feed and shared replay described below. Kudos follows as
+PAR-39; notifications remain deferred. Social viewing is online and held only in memory for the current signed-in
 account. External postcard sharing remains separate. Signing in alone does not publish a profile
 or a flight.
 
@@ -219,14 +221,21 @@ the exact contract and acceptance ledger; interactive links remain a later exten
   fetch checks current friendship and publication access. Existing views reauthorize on focus,
   refresh and reconnect; there is no push revocation or ability to recall a viewer's screenshots.
 - Title/site edits appear after backup sync without bumping feed time. Friends management remains
-  accessible from the feed. No kudos, comments, notifications or public links enter this slice.
+  accessible from the feed. [Kudos](./kudos.md) extends this in PAR-39; comments, notifications
+  and public links remain deferred.
 - Route trimming and endpoint privacy zones remain a prerequisite to reconsider before broader
   publication, not part of this consented full-route implementation.
 
 **Done when:** a friend can open a deliberately shared completed flight, see its owner and data
 limits, replay it correctly, and lose future access when it is unshared or the relationship ends.
 
-**Next extension:** revocable share links with a lightweight web viewer and social preview.
+**Current extension:** one reversible kudos per friend and publication, with paginated current
+display names and initials. Own posts show supporters without self-kudos. Names are visible to
+every authorized flight viewer, with either-direction blocks excluded from both names and count.
+Hide/re-share preserves reactions; removing the author/reactor friendship deletes them permanently.
+The [kudos guide](./kudos.md) owns the implementation and acceptance record.
+
+**Later extension:** revocable share links with a lightweight web viewer and social preview.
 There is no web app today; hosting, audience rules, link expiry and previews need their own work.
 Public links should expose only the approved shared representation, never the private IGC bucket.
 

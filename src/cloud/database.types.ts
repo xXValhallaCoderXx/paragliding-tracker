@@ -314,6 +314,15 @@ export type Database = {
         }
         Returns: Json
       }
+      social_list_kudos: {
+        Args: {
+          p_activity_id: string
+          p_cursor_created_at?: string
+          p_cursor_id?: string
+          p_limit?: number
+        }
+        Returns: Json
+      }
       social_prepare_share: {
         Args: {
           p_consent_generation: string
@@ -331,6 +340,10 @@ export type Database = {
         Returns: undefined
       }
       social_set_auto_share: { Args: { p_enabled: boolean }; Returns: Json }
+      social_set_kudos: {
+        Args: { p_activity_id: string; p_given: boolean }
+        Returns: Json
+      }
       write_private_flight: {
         Args: { p_flight: Json; p_metadata_only?: boolean }
         Returns: {

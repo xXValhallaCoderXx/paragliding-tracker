@@ -27,6 +27,8 @@ export function FeedProvider({ children }: { children: ReactNode }) {
     getDetail: async (id: string) => { controller.assertOwner(identityKey); return controller.getDetail(id); },
     getReplay: async (...args: Parameters<FeedController['getReplay']>) => { controller.assertOwner(identityKey); return controller.getReplay(...args); },
     getPublication: async (id: string) => { controller.assertOwner(identityKey); return controller.getPublication(id); },
+    setKudos: async (...args: Parameters<FeedController['setKudos']>) => { controller.assertOwner(identityKey); return controller.setKudos(...args); },
+    getKudos: async (...args: Parameters<FeedController['getKudos']>) => { controller.assertOwner(identityKey); return controller.getKudos(...args); },
   }), [controller, identityKey]);
   useEffect(() => cloudAuthService.subscribe(() => { controller.syncIdentity(); void publicationService.authChanged().catch(() => undefined); }), [controller]);
   useEffect(() => { controller.syncIdentity(); void publicationService.authChanged().catch(() => undefined); }, [controller, auth.status, auth.userId]);
