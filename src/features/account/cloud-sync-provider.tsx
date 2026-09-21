@@ -9,6 +9,13 @@ import {
   type ReactNode,
 } from 'react';
 import { AppState } from 'react-native';
+import * as Network from 'expo-network';
+import { recorderService } from '@/recorder/recorder-service';
+import { downloadNetwork } from '@/offline-maps/network';
+import { EMPTY_RESTORE, type RestoreSnapshot } from '@/cloud/restore-plan';
+import { subscribeJournal } from '@/journal/context';
+import { store } from '@/store';
+import { api } from '@/store/api';
 
 import { cloudConfigured } from '@/cloud/config';
 import { cloudSyncEngine } from '@/cloud/sync-engine';
@@ -18,6 +25,10 @@ import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import { useCloudAuth } from './auth-provider';
 
 interface CloudSyncState extends SyncSnapshot {
+  restore: RestoreSnapshot;
+  pauseRestore: () => void;
+  resumeRestore: (options: { allowMobileData: boolean }) => void;
+  retryRestore: (options: { allowMobileData: boolean }) => void;
   requestSync: (trigger: SyncTrigger) => void;
   /** Rebinds this device to the signed-in account. Never touches local flights. */
   rebindToCurrentAccount: () => Promise<void>;
@@ -66,9 +77,62 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
     return cloudSyncEngine.subscribe(setSnapshot);
   }, [enabled]);
 
+  useEffect(() => subscribeJournal((change) => {
+    if (change.kind === 'owner') {
+      // Reset also discards in-flight responses; the recorder's own service is independent.
+      store.dispatch(api.util.resetApiState());
+      return;
+    }
+    store.dispatch(api.util.invalidateTags([
+      { type: 'Flight', id: 'LIST' },
+      ...(change.flightId ? [{ type: 'Flight' as const, id: change.flightId }] : ['Flight' as const]),
+      ...(change.kind === 'artifact' || change.kind === 'delete'
+        ? [{ type: 'FlightTrack' as const, id: 'LIST' }, { type: 'FlightTrack' as const, id: change.flightId }, { type: 'FlightReplay' as const, id: change.flightId }]
+        : []),
+    ]));
+  }), []);
+
+  useEffect(() => {
+    void cloudSyncEngine.authChanged().catch(() => undefined);
+  }, [auth.status, auth.userId]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    cloudSyncEngine.setEnvironment({ recorderReady: !recorderRecovering && !recorderLifecycle.recoveryError });
+  }, [enabled, recorderRecovering, recorderLifecycle.recoveryError, recorderLifecycle.recoveryVersion]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let mounted = true;
+    let networkRevision = 0;
+    const updateNetwork = (state: Network.NetworkState) => {
+      cloudSyncEngine.setEnvironment({ network: downloadNetwork(state) });
+      requestSync('foreground');
+    };
+    const refreshNetwork = async () => {
+      const revision = ++networkRevision;
+      try {
+        const state = await Network.getNetworkStateAsync();
+        if (mounted && revision === networkRevision) updateNetwork(state);
+      } catch { if (mounted && revision === networkRevision) cloudSyncEngine.setEnvironment({ network: 'unknown' }); }
+    };
+    cloudSyncEngine.setEnvironment({ foreground: AppState.currentState === 'active' });
+    void refreshNetwork();
+    const network = Network.addNetworkStateListener((state) => { networkRevision += 1; updateNetwork(state); });
+    const app = AppState.addEventListener('change', (state) => {
+      if (state === 'active') { cloudSyncEngine.setEnvironment({ network: 'unknown' }); void refreshNetwork(); }
+    });
+    const activity = recorderService.subscribeActivity((state) => {
+      cloudSyncEngine.setEnvironment({ recorderBusy: state.lifecycleBusy || !['idle', 'completed'].includes(state.state) });
+    });
+    return () => { mounted = false; network.remove(); app.remove(); activity(); cloudSyncEngine.setEnvironment({ foreground: false }); };
+  }, [enabled, requestSync]);
+
+
   useEffect(() => {
     if (!enabled) return;
     const subscription = AppState.addEventListener('change', (state) => {
+      cloudSyncEngine.setEnvironment({ foreground: state === 'active', ...(state === 'active' ? { recorderReady: false } : {}) });
       if (state === 'active') requestSync('foreground');
     });
     return () => subscription.remove();
@@ -99,7 +163,8 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
   }, [enabled, userId, requestSync]);
 
   const value = useMemo(
-    () => ({ ...snapshot, requestSync, rebindToCurrentAccount }),
+    () => ({ ...snapshot, restore: snapshot.restore ?? EMPTY_RESTORE, requestSync, rebindToCurrentAccount,
+      pauseRestore: cloudSyncEngine.pauseRestore, resumeRestore: cloudSyncEngine.resumeRestore, retryRestore: cloudSyncEngine.retryRestore }),
     [snapshot, requestSync, rebindToCurrentAccount],
   );
 

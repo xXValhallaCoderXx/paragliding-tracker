@@ -38,7 +38,7 @@ export const CLOUD_CONFIG = Object.freeze({
   /** Flights pushed per cycle. Keeps a first sync of a long logbook incremental. */
   pushBatchSize: 25,
   pullPageSize: 200,
-  /** Non-manual triggers inside this window are throttled. */
+  /** Automatic reads are throttled; fresh saves and manual retries bypass this window. */
   minimumSyncIntervalMs: 30_000,
   backoffBaseMs: 30_000,
   backoffMaxMs: 30 * 60_000,

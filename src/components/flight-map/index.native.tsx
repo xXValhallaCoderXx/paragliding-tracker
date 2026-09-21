@@ -1,34 +1,21 @@
-import { Component, memo, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { NativeModules, StyleSheet, View, type GestureResponderEvent } from 'react-native';
+import { Component, memo, useContext, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 
 import type { FlightMapTrack, MapCoordinate } from '@/lib/track/map-geometry';
 import { paper } from '@/ui/theme';
+import { OfflineCoverageContext } from '@/offline-maps/coverage-context';
+import { offlineCoverage } from '@/offline-maps/coverage';
+import type { OfflineBounds } from '@/offline-maps/types';
 
 import { cameraForTrack } from './camera';
-import { MAPBOX_PUBLIC_ACCESS_TOKEN, MAPBOX_STYLE_URI } from './config';
+import { MAPBOX_STYLE_URI } from './config';
+import { loadMapboxSdk, type MapboxSdk } from './sdk';
 import type { FlightMapProps, LiveCameraIntent } from './types';
 
 export { MAPBOX_STYLE_URI } from './config';
 export type { FlightMapProps, LiveCameraIntent } from './types';
 
-type MapboxSdk = typeof import('@rnmapbox/maps');
-export const isFlightMapAvailable = MAPBOX_PUBLIC_ACCESS_TOKEN.startsWith('pk.') && NativeModules.RNMBXModule != null;
-
-let sdkPromise: Promise<MapboxSdk> | undefined;
-function loadMapbox(): Promise<MapboxSdk> {
-  sdkPromise ??= Promise.resolve().then(async () => {
-    if (!isFlightMapAvailable) throw new Error('A newer app build with map configuration is needed.');
-    // The installed APK may predate Mapbox. Check its bridge before evaluating the package.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const sdk = require('@rnmapbox/maps') as MapboxSdk;
-    await sdk.setAccessToken(MAPBOX_PUBLIC_ACCESS_TOKEN);
-    return sdk;
-  }).catch((error: unknown) => {
-    sdkPromise = undefined;
-    throw error;
-  });
-  return sdkPromise;
-}
+export { isFlightMapAvailable } from './sdk';
 
 class MapErrorBoundary extends Component<{ children: ReactNode; onError: (message: string) => void }, { failed: boolean }> {
   state = { failed: false };
@@ -79,6 +66,16 @@ function NativeFlightMap({ sdk, track, pilotPosition, accessibilityLabel, fitReq
   const camera = useRef<ComponentRef<MapboxSdk['Camera']>>(null);
   const [layout, setLayout] = useState<{ width: number; height: number } | null>(null);
   const [styleReady, setStyleReady] = useState(false);
+  const coverageContext = useContext(OfflineCoverageContext);
+  const activateCoverage = coverageContext?.activate;
+  const [viewport, setViewport] = useState<{ bounds: OfflineBounds; zoom: number } | null>(null);
+  const offline = coverageContext?.network === 'offline';
+  // Coverage is hydrated asynchronously. Do not request detail above the download
+  // level while offline (or while connectivity is still unknown), even before the
+  // saved-region list arrives. Online maps retain their normal zoom range.
+  const zoomLimit = coverageContext && ['offline', 'unknown'].includes(coverageContext.network) ? 14 : 18;
+  const coverage = viewport && coverageContext ? offlineCoverage(viewport.bounds, coverageContext.regions, MAPBOX_STYLE_URI, viewport.zoom) : null;
+  useEffect(() => { activateCoverage?.(); }, [activateCoverage]);
   const fitted = useRef<{ trackId: string; fitRequest: number } | null>(null);
   const reportedReady = useRef(false);
   const interacting = useRef(false);
@@ -88,6 +85,21 @@ function NativeFlightMap({ sdk, track, pilotPosition, accessibilityLabel, fitReq
   const callbacks = useRef({ onReady, onError, onInteractionChange, onLiveCameraChange });
   useEffect(() => { callbacks.current = { onReady, onError, onInteractionChange, onLiveCameraChange }; },
     [onReady, onError, onInteractionChange, onLiveCameraChange]);
+
+  // Seed the native camera before the style requests any tiles. Waiting for
+  // onDidFinishLoadingStyle to fit first can request the style's default Europe
+  // viewport and fail offline despite a fully downloaded local flight area.
+  const initialCamera = useMemo(() => {
+    if (!layout) return undefined;
+    const fit = cameraForTrack(track.bounds, layout.width, layout.height);
+    const center = liveCamera?.mode === 'follow' ? pilotPosition ?? liveCamera.center
+      : liveCamera ? liveCamera.center ?? pilotPosition : null;
+    return {
+      centerCoordinate: center ?? fit.centerCoordinate,
+      zoomLevel: Math.max(0, Math.min(zoomLimit, center && liveCamera ? liveCamera.zoom : fit.zoomLevel)),
+      heading: 0, pitch: 0, animationDuration: 0, animationMode: 'none' as const,
+    };
+  }, [layout, track.bounds, liveCamera, pilotPosition, zoomLimit]);
 
   useEffect(() => {
     if (!layout || !styleReady || !camera.current) return;
@@ -104,7 +116,7 @@ function NativeFlightMap({ sdk, track, pilotPosition, accessibilityLabel, fitReq
       if (previous?.id === track.id && pilotStale) return;
       // Gesture callbacks already moved the native camera. Reapplying them fights pan/pinch.
       if (previous?.id === track.id && liveCamera.mode === 'manual') return;
-      const zoom = Math.max(0, Math.min(18, liveCamera.zoom));
+      const zoom = Math.max(0, Math.min(zoomLimit, liveCamera.zoom));
       if (!resumeFollow && previous?.id === track.id && previous.longitude === center[0] && previous.latitude === center[1] && previous.zoom === zoom) return;
       try {
         camera.current.setCamera({ centerCoordinate: center, zoomLevel: zoom,
@@ -118,13 +130,14 @@ function NativeFlightMap({ sdk, track, pilotPosition, accessibilityLabel, fitReq
     }
     if (fitted.current?.trackId === track.id && fitted.current.fitRequest === fitRequest) return;
     try {
-      camera.current.setCamera({ ...cameraForTrack(track.bounds, layout.width, layout.height),
+      const fit = cameraForTrack(track.bounds, layout.width, layout.height);
+      camera.current.setCamera({ ...fit, zoomLevel: Math.min(zoomLimit, fit.zoomLevel),
         heading: 0, pitch: 0, animationDuration: 0, animationMode: 'none' });
       fitted.current = { trackId: track.id, fitRequest };
     } catch {
       callbacks.current.onError('The map could not fit this flight. The recorded route is still available on Grid.');
     }
-  }, [track, fitRequest, layout, styleReady, liveCamera, pilotPosition, pilotStale]);
+  }, [track, fitRequest, layout, styleReady, liveCamera, pilotPosition, pilotStale, zoomLimit]);
 
   useEffect(() => () => {
     if (interacting.current) callbacks.current.onInteractionChange?.(false);
@@ -151,7 +164,7 @@ function NativeFlightMap({ sdk, track, pilotPosition, accessibilityLabel, fitReq
         previous?.width === next.width && previous.height === next.height ? previous : { width: next.width, height: next.height });
     }}
     onTouchStart={() => interaction(true)} onTouchEnd={touchEnd} onTouchCancel={() => interaction(false)}>
-    <sdk.MapView style={styles.map} testID="flight-map-native" accessibilityLabel={accessibilityLabel}
+    {initialCamera ? <sdk.MapView style={styles.map} testID="flight-map-native" accessibilityLabel={accessibilityLabel}
       styleURL={MAPBOX_STYLE_URI} projection="mercator"
       rotateEnabled={false} pitchEnabled={false} zoomEnabled scrollEnabled
       logoEnabled attributionEnabled compassEnabled={false}
@@ -164,6 +177,12 @@ function NativeFlightMap({ sdk, track, pilotPosition, accessibilityLabel, fitReq
       // Android 10.3.5 does not emit DidFinishRenderingMapFully. MapIdle is wired
       // to the SDK event that follows rendering the requested tiles and transitions.
       onMapIdle={(state) => {
+        if (state?.properties?.bounds) {
+          const { sw, ne } = state.properties.bounds;
+          if ([...sw, ...ne, state.properties.zoom].every(Number.isFinite)) {
+            setViewport({ bounds: [sw[0], sw[1], ne[0], ne[1]], zoom: state.properties.zoom });
+          }
+        }
         if (gestureCamera.current) {
           if (state) userCamera(state);
           gestureCamera.current = false;
@@ -173,10 +192,13 @@ function NativeFlightMap({ sdk, track, pilotPosition, accessibilityLabel, fitReq
         callbacks.current.onReady();
       }}
       onMapLoadingError={() => callbacks.current.onError('The map background could not load. The recorded route is still available on Grid.')}>
-      <sdk.Camera ref={camera} maxZoomLevel={18} />
+      <sdk.Camera ref={camera} defaultSettings={initialCamera} maxZoomLevel={zoomLimit} />
       <TrackLayers sdk={sdk} track={track} />
       <PilotLayer sdk={sdk} position={pilotPosition} stale={pilotStale} />
-    </sdk.MapView>
+    </sdk.MapView> : null}
+    {offline && coverage && coverage !== 'covered' ? <View pointerEvents="none" style={styles.coverageNotice}>
+      <Text style={styles.coverageText}>{coverage === 'partial' ? 'Part of this view is outside downloaded areas' : 'No downloaded map for this view'}</Text>
+    </View> : null}
   </View>;
 }
 
@@ -186,7 +208,7 @@ export function FlightMap(props: FlightMapProps) {
   useEffect(() => { errorCallback.current = props.onError; }, [props.onError]);
   useEffect(() => {
     let mounted = true;
-    void loadMapbox().then((loaded) => { if (mounted) setSdk(loaded); }, () => {
+    void loadMapboxSdk().then((loaded) => { if (mounted) setSdk(loaded); }, () => {
       if (mounted) errorCallback.current('This app build cannot open the map. The recorded route is still available on Grid.');
     });
     return () => { mounted = false; };
@@ -202,6 +224,8 @@ const isolatedStyle = { circleColor: paper.thermal, circleRadius: 3, circleStrok
 const firstStyle = { circleColor: paper.card, circleRadius: 6, circleStrokeColor: paper.ink, circleStrokeWidth: 2 } as const;
 const lastStyle = { circleColor: paper.ink, circleRadius: 5, circleStrokeColor: paper.card, circleStrokeWidth: 2 } as const;
 const endpointLabelStyle = {
+  // Reuse a font stack in Outdoors v12's downloaded style pack.
+  textFont: ['DIN Pro Medium', 'Arial Unicode MS Regular'] as string[],
   textSize: 12, textColor: paper.ink, textHaloColor: paper.card, textHaloWidth: 2,
   textAllowOverlap: true, textIgnorePlacement: true,
 } as const;
@@ -216,4 +240,6 @@ const styles = StyleSheet.create({
   preview: { width: '100%', aspectRatio: 360 / 280 },
   map: { flex: 1 },
   fill: { width: '100%', flex: 1, minWidth: 0, minHeight: 0 },
+  coverageNotice: { position: 'absolute', top: 8, left: 8, right: 8, padding: 8, borderRadius: 10, backgroundColor: paper.card },
+  coverageText: { color: paper.ink, fontSize: 12, textAlign: 'center' },
 });

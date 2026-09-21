@@ -132,6 +132,13 @@ export interface CaptureService {
   resume(sessionId: string): Promise<void>;
   finalizeInterrupted(sessionId: string): Promise<void>;
   subscribe(listener: (snapshot: RecorderSnapshot) => void): () => void;
+  /** Passive lifecycle observation: no polling, sensor subscription or database reads. */
+  subscribeActivity(listener: (activity: RecorderActivity) => void): () => void;
+}
+
+export interface RecorderActivity {
+  state: RecorderState;
+  lifecycleBusy: boolean;
 }
 
 export interface ArtifactService {
@@ -209,6 +216,8 @@ export type SiteSource = 'paraglidingearth' | 'osm' | 'manual';
 
 export interface FlightRecord {
   id: string;
+  /** Once a captured flight is associated with an account it cannot be rebound. */
+  cloudOwnerUserId?: string | null;
   recordingSessionId: string;
   status: FlightStatus;
   startedAt: number;
@@ -241,14 +250,33 @@ export interface FlightMetricsRecord {
   computedAt: number;
 }
 
-export interface FlightSummary extends FlightRecord {
+export interface RecordedFlightSummary extends FlightRecord {
+  source?: 'recorded';
   sessionStatus: SessionRecord['status'];
   metrics: FlightMetricsRecord | null;
 }
 
-export interface FlightDetail extends FlightSummary {
+export interface RecordedFlightDetail extends RecordedFlightSummary {
   session: SessionRecord;
 }
+
+export type ArchiveTrackState = 'pending' | 'downloading' | 'ready' | 'error' | 'missing';
+
+/** A restored cloud summary is not a local capture session or its raw evidence. */
+export interface ArchivedFlightSummary extends FlightRecord {
+  source: 'archive';
+  ownerUserId: string;
+  sessionStatus: null;
+  metrics: FlightMetricsRecord | null;
+  archive: { trackState: ArchiveTrackState; error: string | null; downloadedAt: number | null };
+}
+
+export interface ArchivedFlightDetail extends ArchivedFlightSummary {
+  session: null;
+}
+
+export type FlightSummary = RecordedFlightSummary | ArchivedFlightSummary;
+export type FlightDetail = RecordedFlightDetail | ArchivedFlightDetail;
 
 export interface FlightMetadataPatch {
   title?: string | null;
@@ -361,7 +389,7 @@ export interface CloudLink {
 }
 
 /** A completed flight that is due to be pushed, plus its sync bookkeeping. */
-export interface FlightSyncCandidate extends FlightSummary {
+export interface FlightSyncCandidate extends RecordedFlightSummary {
   pushedUpdatedAt: number | null;
   igcSha256: string | null;
   igcObjectPath: string | null;
@@ -380,6 +408,8 @@ export interface FlightDeletionRecord {
   attemptCount: number;
   nextAttemptAt: number;
   lastError: string | null;
+  /** Null legacy receipts are never assigned to a different account on rebind. */
+  ownerUserId?: string | null;
 }
 
 export interface LocationFixRecord {

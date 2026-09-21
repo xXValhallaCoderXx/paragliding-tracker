@@ -46,7 +46,7 @@ select throws_ok($$update storage.objects set name = '22222222-2222-2222-2222-22
 select throws_ok($$update storage.objects set bucket_id = 'other' where name = '11111111-1111-1111-1111-111111111111/a.igc'$$, '42501', null, 'cannot move IGC outside private bucket');
 select lives_ok($$insert into public.flights (id,user_id,recording_session_id,status,started_at,client_created_at,client_updated_at)
   values ('cccccccc-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','cccccccc-0000-0000-0000-000000000001','completed',1,1,1)$$, 'owner inserts flight');
-with changed as (update public.flights set title = 'A changed', updated_at = '2000-01-01' where id = 'aaaaaaaa-0000-0000-0000-000000000001' returning *)
+with changed as (update public.flights set title = 'A changed', client_updated_at = 2000, updated_at = '2000-01-01' where id = 'aaaaaaaa-0000-0000-0000-000000000001' returning *)
 select is(count(*)::int, 1, 'owner updates flight') from changed;
 select is((select updated_at from public.flights where id = 'aaaaaaaa-0000-0000-0000-000000000001'), now(), 'server stamps flight updates');
 select is((select title from public.flights where id = 'aaaaaaaa-0000-0000-0000-000000000001'), 'A changed', 'owner update persisted');

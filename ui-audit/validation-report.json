@@ -1,0 +1,991 @@
+{
+  "generatedAt": "2026-09-20T21:51:28.507047+00:00",
+  "valid": true,
+  "captureCount": 108,
+  "groupCount": 20,
+  "errors": [],
+  "warnings": [],
+  "validation": [
+    "file exists",
+    "relative in-audit path",
+    "PNG signature and structure",
+    "PNG chunk CRCs",
+    "IHDR dimensions",
+    "SHA-256",
+    "optional manifest width/height/hash match"
+  ],
+  "captures": [
+    {
+      "id": "settings-settings-top",
+      "group": "settings",
+      "file": "screens/settings/settings-top.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 171574,
+      "sha256": "f33f6dae554922f17f1ed86988b1abeb79fe9396bf0c86639d9d02ca0010dfbc"
+    },
+    {
+      "id": "settings-settings-bottom",
+      "group": "settings",
+      "file": "screens/settings/settings-bottom.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 233402,
+      "sha256": "f46cde1a26392e886ecc24fea081893f7d3e9674b19824b69d296423957a9455"
+    },
+    {
+      "id": "offline-maps-saved-areas-top",
+      "group": "offline-maps",
+      "file": "screens/offline-maps/saved-areas-top.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 266054,
+      "sha256": "2ed48671b8894fe30b6b899b3c024c3aee4aab25030fc7fa7e96faf2261f1862"
+    },
+    {
+      "id": "offline-maps-saved-areas-bottom",
+      "group": "offline-maps",
+      "file": "screens/offline-maps/saved-areas-bottom.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 184251,
+      "sha256": "b17445a5165041c7adec924cbf96528cbea0ddc6a21f58ee05862153197b98b6"
+    },
+    {
+      "id": "friends-profile-username-conflict-draft",
+      "group": "friends-profile",
+      "file": "screens/friends-profile/username-conflict-draft.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 216277,
+      "sha256": "eafe5e9ad6e503fce7e5bc6f24f7628d2c71833b0304e442bc75e0e9702002a7"
+    },
+    {
+      "id": "feed-profile-created-feed",
+      "group": "feed",
+      "file": "screens/feed/profile-created-feed.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 167919,
+      "sha256": "60f4102a815c9602820c3009e742c5906b1c7ad5d6abfe3b002498bdef4824ba"
+    },
+    {
+      "id": "pilot-search-name-search",
+      "group": "pilot-search",
+      "file": "screens/pilot-search/name-search.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 120566,
+      "sha256": "490304a84cb306c1161e8b9b465cc2d8dd230a69c1e74deeddd236074cb80b3f"
+    },
+    {
+      "id": "pilot-search-outgoing-request",
+      "group": "pilot-search",
+      "file": "screens/pilot-search/outgoing-request.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 143071,
+      "sha256": "d987a8337676cd7f40d4f626a92bf62cce0da5c92cd5f10efd0d5602c04be88f"
+    },
+    {
+      "id": "pilot-search-incoming-request",
+      "group": "pilot-search",
+      "file": "screens/pilot-search/incoming-request.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 140885,
+      "sha256": "eb8f93c0f94de40e61cd6cc5e8b37a451b7f581ecff1aca8b2803645f2758279"
+    },
+    {
+      "id": "pilot-search-request-accepted",
+      "group": "pilot-search",
+      "file": "screens/pilot-search/request-accepted.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 118565,
+      "sha256": "4c1ce7127e80e70e92cc9e6ad4ba0eaf9ad2091dcefad69bf47cbef860bed068"
+    },
+    {
+      "id": "friend-profile-accepted-profile",
+      "group": "friend-profile",
+      "file": "screens/friend-profile/accepted-profile.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 120884,
+      "sha256": "5f1c6ac2a4f8b8df186b5f6db0e31219bb804a782453e64f5b85dd73a31cfe36"
+    },
+    {
+      "id": "pilot-search-hidden-friend-search-empty",
+      "group": "pilot-search",
+      "file": "screens/pilot-search/hidden-friend-search-empty.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 111165,
+      "sha256": "679d3fddaec63545463146c11916f6b806d9e40d613c45a7f24a403c04cd8863"
+    },
+    {
+      "id": "friends-profile-renamed-hidden-profile",
+      "group": "friends-profile",
+      "file": "screens/friends-profile/renamed-hidden-profile.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 161033,
+      "sha256": "b7a5d4c70233fb1aa2347cc1649d92d5b004d4dbb15bcae99ea40e692970cf5d"
+    },
+    {
+      "id": "pilot-search-confirm-stranger-block",
+      "group": "pilot-search",
+      "file": "screens/pilot-search/confirm-stranger-block.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 142049,
+      "sha256": "6ec6cd7eba138cb87f12a8cea6e4c58c5feb5c402ca1056804cf1bd1177059b0"
+    },
+    {
+      "id": "manage-friends-unblocked-no-friendship",
+      "group": "manage-friends",
+      "file": "screens/manage-friends/unblocked-no-friendship.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 161070,
+      "sha256": "be98af65cf0fc7f56a7d0d44ebac8d1d5154a1a92df19fe675be127a159e9351"
+    },
+    {
+      "id": "pilot-search-offline-search-cleared",
+      "group": "pilot-search",
+      "file": "screens/pilot-search/offline-search-cleared.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 101547,
+      "sha256": "0c804226e7356409cd6277b4d34935a8b22ebdf3f7809b30791205f053883ce5"
+    },
+    {
+      "id": "pilot-search-signed-out-search-cleared",
+      "group": "pilot-search",
+      "file": "screens/pilot-search/signed-out-search-cleared.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 70751,
+      "sha256": "b8626e755bf8305f3d71379038510d5bc7c619e92ccd31e231b4c86b94c0fccc"
+    },
+    {
+      "id": "pilot-search-switched-account-empty-search",
+      "group": "pilot-search",
+      "file": "screens/pilot-search/switched-account-empty-search.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 108584,
+      "sha256": "2c483931a6780c17ab4646ca9b0457205ec0d55aa6f3dbf2d49decff80f15e21"
+    },
+    {
+      "id": "friend-profile-removed-profile-denied",
+      "group": "friend-profile",
+      "file": "screens/friend-profile/removed-profile-denied.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 65226,
+      "sha256": "bfc926bc64f1f7adfe984507b2fcbc62c279733b2948bd28e47a3d27dd09204a"
+    },
+    {
+      "id": "onboarding-welcome",
+      "group": "onboarding",
+      "file": "screens/onboarding/welcome.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 1030260,
+      "sha256": "e4bf9b57587a04a3fc7a6614a72b6b416171a149a8dbc55b8cf85e12ec58e40d"
+    },
+    {
+      "id": "onboarding-pilot",
+      "group": "onboarding",
+      "file": "screens/onboarding/pilot.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 137345,
+      "sha256": "02c05fb5dd528d9f22ab29646ed0685bb73f53325b81afcc9c2db795e7dc59e2"
+    },
+    {
+      "id": "onboarding-glider",
+      "group": "onboarding",
+      "file": "screens/onboarding/glider.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 124930,
+      "sha256": "e14fc8bffcce092e62f6b9216f10f6fd21eca53d07119775577be96233c25c39"
+    },
+    {
+      "id": "onboarding-location",
+      "group": "onboarding",
+      "file": "screens/onboarding/location.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 214116,
+      "sha256": "f35248dd6097c0dbb336ed7819651f63704fd640fa58716fa6a9a7998d27fe39"
+    },
+    {
+      "id": "onboarding-backup",
+      "group": "onboarding",
+      "file": "screens/onboarding/backup.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 239794,
+      "sha256": "eb0ae777882319422f5c68b3a577f77dfa13be77ab6d51a6b4bd53d0075d9f28"
+    },
+    {
+      "id": "feed-signed-out",
+      "group": "feed",
+      "file": "screens/feed/signed-out.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 90865,
+      "sha256": "059d48897d674c8d5f5c6504c9fc7c0c782a986df5c394c5afed14742ca0dfc3"
+    },
+    {
+      "id": "logbook-empty",
+      "group": "logbook",
+      "file": "screens/logbook/empty.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 1009755,
+      "sha256": "a03b399b86e6f600d31e169887d6255e6b739d5cd1a5e5b50f2c9d615628cf12"
+    },
+    {
+      "id": "recorder-missing-permissions",
+      "group": "recorder",
+      "file": "screens/recorder/missing-permissions.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 716956,
+      "sha256": "ae6b17026517fb8cfc4a45e705bfa31ecfb1da069e898f7e51b5e1bd446644d8"
+    },
+    {
+      "id": "system-permissions-precise-location",
+      "group": "system-permissions",
+      "file": "screens/system-permissions/precise-location.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 233868,
+      "sha256": "739bcb34f93e2492137e9453243976acd87d13d8231ef997e85e46efb604953b"
+    },
+    {
+      "id": "system-permissions-background-location",
+      "group": "system-permissions",
+      "file": "screens/system-permissions/background-location.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 159429,
+      "sha256": "f318eac522a5e1de4e2f2918116c28c7db1dc7039cc5ca96e86d9c68d6ad0830"
+    },
+    {
+      "id": "recorder-instruments",
+      "group": "recorder",
+      "file": "screens/recorder/instruments.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 139951,
+      "sha256": "cd0d5e3712682b4d8ebd1508f7afcbcbc005532e1a2839f2e23b5876bdd00969"
+    },
+    {
+      "id": "recorder-recorder-current",
+      "group": "recorder",
+      "file": "screens/recorder/recorder-current.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 140487,
+      "sha256": "8121d9903c32fc3473e74ed1681b3b140c05829347af100754a3753ac434ac5f"
+    },
+    {
+      "id": "recorder-live-map",
+      "group": "recorder",
+      "file": "screens/recorder/live-map.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 162681,
+      "sha256": "98f85ef804c12450712391d7aa092ef45e66067facc3a2608dd1be0bc3847be7"
+    },
+    {
+      "id": "recorder-leave-dialog",
+      "group": "recorder",
+      "file": "screens/recorder/leave-dialog.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 704649,
+      "sha256": "8994d5f4b29b6d2d522a784f6e6d1f19d7a5d20f1cdaf69a9cb6eaefc4dbe006"
+    },
+    {
+      "id": "logbook-recording-card",
+      "group": "logbook",
+      "file": "screens/logbook/recording-card.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 144806,
+      "sha256": "c635cffaeb2038227116a953b039851fa5d5fcec91dfbbcb52e14577c0a3ecfb"
+    },
+    {
+      "id": "flight-detail-ground-flight",
+      "group": "flight-detail",
+      "file": "screens/flight-detail/ground-flight.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 581079,
+      "sha256": "e62bc16f2f0389361735df99f94d066a8adb40327ff818a44873da80f8624022"
+    },
+    {
+      "id": "flight-detail-ground-flight-middle",
+      "group": "flight-detail",
+      "file": "screens/flight-detail/ground-flight-middle.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 599417,
+      "sha256": "ae9c8a24a17c6f5ff0a198699243dfc6a4541e7e45b437aaa9f54f3fede11a7f"
+    },
+    {
+      "id": "flight-detail-ground-flight-bottom",
+      "group": "flight-detail",
+      "file": "screens/flight-detail/ground-flight-bottom.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 778624,
+      "sha256": "50c23b81f3d5ef0cf337107852c8c2cfbbbabd84d4720ad4e9c3347fd30669bd"
+    },
+    {
+      "id": "flight-detail-integrity-expanded",
+      "group": "flight-detail",
+      "file": "screens/flight-detail/integrity-expanded.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 839800,
+      "sha256": "eb5bbbc98fed068eb3e27bb20f190efa6bae51ca625f5c66536e6e302caa6d42"
+    },
+    {
+      "id": "flight-detail-integrity-lower",
+      "group": "flight-detail",
+      "file": "screens/flight-detail/integrity-lower.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 762216,
+      "sha256": "1b71bda14cf17ab12ed17abc838b96516fa9d4b07eee785e4dbf3d27cc31affe"
+    },
+    {
+      "id": "flight-detail-delete-local-confirmation",
+      "group": "flight-detail",
+      "file": "screens/flight-detail/delete-local-confirmation.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 650505,
+      "sha256": "106aaba689bf1eea90e04de5c20ab859d208b916a06f3bf124cbbc911ee55b53"
+    },
+    {
+      "id": "account-signed-out-top",
+      "group": "account",
+      "file": "screens/account/signed-out-top.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 863655,
+      "sha256": "3c2a682f4679fcc94b39406bbd5b49c693c65a620ffc70e61558aee727f3f482"
+    },
+    {
+      "id": "account-pilot-details",
+      "group": "account",
+      "file": "screens/account/pilot-details.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 149976,
+      "sha256": "78f5db7b727ccaf2b10f8ee8a44721de0b3b661377a49426920f32c4fefe7d01"
+    },
+    {
+      "id": "account-pilot-details-keyboard",
+      "group": "account",
+      "file": "screens/account/pilot-details-keyboard.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 241963,
+      "sha256": "f3f7c1100166198f5f9154cc2b9affe263b2b5fd65775f24f3caaea67afa33f7"
+    },
+    {
+      "id": "account-signed-out-bottom",
+      "group": "account",
+      "file": "screens/account/signed-out-bottom.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 245953,
+      "sha256": "4b24b98d7fc704be9ea66b4c74b385b4080510768bdb58a3bf2020e617c9e6d6"
+    },
+    {
+      "id": "account-email",
+      "group": "account",
+      "file": "screens/account/email.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 271123,
+      "sha256": "11054f39d81af1f8a5c767c2d32422d4a9c8a242c18ce1702a7d2e0a7e392a3c"
+    },
+    {
+      "id": "account-email-keyboard",
+      "group": "account",
+      "file": "screens/account/email-keyboard.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 303164,
+      "sha256": "0d56300a92e94542bd23e6bdf2d5c8e4dae88394c2cdc1ed0fb6fc5a1fc9cdd2"
+    },
+    {
+      "id": "account-otp-empty",
+      "group": "account",
+      "file": "screens/account/otp-empty.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 250021,
+      "sha256": "471119ea9e9d06913cc3658e1eaacee746825e49862aaee62f8b25cfea3bdbac"
+    },
+    {
+      "id": "account-signed-in-backup",
+      "group": "account",
+      "file": "screens/account/signed-in-backup.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 245039,
+      "sha256": "ed1488b347ff3f92b71c646841b06f1ae0495e69ce977134ad77d9838ffd6d89"
+    },
+    {
+      "id": "account-logout-confirmation",
+      "group": "account",
+      "file": "screens/account/logout-confirmation.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 223237,
+      "sha256": "056ff36d94a26f553fa4c20c391a539775ce77f405cf9badbce74967dbb24848"
+    },
+    {
+      "id": "account-signed-in-bottom",
+      "group": "account",
+      "file": "screens/account/signed-in-bottom.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 269095,
+      "sha256": "7090880685ef8c8f8da995a0805e9c556734ca497a84794ecd22d6742b6a6a61"
+    },
+    {
+      "id": "logbook-populated",
+      "group": "logbook",
+      "file": "screens/logbook/populated.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 895555,
+      "sha256": "5b94bca623a84e689e3715f01b8f45616e5d36f578215a52a2dbe371c030a5ad"
+    },
+    {
+      "id": "logbook-populated-middle",
+      "group": "logbook",
+      "file": "screens/logbook/populated-middle.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 360155,
+      "sha256": "cbec025d7d95eafc77d698e43b159413493a995d91ca43739811932b9f7f678e"
+    },
+    {
+      "id": "logbook-populated-bottom",
+      "group": "logbook",
+      "file": "screens/logbook/populated-bottom.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 326208,
+      "sha256": "9aa578bef65815ca965c0a3ea784de1d5534026494b2a31077216b65d8ca70e8"
+    },
+    {
+      "id": "flight-detail-archive-top",
+      "group": "flight-detail",
+      "file": "screens/flight-detail/archive-top.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 282111,
+      "sha256": "c6ea6364ee7e8985cf723ada98f0b3b5544109aac272448108465f20e7e37bba"
+    },
+    {
+      "id": "flight-detail-archive-middle",
+      "group": "flight-detail",
+      "file": "screens/flight-detail/archive-middle.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 185815,
+      "sha256": "dbbe80dadf9bc1a8b7deb9fe16b3f8e0e8d5fffa146ba1e0fabca2449e547090"
+    },
+    {
+      "id": "flight-detail-archive-bottom",
+      "group": "flight-detail",
+      "file": "screens/flight-detail/archive-bottom.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 238782,
+      "sha256": "e9a166aa377c8760be03d09aa3dbd8be6c41935c45d5fd7e7eab4562445fd44d"
+    },
+    {
+      "id": "flight-edit-form",
+      "group": "flight-edit",
+      "file": "screens/flight-edit/form.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 121109,
+      "sha256": "49b2f277ae9e452b7c3a6643e67f07f2af401fca053554ab47f56c5411d19f0f"
+    },
+    {
+      "id": "flight-edit-site-picker",
+      "group": "flight-edit",
+      "file": "screens/flight-edit/site-picker.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 202385,
+      "sha256": "840318326c4a00f0691907686b701c07fce86c484a042b19e654784e0e2a0109"
+    },
+    {
+      "id": "flight-edit-discard-draft",
+      "group": "flight-edit",
+      "file": "screens/flight-edit/discard-draft.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 185138,
+      "sha256": "ba23c83b6536819c50925c315b9c6abbabd79e92de51d6d957559b67dcf51b37"
+    },
+    {
+      "id": "replay-archive-map",
+      "group": "replay",
+      "file": "screens/replay/archive-map.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 272900,
+      "sha256": "8238c2e3c578c2dd0c290d8f2dfb731264d10d0a74c501fe5d7cd85e17ab895c"
+    },
+    {
+      "id": "replay-archive-controls",
+      "group": "replay",
+      "file": "screens/replay/archive-controls.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 216488,
+      "sha256": "d5695ea5f218ec925c2bef115f6055bb375fd7edbf0bf3dad086283ed63a4b7d"
+    },
+    {
+      "id": "replay-archive-playing",
+      "group": "replay",
+      "file": "screens/replay/archive-playing.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 217338,
+      "sha256": "600981688ca71c0fd49192f9d0dc5de52319bf50ba7ebd67def6ffa084f0d81e"
+    },
+    {
+      "id": "postcard-flying-square",
+      "group": "postcard",
+      "file": "screens/postcard/flying-square.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 770516,
+      "sha256": "a622a394fe9ef5f3956659d06a450909b80fc0aeb937a978494bd9a23ca2c7b0"
+    },
+    {
+      "id": "postcard-controls",
+      "group": "postcard",
+      "file": "screens/postcard/controls.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 449882,
+      "sha256": "d3138617a45f1a7442a8ef94e3772c917c3b90253e189458779cfb11cc5917b8"
+    },
+    {
+      "id": "postcard-launch-square",
+      "group": "postcard",
+      "file": "screens/postcard/launch-square.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 820804,
+      "sha256": "948a72828c3adf5db38b9a530466a0721f78e7f9ef75eb01c124c95eb98a11c7"
+    },
+    {
+      "id": "postcard-landing-square",
+      "group": "postcard",
+      "file": "screens/postcard/landing-square.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 835489,
+      "sha256": "16d9643a6ff9e836c70a33c496b070cd339a15c5d2d966383fdf765164f6d276"
+    },
+    {
+      "id": "postcard-landing-story-top",
+      "group": "postcard",
+      "file": "screens/postcard/landing-story-top.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 904228,
+      "sha256": "f8a679c5f7c88321a2cc727af8e096c32f5a5949e80085bf8696c762af64cba3"
+    },
+    {
+      "id": "postcard-landing-story-bottom",
+      "group": "postcard",
+      "file": "screens/postcard/landing-story-bottom.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 450006,
+      "sha256": "b08701c80dbeef344a7fa41ae5ec534404ed54ce889c466836bb98fc7f20cbb0"
+    },
+    {
+      "id": "postcard-caption-keyboard",
+      "group": "postcard",
+      "file": "screens/postcard/caption-keyboard.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 504165,
+      "sha256": "35d652566ce342a74f59ed5642144fca146cdd28ecf1b48ab11bb3a025b0f8e2"
+    },
+    {
+      "id": "postcard-discard-caption",
+      "group": "postcard",
+      "file": "screens/postcard/discard-caption.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 410255,
+      "sha256": "374c532dd5ce75dfb65627940cc8ade7ed1cff8cb44f70a2f7a0681320e6f61f"
+    },
+    {
+      "id": "feed-populated-own",
+      "group": "feed",
+      "file": "screens/feed/populated-own.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 205212,
+      "sha256": "94691d1b49be6337f9feae5d33bd2dc43a99fdfd8804891ab48fa8dc484dafb1"
+    },
+    {
+      "id": "feed-populated-card",
+      "group": "feed",
+      "file": "screens/feed/populated-card.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 165872,
+      "sha256": "5f9a4269501245cec8923ac3fff4cca4de96bef1f6dbbaf8cf23c8b088526961"
+    },
+    {
+      "id": "feed-automatic-consent",
+      "group": "feed",
+      "file": "screens/feed/automatic-consent.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 264055,
+      "sha256": "6a5fabd1cbee4ac543e95fb41f7d937803ac1d8500f20f0ba6c0674f1d6052ea"
+    },
+    {
+      "id": "manage-friends-profile-and-request",
+      "group": "manage-friends",
+      "file": "screens/manage-friends/profile-and-request.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 174676,
+      "sha256": "2d47a396e82650ff85b05f9c3b97e8a121e487be89f72cf604f71dfaa86c6773"
+    },
+    {
+      "id": "manage-friends-connections",
+      "group": "manage-friends",
+      "file": "screens/manage-friends/connections.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 174096,
+      "sha256": "2d877b8432287721e564a3eacf002b4b46f32062774c0980e95d607b1663ddff"
+    },
+    {
+      "id": "manage-friends-accepted-list",
+      "group": "manage-friends",
+      "file": "screens/manage-friends/accepted-list.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 166167,
+      "sha256": "09abf7cf0d8297b518eaa0dc2050690dc0e14f201ad824e44dbe4766b19781c9"
+    },
+    {
+      "id": "friends-profile-edit-visible",
+      "group": "friends-profile",
+      "file": "screens/friends-profile/edit-visible.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 266549,
+      "sha256": "a5cc81ead8e8448df453ce9829821bd8832e08d1deaf0e6bef5c47dab1e65b98"
+    },
+    {
+      "id": "friends-profile-edit-visible-bottom",
+      "group": "friends-profile",
+      "file": "screens/friends-profile/edit-visible-bottom.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 244931,
+      "sha256": "aa26118714a0467b763ede3958239f6c60ba0db3a7e82e6d6e1bfb45f186544c"
+    },
+    {
+      "id": "shared-flight-own-top",
+      "group": "shared-flight",
+      "file": "screens/shared-flight/own-top.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 282432,
+      "sha256": "fc6c10b6ca8d984b8f1966616f27da47a2ee309db7ddccf107b03d215125b333"
+    },
+    {
+      "id": "shared-flight-own-bottom",
+      "group": "shared-flight",
+      "file": "screens/shared-flight/own-bottom.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 268930,
+      "sha256": "675ce5e099b5cadb48ca679ea3537bbdd505c3125456fc5a11acef7c4d10733f"
+    },
+    {
+      "id": "kudos-supporters",
+      "group": "kudos",
+      "file": "screens/kudos/supporters.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 84737,
+      "sha256": "01217376f6e722c84c2d80575b323195b5737887afd72964dc4bf78b189d0093"
+    },
+    {
+      "id": "shared-replay-map",
+      "group": "shared-replay",
+      "file": "screens/shared-replay/map.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 265114,
+      "sha256": "c98f9d50edb4a78681f5a4be2916cffdd42a6d93ca720c24cfa9ce4cdeb2349d"
+    },
+    {
+      "id": "shared-replay-controls",
+      "group": "shared-replay",
+      "file": "screens/shared-replay/controls.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 223134,
+      "sha256": "e1710b2b34cbfad0ce1f081ee10ae202caef528970fc5336794ec58dda865ce7"
+    },
+    {
+      "id": "account-signed-in-top",
+      "group": "account",
+      "file": "screens/account/signed-in-top.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 864353,
+      "sha256": "6326b4a99b8da71d9256e6ae63292404aa60adff0742251ec7c41d5f68ccc037"
+    },
+    {
+      "id": "account-delete-account-confirmation",
+      "group": "account",
+      "file": "screens/account/delete-account-confirmation.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 252851,
+      "sha256": "ea20fa3be151fc4f89b93343d2a91ba7fc1e81d924251a14d15cd9846bfef2ac"
+    },
+    {
+      "id": "account-account-mismatch",
+      "group": "account",
+      "file": "screens/account/account-mismatch.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 222063,
+      "sha256": "7dd0a6beb8f73bdfc78156fddad1110effdcb56fa366819a31702173d0e7503c"
+    },
+    {
+      "id": "feed-friend-feed",
+      "group": "feed",
+      "file": "screens/feed/friend-feed.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 207225,
+      "sha256": "25eb97e49abe3a4325c40bf28b28e2285c4bceb1c602fc2c57dce69d73a7abc6"
+    },
+    {
+      "id": "feed-friend-card",
+      "group": "feed",
+      "file": "screens/feed/friend-card.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 297817,
+      "sha256": "18a15dfc727097e9ee8dbdce24015a557c8366abec1cca43c0e8e3cf9125f569"
+    },
+    {
+      "id": "feed-kudos-given",
+      "group": "feed",
+      "file": "screens/feed/kudos-given.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 196289,
+      "sha256": "f0fe0e679f173bad903ef90e5f8c61d78542ca48ac0193a9af4281890b5fc1d6"
+    },
+    {
+      "id": "friend-profile-populated",
+      "group": "friend-profile",
+      "file": "screens/friend-profile/populated.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 113830,
+      "sha256": "13f6f3181a90ea91873b43bb43fc695eaf752b7bbfea6edb377ed06f97485fe8"
+    },
+    {
+      "id": "manage-friends-blocked-list",
+      "group": "manage-friends",
+      "file": "screens/manage-friends/blocked-list.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 170521,
+      "sha256": "1fe8bb939fc10d87a9110b87d075dc3690b170ebef02c88fadf8b42b3a5b0553"
+    },
+    {
+      "id": "offline-maps-empty",
+      "group": "offline-maps",
+      "file": "screens/offline-maps/empty.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 189212,
+      "sha256": "3b2f5d9d046125dc97837ed11320a90454566db724f08b905914ab033f9db89c"
+    },
+    {
+      "id": "offline-maps-search-results",
+      "group": "offline-maps",
+      "file": "screens/offline-maps/search-results.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 248451,
+      "sha256": "b3a41e9c54b275ad50b2fec98cab3430d882a5353d105be38b32d3e96f3df185"
+    },
+    {
+      "id": "offline-maps-coverage-top",
+      "group": "offline-maps",
+      "file": "screens/offline-maps/coverage-top.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 578407,
+      "sha256": "9724c70bf86edcd01d8d278015b21abbde5aa1ae7b1721200ffd36badf50a711"
+    },
+    {
+      "id": "offline-maps-coverage-bottom",
+      "group": "offline-maps",
+      "file": "screens/offline-maps/coverage-bottom.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 426009,
+      "sha256": "3b604b95a7dbf0d8e2288145df7c95e62f2986f497e20a7e28d9a10a71c90b03"
+    },
+    {
+      "id": "offline-maps-downloading",
+      "group": "offline-maps",
+      "file": "screens/offline-maps/downloading.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 222096,
+      "sha256": "dc29fc4ba5c732da4258164fdd5b3c9c840f19f10155d99bb30d75b946b5b717"
+    },
+    {
+      "id": "offline-maps-update-preview",
+      "group": "offline-maps",
+      "file": "screens/offline-maps/update-preview.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 594266,
+      "sha256": "b0ec0738de6d85c93dce81eac68d4e31e22c7344653488372517992387589ee6"
+    },
+    {
+      "id": "offline-maps-qa-ready",
+      "group": "offline-maps",
+      "file": "screens/offline-maps/qa-ready.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 250255,
+      "sha256": "54832352f6ef6fc8fcc77f71a29c003421356f6d2a61cfbf2240b303d73479a5"
+    },
+    {
+      "id": "offline-maps-delete-area-confirmation",
+      "group": "offline-maps",
+      "file": "screens/offline-maps/delete-area-confirmation.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 226833,
+      "sha256": "9a8af84d6fe6e29109876de297206a47a08f4d1c880155dcb52508d89797c71e"
+    },
+    {
+      "id": "navigation-not-found",
+      "group": "navigation",
+      "file": "screens/navigation/not-found.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 73553,
+      "sha256": "bb8b412237ce52d6031ae821064f8223f9d4efce3335d103a306a59342812503"
+    },
+    {
+      "id": "recorder-ready",
+      "group": "recorder",
+      "file": "screens/recorder/ready.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 701270,
+      "sha256": "951a8cce6a8ce08165ac4c25503c96fcc1bf32c61b35a1978d7a332d6a2568e0"
+    },
+    {
+      "id": "recorder-live-map-ready",
+      "group": "recorder",
+      "file": "screens/recorder/live-map-ready.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 1142475,
+      "sha256": "63662ae302c9740f73976b72afe43fa3578152052d82079e09e7349dabd0e2d1"
+    },
+    {
+      "id": "logbook-interrupted",
+      "group": "logbook",
+      "file": "screens/logbook/interrupted.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 805811,
+      "sha256": "029c5d054558fb71879f83047a229413fda922879671913db3d43303f7fbd134"
+    },
+    {
+      "id": "recorder-interrupted",
+      "group": "recorder",
+      "file": "screens/recorder/interrupted.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 218346,
+      "sha256": "40175a4f9adf6f3ac87e654499d8aa72d9738fac28100e8a8321ef84fbd9ce36"
+    },
+    {
+      "id": "logbook-interrupted-card",
+      "group": "logbook",
+      "file": "screens/logbook/interrupted-card.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 783699,
+      "sha256": "c802f2db6593e98adb6e986785ba33ebe5e04e701b891bc0451d2a9e8a2fd015"
+    },
+    {
+      "id": "recorder-partial-confirmation",
+      "group": "recorder",
+      "file": "screens/recorder/partial-confirmation.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 194446,
+      "sha256": "a901b0c3ae47a2acb4db56c9e9cc41380030a28da0ad0078a4930eca746abb2d"
+    },
+    {
+      "id": "flight-detail-partial",
+      "group": "flight-detail",
+      "file": "screens/flight-detail/partial.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 522922,
+      "sha256": "008ba5133020a59ca02fcfb6c774524fc337750c94044ec73c12e5714f11c4df"
+    },
+    {
+      "id": "recorder-idle-final",
+      "group": "recorder",
+      "file": "screens/recorder/idle-final.png",
+      "width": 1080,
+      "height": 2340,
+      "bytes": 712665,
+      "sha256": "13705d2c26ce6ab5454264e32c7af285cab2b5d1e380a9a6666650126a13261b"
+    }
+  ]
+}

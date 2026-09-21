@@ -1,0 +1,48 @@
+{
+  "checkedAt": "2026-09-20T21:50:22.479Z",
+  "auditDirectory": "/home/odin/Dungeon/Personal/xc-mvp/ui-audit",
+  "captures": 108,
+  "viewports": [
+    {
+      "width": 390,
+      "allOriginalImagesDecoded": 108,
+      "searchWorks": true,
+      "groupFilterCount": 2,
+      "emptyStateWorks": true,
+      "noHorizontalOverflow": true,
+      "originalLinkNaturalDimensions": {
+        "width": 1080,
+        "height": 2340
+      }
+    },
+    {
+      "width": 1440,
+      "allOriginalImagesDecoded": 108,
+      "searchWorks": true,
+      "groupFilterCount": 2,
+      "emptyStateWorks": true,
+      "noHorizontalOverflow": true,
+      "originalLinkNaturalDimensions": {
+        "width": 1080,
+        "height": 2340
+      }
+    }
+  ],
+  "errors": [],
+  "passed": true,
+  "markdownLinks": {
+    "markdownFiles": 44,
+    "localLinksChecked": 480,
+    "externalLinksSkipped": 0,
+    "missing": [],
+    "malformed": [],
+    "passed": true
+  },
+  "manifestSha256": "db1e69b0d89d9017779a170b5fd72bee3b41f5b77036dc486c757cf76384a287",
+  "directFileOpening": {
+    "passed": true,
+    "imagesDecoded": 108,
+    "searchWorks": true,
+    "checkedAt": "2026-09-20T21:51:54.999Z"
+  }
+}

@@ -8,6 +8,18 @@ with Android acceptance still pending. Its [implementation and acceptance guide]
 supersedes the provisional in-flight direction below. PAR-32 archive pagination and PAR-33 replay
 bookmark maintenance are included as separate changes; hosted/device acceptance is still distinct.
 
+20 September implementation update: PAR-28 downloadable map areas are implemented locally.
+The [offline maps guide](./offline-maps.md) records the agreed defaults, native/persistence
+design and remaining cold-start, storage-size and overlap/deletion Android checks.
+
+21 September implementation update: [Friends v1](./friends.md) provides profiles, invitations
+and accepted connections. The owner selected the [shared-flight feed](./shared-flights.md) next,
+ahead of notifications and further personal replay polish. Its local implementation includes
+explicit publication, optional automatic sharing of future recordings and authorized 2D replay;
+release and physical acceptance remain separate. The next approved increment, [kudos](./kudos.md)
+(PAR-39), adds reversible support and supporter names to published flights. The numbered order
+below is the original proposal.
+
 The direction is a useful personal flight journal that becomes more enjoyable with friends:
 share a flight, know when friends are recording, and eventually explore their flights together.
 Keep recording available offline and without an account as the social features grow.
@@ -15,8 +27,8 @@ Keep recording available offline and without an account as the social features g
 The first personal Android test was accepted on 12 September: the standalone app launched offline
 after reboot, recorded and saved a walk, retained it after a full app restart, replayed it, and
 opened postcard/IGC/JSON share sheets. Exact recording and locked-screen durations were unmeasured;
-this does not establish long-flight reliability. The next approved work is a geographic map for
-saved replay. An eventual map during the pilot's own recording should influence its design.
+this does not establish long-flight reliability. Saved replay, the optional live map and
+downloaded map areas now have local implementations with separate physical acceptance gates.
 
 ## Suggested order
 
@@ -36,8 +48,8 @@ do not need 3D maps. Shared completed flights can initially use the existing 2D 
 Cloud restoration is a separate supporting track; social viewing must not require inventing
 local recorder evidence for somebody else's flight.
 
-Downloadable map areas remain future work. The optional map during the pilot's own recording
-now has a local implementation; its measured Android acceptance is the next feature-specific gate.
+Downloadable map areas and the optional map during the pilot's own recording are implemented
+locally. Their measured Android acceptance remains the next feature-specific gate.
 
 ## 1. Add a geographic map to saved replay
 
@@ -74,8 +86,9 @@ PAR-27 retains forced failure/offline/retry, Malaysian coverage and long-list st
 - Use `@rnmapbox/maps` 10.3.5, its default Android Mapbox SDK 11.23.1, and the explicit style
   `mapbox://styles/mapbox/outdoors-v12`. [Outdoors is a classic style](https://docs.mapbox.com/map-styles/reference/outdoors/)
   that remains available but is no longer actively maintained; this is the owner's chosen style.
-  The selected Android setup uses a public `pk.` token only. Keep SDK ambient-cache defaults;
-  no app-enforced numeric cache bound or downloaded-area guarantee is claimed.
+  The selected Android setup uses a public `pk.` token only. PAR-28 now adds explicit downloaded
+  regions and a shared store; [its storage policy](./offline-maps.md#transfer-and-storage-policy)
+  preserves a recording reserve without claiming a measured country-size limit or device acceptance.
 - Aim for worldwide online map coverage, with Singapore walks and Malaysian flying areas as the
   primary coverage checks, not a geographic restriction. Saved walks are valid test recordings;
   the recorder still uses manual Start/Stop and GPS without requiring detected flight.
@@ -84,14 +97,14 @@ PAR-27 retains forced failure/offline/retry, Malaysian coverage and long-list st
   its phone pan/refit evidence is recorded in the map guide.
   Use the existing playback timestamp and original retained fixes; preserve gaps and
   partial-flight labels. Geographic context must not change route/chart/telemetry timing.
-- Keep the map component focused on presentation. Use separate saved-replay and future live-recorder
-  adapters; a future in-flight map must consume recorder-captured fixes without starting a second
+- Keep the map component focused on presentation. Use separate saved-replay and live-recorder
+  adapters; the in-flight map consumes recorder-captured fixes without starting a second
   GPS watcher or making capture depend on map rendering/network access.
 - Open Map whenever configured, with no Map/Grid selector. Automatically use Grid for missing
   configuration, native failure or a 15-second initial-load timeout; offer **Retry map** after
   a failed attempt. Preserve replay position/playback through automatic fallback and retry.
-  Region downloads and dependable offline basemaps belong to PAR-28; Mapbox's documented regional
-  offline path informs that later design without implementing downloads now.
+  PAR-28 adds explicit region downloads for both native map consumers; its cold-start offline
+  acceptance remains separate from the fallback implementation.
 - PAR-27 owns focused Android checks for placement, camera controls, fallback/attribution,
   playback regressions and relevant performance. Broader replay/lifecycle and long-flight suites
   remain PAR-3/PAR-5 in Backlog; PAR-5 is not an implementation prerequisite for PAR-20.
@@ -100,8 +113,9 @@ PAR-27 retains forced failure/offline/retry, Malaysian coverage and long-list st
 placed correctly, replay timing remains honest, and the offline grid works when tiles cannot load.
 The [map implementation guide](./saved-replay-maps.md) records the chosen configuration and checks.
 
-**Map work:** PAR-28 remains future downloadable map areas for offline flying and replay;
-it needs permitted provider terms, storage limits, attribution and deletion behavior.
+**Map work:** PAR-28's [local implementation](./offline-maps.md) provides destination search,
+downloaded areas, storage/attribution and recoverable deletion. It still needs measured
+local/province/small-country downloads and physical offline/overlap acceptance.
 PAR-29's local optional in-flight map consumes captured fixes and awaits PAR-37 Android acceptance.
 Neither feature publishes live location to anyone else.
 
@@ -146,22 +160,27 @@ preserve recorded timing and never draw a flight through a missing segment.
 
 ## 4. Friends and a small social foundation
 
-**Goal:** connect with people you know without needing a public feed.
+**Selected first stage, 21 September 2026:** connect with people you know and open their basic
+profile. [Friends v1](./friends.md) is the implementation and acceptance record for PAR-12–14.
 
-- Add a minimal social profile with a chosen display identity, separate from private email,
-  registration details and the local pilot profile used for export.
-- Start with an invite link or exact handle/code lookup. Support send, accept, decline,
-  cancel, remove and block. Contact uploads and a searchable email directory are unnecessary.
-- Add a Friends screen with accepted connections and pending requests. Establish global and
-  per-friend sharing/notification preferences before showing flight activity.
+- Add a minimal social profile with a chosen display name and initials, separate from private
+  email, registration details and the local pilot profile used for export.
+- Find pilots by display name or editable unique username, with a search-visibility switch.
+  Send an explicit request; support accept, decline, cancel, remove and block. This approved
+  PAR-14 expansion replaces invitation codes. Contact uploads and email search remain excluded.
+- Add a Friends tab with accepted connections, pending requests and a blocked list. Accepted
+  profiles show only display identity and a server-derived **Backed-up flights** count.
 - Enforce access on the server, including pending, removed and blocked relationships. Keep
   private backup and its owner-only storage separate from content deliberately shared.
 
 **Done when:** two accounts can establish and remove a connection, a third account cannot read
 their private activity, and removal/blocking stops future access and notifications.
 
-**Decisions before implementation:** invite link versus handle, public profile fields, whether
-to share with all accepted friends or selected friends, and notification defaults.
+The v1 foundation deliberately excluded individual flights and replay. The next selected slice
+now implements the accepted-friends feed and shared replay described below. Kudos is implemented as
+PAR-39; notifications remain deferred. Social viewing is online and held only in memory for the current signed-in
+account. External postcard sharing remains separate. Signing in alone does not publish a profile
+or a flight.
 
 ## 5. Basic notifications when friends are flying
 
@@ -185,27 +204,39 @@ until an explicit pilot status or validated detection feature can support “fly
 accounts do not; offline delivery is honest about freshness; recording still works when the
 notification service fails. This is social awareness, not an emergency or safety service.
 
-## 6. Watch a friend's saved flight and share interactive links
+## 6. Watch a friend's saved flight
 
-**Goal:** open a selected flight and replay it, initially using the same 2D experience as your own.
+**Implemented and deployed, 21 September 2026:** open a published flight from the Friends
+feed and replay it with the existing 2D presentation. [Shared flights](./shared-flights.md) owns
+the exact contract and acceptance ledger; interactive links remain a later extension.
 
-- Let the owner explicitly publish a finished flight to chosen friends. Keep other flights and
-  private notes private. Show the fields and route that will be shared before publication.
-- Define a downloadable, versioned replay artifact and a separate read model for remote flights.
-  Decide between an export derived from retained fixes and an IGC-derived route. An IGC-derived
-  replay cannot recreate the original subsecond samples or every piece of telemetry.
-- Preserve provenance, missing data and partial/gap labels. Viewing a friend's flight must not
-  create a fake locally recorded session or alter the viewer's personal flight totals.
-- Support unsharing, deletion and permission changes. Check access on every fetch and remove
-  cached remote content when revocation is discovered, including on reconnect. Decide whether
-  remote flights can be opened offline and for how long. Previously exported images or downloaded
-  files cannot be recalled; make that distinction clear.
-- Consider route trimming or hiding launch/landing locations before broader publication.
+- Manual sharing of saved flights and explicit automatic-sharing consent, off by default, cover
+  the title, site, dates/times, full route including endpoints, approved statistics and replay.
+  Current accepted friends see all published history; this is not a per-flight recipient picker.
+- Automatic sharing covers future recordings only after save/backup. Disabling stops future posts;
+  existing posts require Hide. Durable retries cannot override a newer Hide or consent change.
+- A versioned, validated artifact is projected from saved GPS or verified IGC. Preserve provenance,
+  missing speed, precision, partial flights and timing gaps; never create a viewer's recorder session
+  or alter their personal totals. Original IGCs and diagnostics remain private.
+- Remote viewing is online and memory-only, cleared on background/offline/account changes. Every
+  fetch checks current friendship and publication access. Existing views reauthorize on focus,
+  refresh and reconnect; there is no push revocation or ability to recall a viewer's screenshots.
+- Title/site edits appear after backup sync without bumping feed time. Friends management remains
+  accessible from the feed. [Kudos](./kudos.md) extends this in PAR-39; comments, notifications
+  and public links remain deferred.
+- Route trimming and endpoint privacy zones remain a prerequisite to reconsider before broader
+  publication, not part of this consented full-route implementation.
 
 **Done when:** a friend can open a deliberately shared completed flight, see its owner and data
 limits, replay it correctly, and lose future access when it is unshared or the relationship ends.
 
-**Next extension:** revocable share links with a lightweight web viewer and social preview.
+**Current extension:** one reversible kudos per friend and publication, with paginated current
+display names and initials. Own posts show supporters without self-kudos. Names are visible to
+every authorized flight viewer, with either-direction blocks excluded from both names and count.
+Hide/re-share preserves reactions; removing the author/reactor friendship deletes them permanently.
+The [kudos guide](./kudos.md) owns the implementation and acceptance record.
+
+**Later extension:** revocable share links with a lightweight web viewer and social preview.
 There is no web app today; hosting, audience rules, link expiry and previews need their own work.
 Public links should expose only the approved shared representation, never the private IGC bucket.
 

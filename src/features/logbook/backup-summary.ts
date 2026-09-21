@@ -1,6 +1,6 @@
 import type { CloudAuthStatus } from '@/cloud/types';
 
-export const LOCAL_FLIGHTS_COPY = 'Recording stays available without an account. Saved flights are never automatically removed.';
+export const LOCAL_FLIGHTS_COPY = 'Recording stays available without an account. Downloaded flights stay available when you sign out; confirmed account deletions apply when you reconnect.';
 
 export function backupSummary(status: CloudAuthStatus, linkedUserId: string | null) {
   return {

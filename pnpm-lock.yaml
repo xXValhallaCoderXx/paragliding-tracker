@@ -8,7 +8,7 @@ overrides:
   '@expo/metro-config>lightningcss': 1.30.1
 
 patchedDependencies:
-  '@rnmapbox/maps@10.3.5': c4f79587085e4f25e5052bbb1348c448bef79938372233494b1ae92cebf5af04
+  '@rnmapbox/maps@10.3.5': 5261580fbdaa062ed96cbdde600db5f32c76a7ac4140fec239ae6a795578c976
   expo-task-manager@57.0.11: 6ffdd76111ea302bd89a09953ff6a77233aa381b2762c993f4a7960fe9b482a1
 
 importers:
@@ -32,7 +32,7 @@ importers:
         version: 2.12.0(react-redux@9.3.0(@types/react@19.2.18)(react@19.2.3)(redux@5.0.1))(react@19.2.3)
       '@rnmapbox/maps':
         specifier: 10.3.5
-        version: 10.3.5(patch_hash=c4f79587085e4f25e5052bbb1348c448bef79938372233494b1ae92cebf5af04)(expo@57.0.14)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.86.2(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)
+        version: 10.3.5(patch_hash=5261580fbdaa062ed96cbdde600db5f32c76a7ac4140fec239ae6a795578c976)(expo@57.0.14)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.86.2(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)
       '@supabase/supabase-js':
         specifier: ^2.112.3
         version: 2.112.3
@@ -72,6 +72,9 @@ importers:
       expo-location:
         specifier: ~57.0.11
         version: 57.0.11(expo@57.0.14)(typescript@6.0.3)
+      expo-network:
+        specifier: ~57.0.2
+        version: 57.0.2(expo@57.0.14)(react@19.2.3)
       expo-router:
         specifier: ~57.0.14
         version: 57.0.14(099f9bddf7de17e13748c0c885dd7096)
@@ -3072,6 +3075,12 @@ packages:
     resolution: {integrity: sha512-vt7FyqUqqFXiRVnBqYD7y+GSPTgeua5Ocoy0+SYt+RSHkZEA2Fyop7If3g1TYDzQObYybPRo7TG2Rle1XLaWFw==}
     peerDependencies:
       react-native: '*'
+
+  expo-network@57.0.2:
+    resolution: {integrity: sha512-BfK1kdftZcM6o9o1FAG7/y0l6vWX0n8td0M5lwkvaMeRXZ9LkRwOi9CQXwvsMTQGQiPwtQXgwiAze13cqjt75g==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
 
   expo-router@57.0.14:
     resolution: {integrity: sha512-5Yai7kDj6xYMGw4Q7AW+EJlr1nDFH6DWy1/sr6XrxqC7x5YPk3sxv4rAWIQ8fDO9CwSCRAVisVqmul77Px0sXw==}
@@ -7274,7 +7283,7 @@ snapshots:
       react: 19.2.3
       react-redux: 9.3.0(@types/react@19.2.18)(react@19.2.3)(redux@5.0.1)
 
-  '@rnmapbox/maps@10.3.5(patch_hash=c4f79587085e4f25e5052bbb1348c448bef79938372233494b1ae92cebf5af04)(expo@57.0.14)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.86.2(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)':
+  '@rnmapbox/maps@10.3.5(patch_hash=5261580fbdaa062ed96cbdde600db5f32c76a7ac4140fec239ae6a795578c976)(expo@57.0.14)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.86.2(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@turf/along': 6.5.0
       '@turf/distance': 6.5.0
@@ -9056,6 +9065,11 @@ snapshots:
   expo-modules-jsi@57.0.4(react-native@0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.86.2(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3)):
     dependencies:
       react-native: 0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.86.2(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3)
+
+  expo-network@57.0.2(expo@57.0.14)(react@19.2.3):
+    dependencies:
+      expo: 57.0.14(@babel/core@7.29.7)(@expo/dom-webview@57.0.1)(@expo/metro-runtime@57.0.11)(expo-router@57.0.14)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native-worklets@0.10.1(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(react-native@0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.86.2(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3))(react-native@0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.86.2(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@6.0.3)
+      react: 19.2.3
 
   expo-router@57.0.14(099f9bddf7de17e13748c0c885dd7096):
     dependencies:

@@ -53,3 +53,10 @@ it('does not request a map image for an offscreen card', async () => {
   expect(grids()[0].props).toMatchObject({ takeoffLabel: 'Start', landingLabel: 'Stop' });
   expect(rendered.root.findAllByType(Image)).toHaveLength(0);
 });
+
+it('keeps shared preview images out of disk and global image caches', async () => {
+  await act(async () => { rendered = create(React.createElement(FlightMapPreview, {
+    segments: track, variant: 'hero', state: 'ready', cachePolicy: 'none',
+  })); });
+  expect(image().props.cachePolicy).toBe('none');
+});

@@ -1,3 +1,34 @@
+diff --git a/android/src/main/java/com/rnmapbox/rnmbx/RNMBXPackage.kt b/android/src/main/java/com/rnmapbox/rnmbx/RNMBXPackage.kt
+index 0b9bf05813195d064082ab2a8d235ad1d79e0074..da2592b79e98e724b5ea30cf13fe8887799f8ab0 100644
+--- a/android/src/main/java/com/rnmapbox/rnmbx/RNMBXPackage.kt
++++ b/android/src/main/java/com/rnmapbox/rnmbx/RNMBXPackage.kt
+@@ -59,6 +59,7 @@ import com.rnmapbox.rnmbx.modules.RNMBXOfflineModule
+ import com.rnmapbox.rnmbx.modules.RNMBXOfflineModuleLegacy
+ import com.rnmapbox.rnmbx.modules.RNMBXSnapshotModule
+ import com.rnmapbox.rnmbx.modules.RNMBXTileStoreModule
++import com.rnmapbox.rnmbx.modules.XCOfflineMapsModule
+ import com.rnmapbox.rnmbx.shapeAnimators.RNMBXChangeLineOffsetsShapeAnimatorModule
+ import com.rnmapbox.rnmbx.shapeAnimators.RNMBXMovePointShapeAnimatorModule
+ import com.rnmapbox.rnmbx.shapeAnimators.ShapeAnimatorManager
+@@ -97,6 +98,7 @@ class RNMBXPackage : TurboReactPackage() {
+         reactApplicationContext: ReactApplicationContext
+     ): NativeModule? {
+         when (s) {
++            XCOfflineMapsModule.NAME -> return XCOfflineMapsModule(reactApplicationContext)
+             RNMBXModule.REACT_CLASS -> return RNMBXModule(reactApplicationContext)
+             RNMBXLocationModule.REACT_CLASS -> return RNMBXLocationModule(reactApplicationContext)
+             RNMBXOfflineModule.REACT_CLASS -> return RNMBXOfflineModule(reactApplicationContext)
+@@ -185,6 +187,10 @@ class RNMBXPackage : TurboReactPackage() {
+         resetViewTagResolver()
+         return ReactModuleInfoProvider {
+             val moduleInfos: MutableMap<String, ReactModuleInfo> = HashMap()
++            moduleInfos[XCOfflineMapsModule.NAME] = ReactModuleInfo(
++                XCOfflineMapsModule.NAME, XCOfflineMapsModule.NAME,
++                false, false, false, false, false
++            )
+             moduleInfos[RNMBXModule.REACT_CLASS] = ReactModuleInfo(
+                 RNMBXModule.REACT_CLASS,
+                 RNMBXModule.REACT_CLASS,
 diff --git a/android/src/main/java/com/rnmapbox/rnmbx/components/mapview/RNMBXMapView.kt b/android/src/main/java/com/rnmapbox/rnmbx/components/mapview/RNMBXMapView.kt
 index ce02ddb4e8005cd78865341cf71e862b3f9859da..97eca5f769431576767eea6061106f2711a0c4a6 100644
 --- a/android/src/main/java/com/rnmapbox/rnmbx/components/mapview/RNMBXMapView.kt
@@ -57,3 +88,578 @@ index ce02ddb4e8005cd78865341cf71e862b3f9859da..97eca5f769431576767eea6061106f27
          removeAllFeaturesFromMap(RemovalReason.ON_DESTROY)
          mapView.viewAnnotationManager.removeAllViewAnnotations()
          lifecycle.onDestroy()
+diff --git a/android/src/main/java/com/rnmapbox/rnmbx/modules/XCOfflineMapsModule.kt b/android/src/main/java/com/rnmapbox/rnmbx/modules/XCOfflineMapsModule.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..39bc99eecf4422b9f64a54bb2c9b79e5d52cf99c
+--- /dev/null
++++ b/android/src/main/java/com/rnmapbox/rnmbx/modules/XCOfflineMapsModule.kt
+@@ -0,0 +1,569 @@
++package com.rnmapbox.rnmbx.modules
++
++import android.content.Context
++import android.net.ConnectivityManager
++import android.net.Network
++import android.net.NetworkCapabilities
++import android.os.Handler
++import android.os.Looper
++import android.os.StatFs
++import android.system.Os
++import android.system.OsConstants
++import android.system.ErrnoException
++import android.util.AtomicFile
++import com.facebook.react.bridge.*
++import com.facebook.react.common.LifecycleState
++import com.facebook.react.module.annotations.ReactModule
++import com.facebook.react.modules.core.DeviceEventManagerModule
++import com.mapbox.common.Cancelable
++import com.mapbox.common.NetworkRestriction
++import com.mapbox.common.TileRegion
++import com.mapbox.common.TileRegionErrorType
++import com.mapbox.common.TileRegionEstimateOptions
++import com.mapbox.common.TileRegionLoadOptions
++import com.mapbox.common.TileStore
++import com.mapbox.bindgen.Value
++import com.mapbox.geojson.Point
++import com.mapbox.geojson.Polygon
++import com.mapbox.maps.*
++import org.json.JSONArray
++import org.json.JSONObject
++import java.io.File
++import java.security.MessageDigest
++import java.util.concurrent.Executors
++
++/** App-specific bridge for PAR-28. State and SDK callbacks are serialized on main. */
++@ReactModule(name = XCOfflineMapsModule.NAME)
++class XCOfflineMapsModule(private val context: ReactApplicationContext) :
++  ReactContextBaseJavaModule(context), LifecycleEventListener {
++  companion object {
++    const val NAME = "XCOfflineMaps"
++    const val EVENT = "xcOfflineMapDownload"
++    private const val RESERVE = 512L * 1024L * 1024L
++    // Module instances can be recreated during a React reload while SDK callbacks
++    // are still returning. One process-lifetime writer keeps receipts serialized.
++    private val storageExecutor = Executors.newSingleThreadExecutor()
++  }
++
++  private val main = Handler(Looper.getMainLooper())
++  private val io = storageExecutor
++  private val root = File(context.noBackupFilesDir, "offline-maps")
++  private val receipts = File(root, "receipts")
++  private val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
++  private var tileStore: TileStore? = null
++  private var offlineManager: OfflineManager? = null
++  private var preparing = false
++  private var invalidated = false
++  private var foreground = context.lifecycleState == LifecycleState.RESUMED
++  private val preparePromises = mutableListOf<Promise>()
++  private var active: Download? = null
++  private val estimates = mutableMapOf<String, Estimate>()
++  private var networkObserverRegistered = false
++
++  private data class Progress(var completed: Long = 0, var required: Long = 0, var bytes: Long = 0)
++  private class Download(
++    val id: String, val operationId: String, val logicalId: String,
++    val spec: JSONObject, val refresh: Boolean, val mobile: Boolean,
++  ) {
++    val cancelables = mutableListOf<Cancelable>()
++    val style = Progress()
++    val tiles = Progress()
++    var styleReady = false
++    var lastEmission = 0L
++  }
++  private class Estimate(val promise: Promise) {
++    var cancelable: Cancelable? = null
++    var timeout: Runnable? = null
++  }
++
++  private val monitor = object : Runnable {
++    override fun run() {
++      val job = active ?: return
++      val failure = policyFailure(job)
++      if (failure != null) stop(job, "paused", failure.first, failure.second)
++      else main.postDelayed(this, 1000)
++    }
++  }
++  private val networkObserver = object : ConnectivityManager.NetworkCallback() {
++    override fun onAvailable(network: Network) = checkNetwork()
++    override fun onLost(network: Network) = checkNetwork()
++    override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) = checkNetwork()
++  }
++
++  init { context.addLifecycleEventListener(this) }
++  override fun getName() = NAME
++  @ReactMethod fun addListener(name: String) = Unit
++  @ReactMethod fun removeListeners(count: Double) = Unit
++
++  private fun onMain(promise: Promise, block: () -> Unit) {
++    main.post {
++      if (invalidated) { promise.reject("UNAVAILABLE", "Offline maps are unavailable."); return@post }
++      try { block() } catch (error: Exception) {
++        promise.reject("OFFLINE_MAPS", "The offline map operation could not finish.", error)
++      }
++    }
++  }
++
++  @ReactMethod fun prepare(promise: Promise) = onMain(promise) {
++    if (tileStore != null) { promise.resolve(null); return@onMain }
++    preparePromises.add(promise)
++    if (preparing) return@onMain
++    preparing = true
++    io.execute {
++      val failure = runCatching {
++        listOf(root, receipts, File(root, "tiles"), File(root, "resources")).forEach {
++          check(it.isDirectory || it.mkdirs()) { "Cannot create map storage" }
++        }
++      }.exceptionOrNull()
++      main.post {
++        if (invalidated) return@post
++        try {
++          if (failure != null) throw failure
++          // The application awaits prepare before constructing any MapView.
++          MapboxMapsOptions.dataPath = File(root, "resources").absolutePath
++          val store = TileStore.create(File(root, "tiles").absolutePath)
++          MapboxMapsOptions.tileStore = store
++          MapboxMapsOptions.tileStoreUsageMode = TileStoreUsageMode.READ_ONLY
++          tileStore = store
++          offlineManager = OfflineManager()
++          connectivity.registerDefaultNetworkCallback(networkObserver)
++          networkObserverRegistered = true
++          preparePromises.forEach { it.resolve(null) }
++        } catch (error: Throwable) {
++          tileStore = null
++          offlineManager = null
++          preparePromises.forEach { it.reject("STORAGE", "Map storage could not open.", error) }
++        } finally {
++          preparePromises.clear()
++          preparing = false
++        }
++      }
++    }
++  }
++
++  private fun requirePrepared(promise: Promise): Boolean {
++    if (tileStore != null && offlineManager != null) return true
++    promise.reject("UNAVAILABLE", "Offline maps have not finished opening.")
++    return false
++  }
++
++  private fun validatedSpec(value: ReadableMap): JSONObject {
++    val spec = JSONObject(value.toHashMap())
++    val bounds = spec.getJSONArray("bounds")
++    require(bounds.length() == 4)
++    val west = bounds.getDouble(0); val south = bounds.getDouble(1)
++    val east = bounds.getDouble(2); val north = bounds.getDouble(3)
++    require(listOf(west, south, east, north).all { it.isFinite() })
++    require(west >= -180 && east <= 180 && west < east && south >= -85.051129 && north <= 85.051129 && south < north)
++    require(spec.getInt("minZoom") in 0..16 && spec.getInt("maxZoom") in spec.getInt("minZoom")..16)
++    require(spec.getString("styleURL") == "mapbox://styles/mapbox/outdoors-v12")
++    require(spec.getString("id").isNotBlank() && spec.getString("name").isNotBlank())
++    require(spec.getJSONArray("center").length() == 2)
++    return spec
++  }
++
++  private fun geometry(spec: JSONObject): Polygon {
++    val bounds = spec.getJSONArray("bounds")
++    val w = bounds.getDouble(0); val s = bounds.getDouble(1)
++    val e = bounds.getDouble(2); val n = bounds.getDouble(3)
++    return Polygon.fromLngLats(listOf(listOf(
++      Point.fromLngLat(w, s), Point.fromLngLat(e, s), Point.fromLngLat(e, n),
++      Point.fromLngLat(w, n), Point.fromLngLat(w, s),
++    )))
++  }
++
++  private fun descriptor(spec: JSONObject) = offlineManager!!.createTilesetDescriptor(
++    TilesetDescriptorOptions.Builder().styleURI(spec.getString("styleURL"))
++      .minZoom(spec.getInt("minZoom").toByte()).maxZoom(spec.getInt("maxZoom").toByte())
++      .pixelRatio(2f).build()
++  ) // Deliberately no stylePackOptions: estimation must not download a style pack.
++
++  @ReactMethod fun estimate(requestId: String, specValue: ReadableMap, promise: Promise) = onMain(promise) {
++    if (!requirePrepared(promise)) return@onMain
++    require(requestId.isNotBlank())
++    val spec = validatedSpec(specValue)
++    cancelEstimateInternal(requestId)
++    val task = Estimate(promise)
++    estimates[requestId] = task
++    val options = TileRegionLoadOptions.Builder().geometry(geometry(spec))
++      .descriptors(listOf(descriptor(spec))).acceptExpired(true).build()
++    try { task.cancelable = tileStore!!.estimateTileRegion(
++      "xc-estimate-${digest(requestId)}", options, TileRegionEstimateOptions(0.05f, 5000L, 15000L, null),
++      { _ -> },
++      { result -> main.post {
++        if (estimates[requestId] !== task) return@post
++        estimates.remove(requestId)
++        task.timeout?.let { main.removeCallbacks(it) }
++        val value = result.value
++        if (value != null && value.errorMargin.isFinite() && value.errorMargin in 0.0..1.0 && value.transferSize >= 0 && value.storageSize >= 0) {
++          task.promise.resolve(Arguments.createMap().apply {
++            putDouble("transferBytes", value.transferSize.toDouble())
++            putDouble("storageBytes", value.storageSize.toDouble())
++            putDouble("errorMargin", value.errorMargin)
++          })
++        } else task.promise.reject("ESTIMATE_UNAVAILABLE", "A download size estimate is unavailable. You can retry or download with size unknown.")
++      } },
++    ) } catch (_: Exception) {
++      estimates.remove(requestId)
++      promise.reject("ESTIMATE_UNAVAILABLE", "A download size estimate is unavailable.")
++      return@onMain
++    }
++    task.timeout = Runnable {
++      if (estimates[requestId] === task) {
++        estimates.remove(requestId)
++        task.cancelable?.cancel()
++        task.promise.reject("ESTIMATE_UNAVAILABLE", "The map size estimate timed out.")
++      }
++    }
++    main.postDelayed(task.timeout!!, 15500L)
++  }
++
++  private fun cancelEstimateInternal(id: String) {
++    val task = estimates.remove(id) ?: return
++    task.timeout?.let { main.removeCallbacks(it) }
++    task.cancelable?.cancel()
++    task.promise.reject("CANCELED", "Map size estimate canceled.")
++  }
++  @ReactMethod fun cancelEstimate(requestId: String, promise: Promise) = onMain(promise) {
++    cancelEstimateInternal(requestId)
++    promise.resolve(null)
++  }
++
++  @ReactMethod fun start(request: ReadableMap, promise: Promise) = onMain(promise) {
++    if (!requirePrepared(promise)) return@onMain
++    if (active != null) { promise.reject("BUSY", "Another map is already downloading."); return@onMain }
++    val job = Download(
++      request.getString("nativeId")!!, request.getString("operationId")!!,
++      request.getString("logicalRegionId")!!, validatedSpec(request.getMap("spec")!!),
++      request.getBoolean("refresh"), request.getBoolean("allowMobileData"),
++    )
++    require(job.id.isNotBlank() && job.operationId.isNotBlank() && job.logicalId.isNotBlank())
++    val failure = policyFailure(job)
++    if (failure != null) { promise.reject(failure.first, failure.second); return@onMain }
++    active = job
++    main.postDelayed(monitor, 1000)
++    // Remove any old receipt before resuming this generation. A successful terminal
++    // SDK callback and durable receipt are both required to publish readiness.
++    io.execute {
++      val failure = runCatching { receipt(job.id).delete() }.exceptionOrNull()
++      main.post {
++        if (active !== job) return@post
++        if (failure != null) stop(job, "error", "STORAGE", "The download could not be saved.")
++        else beginStyle(job)
++      }
++    }
++    promise.resolve(null)
++  }
++
++  private fun beginStyle(job: Download) {
++    if (active !== job) return
++    try {
++      job.cancelables.add(offlineManager!!.loadStylePack(
++        job.spec.getString("styleURL"),
++        StylePackLoadOptions.Builder()
++          .glyphsRasterizationMode(GlyphsRasterizationMode.IDEOGRAPHS_RASTERIZED_LOCALLY)
++          .acceptExpired(!job.refresh).build(),
++        { progress -> main.post {
++          if (active !== job) return@post
++          job.style.completed = progress.completedResourceCount
++          job.style.required = progress.requiredResourceCount
++          job.style.bytes = progress.completedResourceSize
++          emitProgress(job)
++        } },
++        { result -> main.post {
++          if (active !== job) return@post
++          val style = result.value
++          if (style == null) stop(job, "error", "STYLE_DOWNLOAD", "Map appearance resources could not download. Check your connection and retry.")
++          else if (style.requiredResourceCount <= 0 || style.completedResourceCount < style.requiredResourceCount) {
++            stop(job, "error", "INCOMPLETE", "The map appearance download is incomplete. Retry the download.")
++          } else {
++            job.style.completed = style.completedResourceCount
++            job.style.required = style.requiredResourceCount
++            job.style.bytes = style.completedResourceSize
++            job.styleReady = true
++            beginTiles(job)
++          }
++        } },
++      ))
++    } catch (_: Exception) { stop(job, "error", "STYLE_DOWNLOAD", "Map appearance resources could not download.") }
++  }
++
++  private fun beginTiles(job: Download) {
++    if (active !== job) return
++    val failure = policyFailure(job)
++    if (failure != null) { stop(job, "paused", failure.first, failure.second); return }
++    try {
++      val metadata = JSONObject().put("xcOfflineMaps", 1).put("logicalRegionId", job.logicalId).put("spec", job.spec)
++      val options = TileRegionLoadOptions.Builder().geometry(geometry(job.spec))
++        .descriptors(listOf(descriptor(job.spec))).metadata(Value.fromJson(metadata.toString()).value!!)
++        .acceptExpired(!job.refresh)
++        // The native Wi-Fi gate, network callback and monitor enforce the user's
++        // policy. DISALLOW_EXPENSIVE also blocks metered Wi-Fi, which we allow.
++        .networkRestriction(NetworkRestriction.NONE)
++        .build()
++      job.cancelables.add(tileStore!!.loadTileRegion(job.id, options,
++        { progress -> main.post {
++          if (active !== job) return@post
++          job.tiles.completed = progress.completedResourceCount
++          job.tiles.required = progress.requiredResourceCount
++          job.tiles.bytes = progress.completedResourceSize
++          emitProgress(job)
++        } },
++        { result -> main.post {
++          if (active !== job) return@post
++          val region = result.value
++          if (region == null) {
++            val type = result.error?.type
++            val code = when (type) {
++              TileRegionErrorType.TILE_COUNT_EXCEEDED -> "TILE_COUNT_EXCEEDED"
++              TileRegionErrorType.DISK_FULL -> "STORAGE"
++              TileRegionErrorType.CANCELED -> "CANCELED"
++              else -> "DOWNLOAD_FAILED"
++            }
++            val message = when (code) {
++              "TILE_COUNT_EXCEEDED" -> "Mapbox's saved map limit was reached. Choose a smaller area or delete another downloaded area."
++              "STORAGE" -> "There is not enough free storage. Free some space and retry."
++              else -> "The map could not finish downloading. Check your connection and retry."
++            }
++            stop(job, "error", code, message)
++          } else finish(job, region)
++        } },
++      ))
++    } catch (_: Exception) { stop(job, "error", "DOWNLOAD_FAILED", "The map could not start downloading.") }
++  }
++
++  private fun finish(job: Download, region: TileRegion) {
++    if (!job.styleReady || region.requiredResourceCount <= 0 || region.completedResourceCount < region.requiredResourceCount) {
++      stop(job, "error", "INCOMPLETE", "The map download is incomplete. Retry the download.")
++      return
++    }
++    job.tiles.completed = region.completedResourceCount
++    job.tiles.required = region.requiredResourceCount
++    job.tiles.bytes = region.completedResourceSize
++    val record = JSONObject().put("nativeId", job.id).put("operationId", job.operationId).put("logicalRegionId", job.logicalId)
++      .put("configuration", configuration(job.spec)).put("completedAt", System.currentTimeMillis())
++    io.execute {
++      val failure = runCatching { writeReceipt(job.id, record) }.exceptionOrNull()
++      main.post {
++        if (active !== job) {
++          io.execute { deleteReceiptForOperation(job.id, job.operationId) }
++          return@post
++        }
++        if (failure != null) stop(job, "error", "STORAGE", "The finished download could not be saved. Retry to verify it.")
++        else {
++          active = null
++          main.removeCallbacks(monitor)
++          emit(job, "complete")
++        }
++      }
++    }
++  }
++
++  private fun emitProgress(job: Download) {
++    val failure = policyFailure(job)
++    if (failure != null) { stop(job, "paused", failure.first, failure.second); return }
++    val now = android.os.SystemClock.elapsedRealtime()
++    if (now - job.lastEmission < 300) return
++    job.lastEmission = now
++    emit(job, "progress")
++  }
++  private fun emit(job: Download, kind: String, code: String? = null, message: String? = null) {
++    if (invalidated || !context.hasActiveReactInstance()) return
++    val event = Arguments.createMap().apply {
++      putString("nativeId", job.id); putString("operationId", job.operationId); putString("kind", kind)
++      putDouble("completedResources", (job.style.completed + job.tiles.completed).toDouble())
++      putDouble("requiredResources", (job.style.required + job.tiles.required).toDouble())
++      putDouble("completedBytes", (job.style.bytes + job.tiles.bytes).toDouble())
++      if (code != null) putMap("error", Arguments.createMap().apply {
++        putString("code", code); putString("message", message ?: "The map download stopped.")
++      })
++    }
++    context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java).emit(EVENT, event)
++  }
++
++  private fun stop(job: Download, kind: String, code: String, message: String) {
++    if (active !== job) return
++    active = null // Invalidate callbacks before cancel(), which can invoke callbacks.
++    main.removeCallbacks(monitor)
++    job.cancelables.forEach { it.cancel() }
++    io.execute { deleteReceiptForOperation(job.id, job.operationId) }
++    emit(job, kind, code, message)
++  }
++  @ReactMethod fun pause(nativeId: String, operationId: String, promise: Promise) = onMain(promise) {
++    active?.takeIf { it.id == nativeId && it.operationId == operationId }?.let {
++      stop(it, "paused", "USER_PAUSED", "Download paused. Resume when you are ready.")
++    }
++    promise.resolve(null)
++  }
++
++  @ReactMethod fun remove(nativeId: String, promise: Promise) = onMain(promise) {
++    if (!requirePrepared(promise)) return@onMain
++    active?.takeIf { it.id == nativeId }?.let { stop(it, "paused", "USER_PAUSED", "Download canceled.") }
++    tileStore!!.removeTileRegion(nativeId) { result -> main.post {
++      if (result.error != null && result.error?.type != TileRegionErrorType.DOES_NOT_EXIST) {
++        promise.reject("DELETE_FAILED", "The saved map could not be deleted. Retry.")
++      } else io.execute {
++        val failure = runCatching { receipt(nativeId).delete() }.exceptionOrNull()
++        if (failure == null) promise.resolve(null)
++        else promise.reject("STORAGE", "The map download receipt could not be deleted.")
++      }
++    } }
++  }
++
++  @ReactMethod fun list(promise: Promise) = onMain(promise) {
++    if (!requirePrepared(promise)) return@onMain
++    tileStore!!.getAllTileRegions { result -> main.post {
++      val regions = result.value
++      if (regions == null) { promise.reject("LIST_FAILED", "Downloaded maps could not be read. Retry."); return@post }
++      if (regions.isEmpty()) { promise.resolve(Arguments.createArray()); return@post }
++      val output = Arguments.createArray()
++      var remaining = regions.size
++      var failed = false
++      fun done(value: WritableMap? = null) {
++        if (value != null) output.pushMap(value)
++        remaining -= 1
++        if (remaining == 0) {
++          if (failed) promise.reject("LIST_FAILED", "Some downloaded maps could not be verified. Retry.")
++          else promise.resolve(output)
++        }
++      }
++      regions.forEach { region ->
++        tileStore!!.getTileRegionMetadata(region.id) { metadataResult -> main.post {
++          try {
++            val raw = metadataResult.value
++            if (raw == null) { failed = true; done(); return@post }
++            val metadata = JSONObject(raw.toJson())
++            if (metadata.optInt("xcOfflineMaps") != 1) { done(); return@post }
++            val spec = metadata.getJSONObject("spec")
++            val logicalId = metadata.getString("logicalRegionId")
++            offlineManager!!.getStylePack(spec.getString("styleURL")) { styleResult -> main.post {
++              val style = styleResult.value
++              val resourcesReady = style != null && style.requiredResourceCount > 0 &&
++                style.completedResourceCount >= style.requiredResourceCount &&
++                region.requiredResourceCount > 0 && region.completedResourceCount >= region.requiredResourceCount
++              io.execute {
++                val saved = runCatching { receipt(region.id).openRead().use { JSONObject(it.readBytes().toString(Charsets.UTF_8)) } }.getOrNull()
++                val receiptReady = saved?.optString("nativeId") == region.id &&
++                  saved.optString("logicalRegionId") == logicalId && saved.optString("configuration") == configuration(spec)
++                main.post {
++                  done(Arguments.createMap().apply {
++                    putString("id", region.id); putString("logicalRegionId", logicalId)
++                    putMap("spec", jsonMap(spec)); putBoolean("ready", resourcesReady && receiptReady)
++                    putDouble("completedResources", region.completedResourceCount.toDouble())
++                    putDouble("requiredResources", region.requiredResourceCount.toDouble())
++                    putDouble("completedBytes", region.completedResourceSize.toDouble())
++                  })
++                }
++              }
++            } }
++          } catch (_: Exception) { failed = true; done() }
++        } }
++      }
++    } }
++  }
++
++  @ReactMethod fun storage(promise: Promise) = onMain(promise) {
++    if (!requirePrepared(promise)) return@onMain
++    io.execute {
++      try {
++        val seen = mutableSetOf<String>()
++        fun allocated(file: File): Long {
++          val stat = try { Os.lstat(file.absolutePath) } catch (error: ErrnoException) {
++            // The SDK can retire a WAL/temporary file during a storage scan.
++            if (error.errno == OsConstants.ENOENT) return 0 else throw error
++          }
++          if (!seen.add("${stat.st_dev}:${stat.st_ino}")) return 0
++          if (OsConstants.S_ISLNK(stat.st_mode)) return 0
++          val own = stat.st_blocks * 512L
++          return if (OsConstants.S_ISDIR(stat.st_mode)) own + (file.listFiles()
++            ?: throw IllegalStateException("Cannot inspect map storage")).sumOf { allocated(it) } else own
++        }
++        val used = allocated(root)
++        val free = StatFs(root.absolutePath).availableBytes
++        promise.resolve(Arguments.createMap().apply {
++          putDouble("usedBytes", used.toDouble()); putDouble("freeBytes", free.toDouble())
++        })
++      } catch (_: Exception) { promise.reject("STORAGE", "Map storage could not be measured.") }
++    }
++  }
++
++  private fun policyFailure(job: Download): Pair<String, String>? {
++    if (!foreground) return "BACKGROUND" to "Download paused while the app is in the background."
++    if (!networkAllowed(job.mobile)) return "NETWORK" to if (job.mobile)
++      "Download paused until a connection is available." else "Download paused. Connect to Wi-Fi or allow mobile data."
++    return try {
++      if (StatFs(root.absolutePath).availableBytes <= RESERVE)
++        "STORAGE" to "Download paused to leave free space on your phone. Free some space and retry."
++      else null
++    } catch (_: Exception) { "STORAGE" to "Free storage could not be checked. Retry the download." }
++  }
++  private fun networkAllowed(mobile: Boolean): Boolean = try {
++    val capabilities = connectivity.getNetworkCapabilities(connectivity.activeNetwork)
++    capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
++      capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) &&
++      (mobile || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
++  } catch (_: Exception) { false }
++  private fun checkNetwork() { main.post {
++    active?.let { job -> if (!networkAllowed(job.mobile))
++      stop(job, "paused", "NETWORK", "Download paused after the connection changed. Reconnect or allow mobile data, then resume.") }
++  } }
++
++  private fun receipt(id: String) = AtomicFile(File(receipts, "${digest(id)}.json"))
++  private fun digest(value: String) = MessageDigest.getInstance("SHA-256")
++    .digest(value.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
++  private fun configuration(spec: JSONObject) = listOf(
++    spec.getString("styleURL"), spec.getInt("minZoom"), spec.getInt("maxZoom"),
++    (0..3).joinToString(",") { spec.getJSONArray("bounds").getDouble(it).toString() },
++  ).joinToString("|")
++  private fun writeReceipt(id: String, value: JSONObject) {
++    val file = receipt(id)
++    val stream = file.startWrite()
++    try { stream.write(value.toString().toByteArray(Charsets.UTF_8)); file.finishWrite(stream) }
++    catch (error: Exception) { file.failWrite(stream); throw error }
++  }
++  private fun deleteReceiptForOperation(id: String, operationId: String) {
++    val file = receipt(id)
++    val record = runCatching { file.openRead().use { JSONObject(it.readBytes().toString(Charsets.UTF_8)) } }.getOrNull()
++    if (record?.optString("operationId") == operationId) file.delete()
++  }
++  private fun jsonMap(value: JSONObject): WritableMap = Arguments.createMap().apply {
++    value.keys().forEach { key -> when (val child = value.get(key)) {
++      JSONObject.NULL -> putNull(key)
++      is JSONObject -> putMap(key, jsonMap(child))
++      is JSONArray -> putArray(key, jsonArray(child))
++      is Number -> putDouble(key, child.toDouble())
++      is Boolean -> putBoolean(key, child)
++      else -> putString(key, child.toString())
++    } }
++  }
++  private fun jsonArray(value: JSONArray): WritableArray = Arguments.createArray().apply {
++    for (index in 0 until value.length()) when (val child = value.get(index)) {
++      JSONObject.NULL -> pushNull()
++      is JSONObject -> pushMap(jsonMap(child))
++      is JSONArray -> pushArray(jsonArray(child))
++      is Number -> pushDouble(child.toDouble())
++      is Boolean -> pushBoolean(child)
++      else -> pushString(child.toString())
++    }
++  }
++
++  override fun onHostResume() { main.post { foreground = true } }
++  override fun onHostPause() { main.post {
++    foreground = false
++    active?.let { stop(it, "paused", "BACKGROUND", "Download paused while the app is in the background.") }
++    estimates.keys.toList().forEach { cancelEstimateInternal(it) }
++  } }
++  override fun onHostDestroy() = onHostPause()
++  override fun invalidate() {
++    main.post {
++      active?.let { stop(it, "paused", "BACKGROUND", "Download paused.") }
++      estimates.keys.toList().forEach { cancelEstimateInternal(it) }
++      invalidated = true
++      preparePromises.forEach { it.reject("UNAVAILABLE", "Offline maps closed.") }
++      preparePromises.clear()
++      if (networkObserverRegistered) runCatching { connectivity.unregisterNetworkCallback(networkObserver) }
++      context.removeLifecycleEventListener(this)
++    }
++    super.invalidate()
++  }
++}

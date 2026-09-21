@@ -24,6 +24,15 @@ export function EvidenceBlock({
   onExportDiagnostics: () => void;
   exportDisabled: boolean;
 }) {
+  if (flight.source === 'archive') {
+    return <View style={[styles.block, styles.archive]}>
+      <Text style={styles.headerTitle}>Restored from your account</Text>
+      <Text style={styles.headerSummary}>
+        This flight summary was restored from your account. Original GPS samples,
+        battery readings, barometer data and recorder diagnostics were not backed up.
+      </Text>
+    </View>;
+  }
   const metrics = flight.metrics;
   const session = flight.session;
   const summary = metrics
@@ -117,6 +126,7 @@ function Row({
 
 
 const styles = StyleSheet.create({
+  archive: { paddingHorizontal: 16, paddingVertical: 13, gap: 4 },
   block: {
     marginHorizontal: 16,
     backgroundColor: paper.cardAlt,

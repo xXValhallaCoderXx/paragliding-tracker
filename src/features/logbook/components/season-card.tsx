@@ -19,7 +19,7 @@ export function SeasonCard({ summary }: { summary: SeasonSummary }) {
       <JournalArt scene="flight" height={165} />
       <View style={styles.headerRow}>
         <Text style={styles.eyebrow}>SEASON {summary.year}</Text>
-        <Text style={styles.eyebrowQuiet}>FROM THIS PHONE</Text>
+        <Text style={styles.eyebrowQuiet}>YOUR LOGBOOK</Text>
       </View>
       <View style={styles.airtimeRow}>
         <Text style={styles.airtime}>{formatAirtimeShort(summary.airtimeMs)}</Text>

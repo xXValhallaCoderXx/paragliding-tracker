@@ -16,6 +16,7 @@ import { MetadataSheet } from '@/features/flights/components/metadata-sheet';
 import { siteAttribution } from '@/features/flights/site-picker';
 import { JournalArt } from '@/components/ui/journal-art';
 import { PostcardComposer } from '@/features/postcard/postcard-composer';
+import { FlightSharingSection } from '@/features/feed/flight-sharing-section';
 import { canSharePostcard } from '@/features/postcard/presentation';
 import {
   BusyRow,
@@ -27,6 +28,7 @@ import {
   TopBar,
 } from '@/components/ui';
 import { recorderService } from '@/recorder/recorder-service';
+import { shareArchivedIgc } from '@/journal/artifacts';
 import type { ExportArtifact, FlightDetail, FlightMetadataPatch } from '@/recorder/types';
 import {
   useDeleteFlightMutation,
@@ -48,6 +50,7 @@ import { StatGrid } from '@/features/flights/components/stat-grid';
 import { FlightMapPreview } from '@/features/flights/components/flight-map-preview';
 import {
   trackPlateAccessibilityLabel,
+  archivedRouteMessage,
   trackPlateLabels,
   trackPlateState,
 } from '@/features/flights/track-presentation';
@@ -122,6 +125,12 @@ export default function FlightDetailScreen() {
 
   async function exportAndShare(kind: ExportArtifact['kind']) {
     if (!flight) return;
+    if (flight.source === 'archive') {
+      if (kind !== 'igc') throw new Error('Original recorder diagnostics were not backed up.');
+      await shareArchivedIgc(flight.id);
+      setMessage({ text: 'Original archived IGC opened in the share sheet.', tone: 'good' });
+      return;
+    }
     const artifact =
       kind === 'igc'
         ? await recorderService.exportIgc(flight.recordingSessionId)
@@ -141,8 +150,8 @@ export default function FlightDetailScreen() {
     Alert.alert(
       'Delete this flight permanently?',
       signedIn
-        ? 'The track, stats, notes and generated files are deleted locally. Deletion of any account copy is queued for sync. This cannot be undone.'
-        : 'The track, stats, notes and generated files are deleted locally. Any account deletion must sync when you reconnect. Export anything you want to keep first.',
+        ? 'This flight, its archived IGC and any original recording are deleted from your account and linked phones when they sync. The copy on this phone is removed now. This cannot be undone.'
+        : 'The copy on this phone is removed now. When you sign back in, deletion also applies to your account and linked phones, including any original recording. Export anything you want to keep first.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -186,8 +195,9 @@ export default function FlightDetailScreen() {
   const isFinished = flight.status === 'completed' || flight.status === 'partial';
   const hasTrack = Boolean(metrics && metrics.fixCount > 0 && metrics.quality !== 'no_track');
   const canReview = isFinished && !isOpen && !isProcessing;
-  const canExportIgc = canReview && hasTrack;
-  const canExportDiagnostics = canReview;
+  const archived = flight.source === 'archive';
+  const canExportIgc = canReview && (archived ? flight.archive.downloadedAt !== null : hasTrack);
+  const canExportDiagnostics = canReview && !archived;
   const canDelete = canReview;
   const status = detailStatus(flight);
   const savedContext: SavedContext =
@@ -206,15 +216,27 @@ export default function FlightDetailScreen() {
           <TopBar onBack={leaveDetail} backLabel="Back to logbook" />
 
           <FlightHero flight={flight} status={status} saved={savedContext} insight={insight} />
+          {flight.source === 'archive' && flight.archive.trackState !== 'ready' ? <View style={styles.notices}>
+            <Notice title={flight.archive.downloadedAt !== null ? 'Archive update waiting' : flight.archive.trackState === 'missing' ? 'No archived route' : 'Archived route not ready'}
+              tone={flight.archive.trackState === 'error' ? 'danger' : 'info'}>
+              {flight.archive.downloadedAt !== null ? `Your previously downloaded route remains available for replay and sharing.${flight.archive.error ? ` ${flight.archive.error}` : ''}`
+                : flight.archive.error ?? (flight.archive.trackState === 'missing'
+                ? 'This flight has a backed-up summary but no archived IGC route. Its summary and your notes are still available.'
+                : 'Your flight summary is restored. The archived route is waiting to download; manage restoration from Account.')}
+            </Notice>
+            {flight.archive.trackState === 'error' && signedIn ? <Button label="Retry archived route"
+              onPress={() => sync.retryRestore({ allowMobileData: false })} /> : null}
+            {flight.archive.trackState !== 'missing' ? <Button label="Open restoration settings" onPress={() => router.push('/account')} /> : null}
+          </View> : null}
           <View style={styles.route}>
-          <FlightMapPreview
+          {flight.source === 'archive' && track.length === 0 ? <Text style={styles.actionsNote}>{archivedRouteMessage(flight)}</Text> : <FlightMapPreview
             segments={track}
             variant="hero"
             state={plateState}
             takeoffLabel={plateLabels.takeoff}
             landingLabel={plateLabels.landing}
             describe={(plate) => trackPlateAccessibilityLabel(flight, plate)}
-          />
+          />}
 
           </View>
           {canReview ? (
@@ -225,6 +247,8 @@ export default function FlightDetailScreen() {
                 onPress={() => setPostcardOpen(true)} /> : null}
             </View>
           ) : null}
+
+          {canReview && metrics !== null ? <FlightSharingSection flightId={flight.id} /> : null}
 
           {isOpen || isProcessing || metrics?.quality !== 'healthy' || message ? (
             <View style={styles.notices}>
@@ -254,8 +278,8 @@ export default function FlightDetailScreen() {
               ) : null}
               {metrics?.quality === 'gaps' ? (
                 <Notice tone="warning" title="Track has timing gaps">
-                  Distance and maximum values may be incomplete. The gaps are listed under “How this
-                  was recorded”.
+                  {archived ? 'The original flight summary reported timing gaps. Distance and maximum values may be incomplete; raw recorder evidence was not backed up.'
+                    : 'Distance and maximum values may be incomplete. The gaps are listed under “How this was recorded”.'}
                 </Notice>
               ) : null}
               {metrics?.quality === 'no_track' ? (
@@ -306,7 +330,7 @@ export default function FlightDetailScreen() {
           </View>
           {savedContext ? <View style={styles.actions}><JournalArt scene="landing" height={140} /></View> : null}
 
-          <SectionLabel className="px-[18px] pt-[20px] pb-[8px]">Recording integrity</SectionLabel>
+          <SectionLabel className="px-[18px] pt-[20px] pb-[8px]">{archived ? 'Archive provenance' : 'Recording integrity'}</SectionLabel>
           <EvidenceBlock
             flight={flight}
             open={evidenceOpen}
@@ -323,7 +347,9 @@ export default function FlightDetailScreen() {
                 busy === 'Preparing IGC…'
                   ? 'Preparing IGC…'
                   : canExportIgc
-                    ? 'Share unsigned IGC file'
+                    ? archived ? 'Share original archived IGC' : 'Share unsigned IGC file'
+                    : archived
+                      ? 'Archived IGC not available yet'
                     : isOpen
                       ? 'IGC available after saving flight'
                       : isProcessing
@@ -335,11 +361,11 @@ export default function FlightDetailScreen() {
               busy={busy === 'Preparing IGC…'}
               disabled={!canExportIgc || Boolean(busy)}
               onPress={() => void runAction('Preparing IGC…', () => exportAndShare('igc'))}
-              accessibilityHint="Opens the share sheet with the unsigned IGC file"
+              accessibilityHint={archived ? 'Shares the original archived IGC bytes without changing its headers' : 'Opens the share sheet with the unsigned IGC file'}
             />
             <Text style={styles.actionsNote}>
-              Unsigned IGC — fine for your own archive or another app, not valid for competition
-              scoring.
+              {archived ? 'The original archived file is shared unchanged. It does not restore raw recorder evidence.'
+                : 'Unsigned IGC — fine for your own archive or another app, not valid for competition scoring.'}
             </Text>
           </View>
 
@@ -351,8 +377,8 @@ export default function FlightDetailScreen() {
             <Text style={styles.dangerTitle}>Delete flight</Text>
             <Text style={styles.dangerBody}>
               {signedIn
-                ? 'Removes the local recording and queues deletion of any account copy. Export anything you want to keep first.'
-                : 'Removes the local recording. If previously backed up, deletion must sync when you reconnect.'}
+                ? 'Deletes this flight from your account and linked phones when they sync, including any original recording. Export anything you want to keep first.'
+                : 'Removes this copy now. If backed up, deletion applies to your account and linked phones when you sign back in.'}
             </Text>
             <Button
               label={canDelete ? 'Delete flight permanently' : isOpen ? 'Cannot delete an open flight' : 'Cannot delete while processing'}
@@ -372,7 +398,8 @@ function detailStatus(flight: FlightDetail): DetailStatus {
   if (flight.sessionStatus === 'interrupted') return { label: 'Needs attention', tone: 'danger' };
   if (flight.sessionStatus === 'recording') return { label: 'In progress', tone: 'muted' };
   if (flight.status === 'partial') return { label: 'Partial', tone: 'warning' };
-  if (flight.status === 'processing' || !flight.metrics) return { label: 'Processing', tone: 'muted' };
+  if (isFlightProcessing(flight)) return { label: 'Processing', tone: 'muted' };
+  if (!flight.metrics) return { label: 'Saved', tone: 'muted' };
   if (flight.metrics.quality === 'no_track') return { label: 'No track', tone: 'danger' };
   if (flight.metrics.quality === 'gaps') return { label: 'Track gaps', tone: 'warning' };
   return { label: 'Good track', tone: 'good' };

@@ -5,6 +5,18 @@ import type { TrackSegments } from '@/lib/track/types';
 import { isFlightProcessing } from '@/features/logbook/logbook';
 import type { FlightSummary } from '@/recorder/types';
 
+/** A missing downloaded shape does not imply the original flight had no GPS. */
+export function archivedRouteMessage(flight: FlightSummary): string | null {
+  if (flight.source !== 'archive') return null;
+  switch (flight.archive.trackState) {
+    case 'pending': return 'Archived route waiting to download.';
+    case 'downloading': return 'Downloading archived route…';
+    case 'error': return 'Archived route unavailable. Open this flight to retry.';
+    case 'missing': return 'Flight summary restored; no archived route was backed up.';
+    case 'ready': return 'No usable positions are available in this archived route.';
+  }
+}
+
 /**
  * Turning a flight into something the plate can draw.
  *

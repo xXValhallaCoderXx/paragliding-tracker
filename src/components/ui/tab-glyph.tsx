@@ -1,6 +1,6 @@
 import { View, type ColorValue } from 'react-native';
 
-export type TabGlyphShape = 'logbook' | 'pilot';
+export type TabGlyphShape = 'logbook' | 'pilot' | 'friends';
 
 /**
  * Tab bar icons, drawn from primitives.
@@ -20,6 +20,15 @@ export function TabGlyph({
   focused: boolean;
 }) {
   const width = focused ? 2 : 1.5;
+  if (shape === 'friends') {
+    return <View style={{ width: 24, height: 20 }}>
+      {[0, 11].map(left => <View key={left} style={{ position: 'absolute', left, top: 1, alignItems: 'center' }}>
+        <View style={{ width: 7, height: 7, borderRadius: 4, borderWidth: width, borderColor: color }} />
+        <View style={{ marginTop: 2, width: 12, height: 8, borderTopLeftRadius: 8, borderTopRightRadius: 8,
+          borderWidth: width, borderBottomWidth: 0, borderColor: color }} />
+      </View>)}
+    </View>;
+  }
   if (shape === 'pilot') {
     return (
       <View style={{ width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}>

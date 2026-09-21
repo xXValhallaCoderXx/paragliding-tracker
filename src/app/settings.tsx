@@ -109,6 +109,11 @@ export default function SettingsScreen() {
           <SectionLabel>This phone</SectionLabel>
           <Card className="px-[16px] py-[4px]">
             <ListRow
+              label="Offline maps"
+              detail="Save map areas before travelling, for recording and replay."
+              action={{ label: 'Manage', onPress: () => router.push('/offline-maps') }}
+            />
+            <ListRow
               label="Flights stored"
               value={flightCount === null ? '—' : String(flightCount)}
             />

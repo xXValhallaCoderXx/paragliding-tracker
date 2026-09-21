@@ -2,7 +2,7 @@ import React from 'react';
 import { AppState, ScrollView } from 'react-native';
 
 import { FlightMap } from '@/components/flight-map';
-import { Button } from '@/components/ui';
+import { Button, Chip, Notice } from '@/components/ui';
 import type { FlightReplay } from '@/lib/replay/model';
 import { ReplayPlayer } from '../replay/replay-player';
 import { ReplayRoute } from '../replay/replay-plots';
@@ -53,6 +53,16 @@ const hasGrid = () => rendered.root.findAllByType(ReplayRoute).length > 0;
 async function press(callback: () => void) { await act(async () => callback()); }
 async function mount() { await act(async () => { rendered = create(React.createElement(ReplayPlayer, { replay })); }); }
 async function appState(state: string) { await press(() => listeners.get('change')?.forEach((listener) => listener(state))); }
+
+it('uses the same map for archived points and explains unavailable original telemetry', async () => {
+  await act(async () => { rendered = create(React.createElement(ReplayPlayer, {
+    replay: { ...replay, source: 'archive', points: replay.points.map((point) => ({ ...point, speed: null })) },
+  })); });
+  expect(hasMap()).toBe(true);
+  expect(rendered.root.findAllByType(Chip).some((node) => node.props.label === 'Restored')).toBe(true);
+  expect(rendered.root.findAllByType(Notice).some((node) => node.props.title === 'Replay from archived IGC')).toBe(true);
+  expect(map().track.first).toEqual([replay.points[0]!.longitude, replay.points[0]!.latitude]);
+});
 
 beforeEach(() => {
   mockAvailable = true;

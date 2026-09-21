@@ -9,12 +9,12 @@ import { buildStaticMapPreview } from '@/lib/track/static-map';
 import { fonts, paper } from '@/ui/theme';
 import { TrackPlate } from './track-plate';
 
-type PreviewProps = ComponentProps<typeof TrackPlate> & { enabled?: boolean };
+type PreviewProps = ComponentProps<typeof TrackPlate> & { enabled?: boolean; cachePolicy?: 'disk' | 'memory' | 'none' };
 type Preview = NonNullable<ReturnType<typeof buildStaticMapPreview>>;
 export const STATIC_MAP_TIMEOUT_MS = 15_000;
 
 /** One static image with a local route overlay; never mounts a native map or a pilot. */
-export function FlightMapPreview({ enabled = true, ...plateProps }: PreviewProps) {
+export function FlightMapPreview({ enabled = true, cachePolicy = 'disk', ...plateProps }: PreviewProps) {
   const { segments, state, describe } = plateProps;
   // The React Compiler memoizes this from the stable stored-track props.
   const preview = enabled && state === 'ready'
@@ -25,13 +25,14 @@ export function FlightMapPreview({ enabled = true, ...plateProps }: PreviewProps
   const description = describe
     ? `${describe(buildTrackPlate(plateProps))}. Start is an outlined circle; stop is a filled square.`
     : undefined;
-  return <StaticPreview key={preview.url} preview={preview} description={description} fallback={fallback} />;
+  return <StaticPreview key={`${cachePolicy}:${preview.url}`} preview={preview} description={description} fallback={fallback} cachePolicy={cachePolicy} />;
 }
 
-function StaticPreview({ preview, description, fallback }: {
+function StaticPreview({ preview, description, fallback, cachePolicy }: {
   preview: Preview;
   description?: string;
   fallback: React.ReactNode;
+  cachePolicy: 'disk' | 'memory' | 'none';
 }) {
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   // Mapbox permits a 12-hour client cache. A later mount uses a fresh disk-cache key;
@@ -58,7 +59,7 @@ function StaticPreview({ preview, description, fallback }: {
     <View pointerEvents="none" importantForAccessibility="no-hide-descendants"
       style={[StyleSheet.absoluteFill, !ready && styles.hidden]}>
       <Image source={{ uri: preview.url, cacheKey: `${preview.url}:${cachePeriod}` }} style={StyleSheet.absoluteFill} contentFit="contain"
-        cachePolicy="disk" recyclingKey={preview.url} transition={0} accessible={false}
+        cachePolicy={cachePolicy} recyclingKey={preview.url} transition={0} accessible={false}
         onLoad={() => finish('ready')} onError={() => finish('failed')} />
       {ready ? <>
         <Svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`}>

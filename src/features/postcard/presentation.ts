@@ -17,7 +17,7 @@ export const POSTCARD_SIZE = { square: { width: 1080, height: 1080 }, story: { w
 
 export function canSharePostcard(flight: FlightSummary): boolean {
   return (flight.status === 'completed' || flight.status === 'partial') &&
-    flight.sessionStatus === 'completed' && flight.endedAt !== null && flight.metrics !== null;
+    (flight.source === 'archive' || flight.sessionStatus === 'completed') && flight.endedAt !== null && flight.metrics !== null;
 }
 
 export function postcardCaption(value: string): string {
@@ -54,7 +54,7 @@ export function postcardSource(flight: FlightSummary, track: TrackSegments, prof
     airtime: Number.isFinite(metrics.durationMs) && metrics.durationMs >= 0 ? formatAirtime(metrics.durationMs) : 'Unavailable',
     distance: hasGps && Number.isFinite(metrics.trackDistanceMetres) && metrics.trackDistanceMetres >= 0 ? formatDistance(metrics.trackDistanceMetres) : 'Unavailable',
     altitude: hasGps && metrics.maxGpsAltitude !== null && Number.isFinite(metrics.maxGpsAltitude) ? formatMetres(metrics.maxGpsAltitude) : 'Unavailable',
-    labels: Object.freeze([...(partial ? ['Partial flight'] : []), ...(gaps ? ['Track gaps'] : [])]),
+    labels: Object.freeze([...(flight.source === 'archive' ? ['Restored flight'] : []), ...(partial ? ['Partial flight'] : []), ...(gaps ? ['Track gaps'] : [])]),
     attribution: site ? siteAttribution(flight.siteSource) : null,
     pilotName: profile?.pilotName?.trim() || null,
     segments: Object.freeze(segments),

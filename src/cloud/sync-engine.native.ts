@@ -1,3 +1,9 @@
+import { archiveRepository } from '@/archives/repository';
+import { notifyJournal, setJournalOwner } from '@/journal/context';
+import { deleteRemoteFlight, mergeRemoteFlight, pullArchiveCatalogue, pullFlightDeletions, pushArchiveChanges } from './archive-sync.native';
+import { downloadArchiveIgc } from './archive-download.native';
+import { RestoreTransfer } from './restore-transfer';
+import { INITIAL_RESTORE_ENVIRONMENT, type RestoreEnvironment } from './restore-plan';
 import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
 
@@ -20,6 +26,7 @@ import {
   clearFlightDeletion,
   countPendingSync,
   getCloudLink,
+  getFlightDetail,
   getPilotProfile,
   getUnfinishedSession,
   getSessionExportData,
@@ -33,23 +40,15 @@ import {
   recordFlightSyncFailure,
   setCloudCursors,
   updatePilotProfile,
-  applyRemoteFlightMetadata,
+  markFlightCloudOwner,
 } from '@/recorder/database.native';
 import { buildUnsignedIgc } from '@/recorder/igc';
 import type { FlightSyncCandidate } from '@/recorder/types';
 
 /**
- * Offline-first backup of the local logbook.
- *
- * Three properties hold at all times, and everything else is detail:
- *
- * 1. **The phone is the source of truth.** Flight facts — status, timestamps, metrics,
- *    IGC references — are pushed and never pulled. Only title/site/notes merge back.
- * 2. **Capture always wins.** The gate refuses to run while recording, and the dirty
- *    query independently excludes unfinished flights. No network call ever happens
- *    inside a database transaction.
- * 3. **Nothing here can lose local data.** The only local write outside the sync
- *    bookkeeping tables is a guarded metadata update; a remote signal never deletes.
+ * Foreground backup and private archive restoration. Captured evidence remains
+ * separate from restored summaries and verified IGCs. Capture takes priority;
+ * only an owner-scoped explicit deletion marker can remove completed evidence.
  */
 
 const INITIAL_SNAPSHOT: SyncSnapshot = {
@@ -70,6 +69,7 @@ let cycleNextAttemptAt = 0;
 let snapshot: SyncSnapshot = INITIAL_SNAPSHOT;
 const listeners = new Set<(snapshot: SyncSnapshot) => void>();
 let inFlight: Promise<SyncSnapshot> | null = null;
+let countRefreshRevision = 0;
 
 function publish(patch: Partial<SyncSnapshot>): SyncSnapshot {
   snapshot = { ...snapshot, ...patch };
@@ -85,9 +85,19 @@ function messageOf(error: unknown): string {
 }
 
 async function refreshCounts(): Promise<void> {
+  const generation = authGeneration;
+  const owner = activeOwner;
+  const revision = ++countRefreshRevision;
+  const current = () => generation === authGeneration && revision === countRefreshRevision;
   try {
-    const pending = await countPendingSync();
-    publish({ pendingFlights: pending.flights, pendingDeletions: pending.deletions });
+    const now = Date.now();
+    const [pending, metadata, deletions] = await Promise.all([
+      countPendingSync(owner ?? undefined),
+      owner ? archiveRepository.listDirtyMetadata(owner, Number.MAX_SAFE_INTEGER, now, true) : [],
+      owner ? archiveRepository.listPendingDeletions(owner, Number.MAX_SAFE_INTEGER, now, true) : [],
+    ]);
+    if (!current()) return;
+    publish({ pendingFlights: pending.flights + metadata.length, pendingDeletions: pending.deletions + deletions.length });
   } catch {
     // Counts are cosmetic; never let them fail a cycle.
   }
@@ -96,6 +106,7 @@ async function refreshCounts(): Promise<void> {
     // provider subscribes. Signed-out users never complete a cycle, and the logbook
     // needs the link to offer reconnection to an existing backup.
     const link = await getCloudLink();
+    if (!current()) return;
     publish({ linkedUserId: link.userId });
   } catch {
     // Same contract: never fail a cycle over it.
@@ -106,8 +117,10 @@ async function refreshCounts(): Promise<void> {
 // Push
 // ---------------------------------------------------------------------------
 
-async function pushProfile(userId: string): Promise<void> {
+async function pushProfile(userId: string, guard: () => void): Promise<void> {
+  guard();
   const profile = await getPilotProfile();
+  if (profile.updatedAt === 0 && profile.pushedUpdatedAt === null) return;
   if (profile.pushedUpdatedAt !== null && profile.pushedUpdatedAt >= profile.updatedAt) return;
 
   const { error } = await getSupabase()
@@ -119,31 +132,24 @@ async function pushProfile(userId: string): Promise<void> {
   if (error) throw error;
   // The watermark is the value that was actually uploaded, not "now" — an edit made
   // while the request was in flight stays dirty and is pushed on the next cycle.
+  guard();
   await markPilotProfilePushed(profile.updatedAt);
 }
 
-async function pushDeletions(userId: string, now: number, ignoreBackoff: boolean): Promise<unknown[]> {
+async function pushDeletions(userId: string, now: number, ignoreBackoff: boolean, guard: () => void): Promise<unknown[]> {
   const failures: unknown[] = [];
-  const tombstones = await listPendingFlightDeletions(CLOUD_CONFIG.pushBatchSize, now, { ignoreBackoff });
+  const tombstones = await listPendingFlightDeletions(CLOUD_CONFIG.pushBatchSize, now, { ignoreBackoff, ownerUserId: userId });
   for (const tombstone of tombstones) {
     try {
-      // Storage first: an orphaned object nobody can list is worse than a flight row
-      // that gets deleted on the next pass.
-      const { error: removeError } = await getSupabase()
-        .storage.from(CLOUD_CONFIG.igcBucket)
-        .remove([igcObjectPath(userId, tombstone.flightId)]);
-      // A missing object is the expected case for a flight that was never uploaded.
-      if (removeError && !/not found/i.test(removeError.message)) throw removeError;
+      guard();
+      // Legacy unowned receipts must never be silently rebound to a different pilot.
+      if (tombstone.ownerUserId !== userId) continue;
+      await deleteRemoteFlight(userId, tombstone.flightId, guard);
+      guard();
 
-      const { error } = await getSupabase()
-        .from('flights')
-        .delete()
-        .eq('id', tombstone.flightId)
-        .eq('user_id', userId);
-      if (error) throw error;
-
-      await clearFlightDeletion(tombstone.flightId);
+      await clearFlightDeletion(tombstone.flightId, userId);
     } catch (error) {
+      guard();
       const kind = classifySyncError(error);
       if (kind === 'reauth') throw error;
       const backoff = nextBackoff(tombstone.attemptCount, now, Math.random);
@@ -151,6 +157,7 @@ async function pushDeletions(userId: string, now: number, ignoreBackoff: boolean
         tombstone.flightId,
         messageOf(error),
         kind === 'fatal' ? now + CLOUD_CONFIG.backoffMaxMs : backoff.nextAttemptAt,
+        userId,
       );
       failures.push(error);
     }
@@ -158,7 +165,8 @@ async function pushDeletions(userId: string, now: number, ignoreBackoff: boolean
   return failures;
 }
 
-async function pushIgc(flight: FlightSyncCandidate, userId: string): Promise<void> {
+async function pushIgc(flight: FlightSyncCandidate, userId: string, guard: () => void): Promise<void> {
+  guard();
   if (!hasUsableTrack(flight)) return;
 
   const data = await getSessionExportData(flight.recordingSessionId);
@@ -171,6 +179,7 @@ async function pushIgc(flight: FlightSyncCandidate, userId: string): Promise<voi
   const sha256 = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, igc.content);
   if (!shouldUploadIgc(flight, sha256)) return;
 
+  guard();
   const objectPath = igcObjectPath(userId, flight.id);
   const { error: uploadError } = await getSupabase()
     .storage.from(CLOUD_CONFIG.igcBucket)
@@ -180,6 +189,7 @@ async function pushIgc(flight: FlightSyncCandidate, userId: string): Promise<voi
     });
   if (uploadError) throw uploadError;
 
+  guard();
   const byteCount = new TextEncoder().encode(igc.content).byteLength;
   const { error } = await getSupabase()
     .from('flights')
@@ -193,33 +203,46 @@ async function pushIgc(flight: FlightSyncCandidate, userId: string): Promise<voi
     .eq('user_id', userId);
   if (error) throw error;
 
+  guard();
   await markFlightIgcPushed({ flightId: flight.id, sha256, objectPath, pushedAt: Date.now() });
 }
 
-async function pushFlights(userId: string, now: number, ignoreBackoff: boolean): Promise<unknown[]> {
+async function pushFlights(userId: string, now: number, ignoreBackoff: boolean, guard: () => void): Promise<unknown[]> {
   const failures: unknown[] = [];
-  const flights = await listDirtyFlights(CLOUD_CONFIG.pushBatchSize, now, { ignoreBackoff });
+  const flights = await listDirtyFlights(CLOUD_CONFIG.pushBatchSize, now, { ignoreBackoff, ownerUserId: userId });
   for (const flight of flights) {
     try {
-      const { data, error } = await getSupabase()
-        .from('flights')
-        .upsert(flightRow(flight, userId, Platform.OS), { onConflict: 'id' })
-        .select('updated_at')
-        .single();
+      guard();
+      if (flight.cloudOwnerUserId && flight.cloudOwnerUserId !== userId) continue;
+      await markFlightCloudOwner(flight.id, userId);
+      guard();
+      const { data, error } = await getSupabase().rpc('write_private_flight', {
+        p_flight: flightRow(flight, userId, Platform.OS), p_metadata_only: false,
+      });
       if (error) throw error;
+      guard();
+      const canonical = Array.isArray(data) ? data[0] : data;
+      if (!canonical || canonical.id !== flight.id || canonical.user_id !== userId) throw new Error('The flight backup could not be verified.');
+      await mergeRemoteFlight(userId, canonical, guard, flight.updatedAt);
 
+      if (!await getFlightDetail(flight.id)) continue;
       // Only acknowledge the flight after its required IGC has reached the server.
       // An upload failure must leave the flight pending for the next attempt.
-      await pushIgc(flight, userId);
+      await pushIgc(flight, userId, guard);
+      guard();
 
       await markFlightPushed({
         flightId: flight.id,
-        pushedUpdatedAt: flight.updatedAt,
-        remoteUpdatedAt: String(data?.updated_at ?? ''),
+        // mergeRemoteFlight already acknowledges an applied canonical revision.
+        // Otherwise acknowledge only the dispatched edit, preserving a newer local edit.
+        pushedUpdatedAt: Math.min(flight.updatedAt, canonical.client_updated_at),
+        remoteUpdatedAt: canonical.updated_at,
       });
     } catch (error) {
+      guard();
       const kind = classifySyncError(error);
       if (kind === 'reauth') throw error;
+      if (!await getFlightDetail(flight.id)) continue;
       const backoff = nextBackoff(flight.attemptCount, now, Math.random);
       await recordFlightSyncFailure(
         flight.id,
@@ -237,7 +260,8 @@ async function pushFlights(userId: string, now: number, ignoreBackoff: boolean):
 // Pull
 // ---------------------------------------------------------------------------
 
-async function pullProfile(userId: string): Promise<void> {
+async function pullProfile(userId: string, guard: () => void): Promise<void> {
+  guard();
   const { data, error } = await getSupabase()
     .from('profiles')
     .select('pilot_name, glider_type, glider_id, registration_id, client_updated_at')
@@ -246,6 +270,7 @@ async function pullProfile(userId: string): Promise<void> {
   if (error) throw error;
   if (!data) return;
 
+  guard();
   const local = await getPilotProfile();
   if (data.client_updated_at <= local.updatedAt) return;
 
@@ -261,166 +286,252 @@ async function pullProfile(userId: string): Promise<void> {
   await markPilotProfilePushed(data.client_updated_at);
 }
 
-/**
- * Pulls metadata edits and counts what the account holds that this device does not.
- *
- * Cloud-only flights are counted, never materialised: a flight row here would need a
- * `sessions` row and its raw fixes to satisfy the local schema's RESTRICT foreign keys,
- * and inventing one would corrupt the evidence story the recorder exists to protect.
- */
-async function pullFlights(userId: string, cursor: string | null): Promise<string | null> {
-  const query = getSupabase()
-    .from('flights')
-    .select('id, title, site, notes, client_updated_at, updated_at')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: true })
-    .order('id', { ascending: true })
-    .limit(CLOUD_CONFIG.pullPageSize);
-
-  const { data, error } = cursor ? await query.gt('updated_at', cursor) : await query;
-  if (error) throw error;
-  if (!data || data.length === 0) return cursor;
-
-  let cloudOnly = 0;
-  let nextCursor = cursor;
-  for (const row of data) {
-    const outcome = await applyRemoteFlightMetadata(
-      {
-        flightId: row.id,
-        title: row.title,
-        site: row.site,
-        notes: row.notes,
-        clientUpdatedAt: row.client_updated_at,
-      },
-      String(row.updated_at),
-    );
-    // Only a flight with no local row at all is one this device has never held. A local
-    // row that simply happens to be newer is emphatically not "cloud only".
-    if (outcome === 'missing') cloudOnly += 1;
-    nextCursor = String(row.updated_at);
-  }
-
-  publish({ cloudOnlyFlights: cloudOnly });
-  await setCloudCursors({ flightsCursor: nextCursor, cloudOnlyFlightCount: cloudOnly });
-  return nextCursor;
-}
-
 // ---------------------------------------------------------------------------
 // Cycle
 // ---------------------------------------------------------------------------
 
+class StaleSyncError extends Error {}
+let environment: RestoreEnvironment = { ...INITIAL_RESTORE_ENVIRONMENT };
+let activeOwner: string | null | undefined;
+let activeAuthStatus: string | undefined;
+let authGeneration = 0;
+let inFlightGeneration = -1;
+let environmentRevision = 0;
+let inFlightEnvironmentRevision = -1;
+let mutationRevision = 0;
+let inFlightMutationRevision = -1;
+let authTransition: Promise<void> | null = null;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let throttleRetryAt = 0;
+const restore = new RestoreTransfer({
+  list: (owner) => archiveRepository.listPendingDownloads(owner, Number.MAX_SAFE_INTEGER),
+  counts: async (owner) => {
+    const flights = await archiveRepository.list(owner);
+    return { total: flights.filter((flight) => flight.archive.trackState !== 'missing').length,
+      completed: flights.filter((flight) => flight.archive.trackState === 'ready').length };
+  },
+  begin: (owner, id) => archiveRepository.markDownloadStarted(owner, id),
+  commit: async (candidate, bytes, shouldCommit) => {
+    const saved = await archiveRepository.storeVerifiedIgc(candidate.ownerUserId, candidate.flightId, candidate.sha256, bytes, candidate.artifactVersion, shouldCommit);
+    if (!saved) throw new Error('The backup changed while downloading. Retry to refresh it.');
+  },
+  fail: (owner, id, error) => archiveRepository.recordDownloadFailure(owner, id, error),
+  download: downloadArchiveIgc,
+  getPaused: (owner) => archiveRepository.getRestorePaused(owner),
+  setPaused: (owner, paused) => archiveRepository.setRestorePaused(owner, paused),
+  changed: (flightId, artifactChanged) => notifyJournal({ kind: artifactChanged ? 'artifact' : 'metadata', flightId }),
+  publish: (value) => publish({ restore: value }),
+});
+
+function eligible(): boolean {
+  return environment.foreground && environment.recorderReady && !environment.recorderBusy &&
+    environment.network !== 'offline' && environment.network !== 'unknown';
+}
+function scheduleRetry(): void {
+  if (retryTimer) clearTimeout(retryTimer);
+  retryTimer = null;
+  const retryAt = Math.max(cycleNextAttemptAt, throttleRetryAt);
+  if (!eligible() || !activeOwner || retryAt <= 0) return;
+  const generation = authGeneration;
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    void (async () => {
+      // A slow transfer can outlast the deadline. Do not absorb the timer into
+      // that cycle after its outgoing queues have already been read.
+      if (inFlight) await inFlight;
+      if (generation !== authGeneration || !eligible() || !activeOwner) return;
+      const deadline = Math.max(cycleNextAttemptAt, throttleRetryAt);
+      if (deadline <= 0) return;
+      if (deadline > Date.now()) { scheduleRetry(); return; }
+      await cloudSyncEngine.requestSync('foreground');
+    })();
+  }, Math.max(1, retryAt - Date.now()));
+}
+function authChanged(): Promise<void> {
+  const auth = cloudAuthService.getSnapshot();
+  const next = auth.status === 'signed_in' ? auth.userId : null;
+  if (activeOwner === next && activeAuthStatus === auth.status) return authTransition ?? Promise.resolve();
+  activeOwner = next;
+  activeAuthStatus = auth.status;
+  const generation = ++authGeneration;
+  cycleAttemptCount = 0;
+  cycleNextAttemptAt = 0;
+  throttleRetryAt = 0;
+  mutationRevision = 0;
+  scheduleRetry();
+  if (next || auth.status === 'restoring') setJournalOwner(next);
+  publish({ phase: 'idle', lastError: null, cloudOnlyFlights: 0, pendingFlights: 0, pendingDeletions: 0 });
+  const initialization = (async () => {
+    await restore.setOwner(next);
+    if (generation !== authGeneration) return;
+    if (next) await archiveRepository.rememberOwner(next);
+    else if (auth.status !== 'restoring') {
+      const previous = await archiveRepository.getLastOwner();
+      if (generation === authGeneration) setJournalOwner(previous);
+    }
+  })();
+  const transition = initialization.catch((error) => {
+    if (generation === authGeneration) activeAuthStatus = undefined;
+    throw error;
+  }).finally(() => { if (authTransition === transition) authTransition = null; });
+  authTransition = transition;
+  return transition;
+}
+
 async function runCycle(trigger: SyncTrigger, recorderRecovering: boolean): Promise<SyncSnapshot> {
   const now = Date.now();
   const auth = cloudAuthService.getSnapshot();
-
-  let link;
-  try {
-    link = await getCloudLink();
-  } catch (error) {
-    return publish({ phase: 'error', lastError: messageOf(error) });
-  }
-  // Published before the gate, because the gate blocks on every guest cycle and the
-  // logbook needs to know whether this phone has ever had an account.
-  publish({
-    linkedUserId: link.userId,
-    lastSyncAt: link.lastSyncAt,
-    lastError: link.lastSyncError,
-  });
-
-  // Read straight from the database rather than subscribing to recorderService: its
-  // subscribe() starts a 1 Hz poll, far too expensive to hold open just to observe state.
-  const unfinished = await getUnfinishedSession().catch(() => null);
-
+  const generation = authGeneration;
+  const userId = auth.status === 'signed_in' ? auth.userId : null;
+  const current = () => generation === authGeneration && activeOwner === userId;
+  const guard = () => {
+    if (!current() || !environment.foreground || environment.recorderBusy || !environment.recorderReady) throw new StaleSyncError();
+  };
+  const link = await getCloudLink();
+  if (!current()) return snapshot;
+  publish({ linkedUserId: link.userId, lastSyncAt: link.lastSyncAt, lastError: link.lastSyncError });
+  const unfinished = await getUnfinishedSession();
+  if (!current()) return snapshot;
   const gate = evaluateSyncGate({
-    configured: cloudConfigured,
-    authStatus: auth.status,
-    sessionUserId: auth.userId,
-    linkedUserId: link.userId,
-    recorderRecovering,
-    unfinishedSessionStatus:
-      unfinished?.status === 'recording' || unfinished?.status === 'interrupted'
-        ? unfinished.status
-        : null,
-    now,
-    lastSyncAt: link.lastSyncAt,
-    nextAttemptAt: cycleNextAttemptAt,
-    trigger,
+    configured: cloudConfigured, authStatus: auth.status, sessionUserId: userId,
+    linkedUserId: link.userId, recorderRecovering: recorderRecovering || !environment.recorderReady,
+    unfinishedSessionStatus: unfinished?.status === 'recording' || unfinished?.status === 'interrupted' ? unfinished.status : null,
+    now, lastSyncAt: link.lastSyncAt, nextAttemptAt: cycleNextAttemptAt, trigger,
   });
-
-  if (!gate.run) {
+  if (!userId || !environment.foreground || environment.recorderBusy || (!gate.run && !['account_mismatch', 'throttled', 'backoff'].includes(gate.reason))) {
     await refreshCounts();
-    return publish({ phase: 'blocked', blockedBy: gate.reason });
+    if (!current()) return snapshot;
+    return publish({ phase: 'blocked', blockedBy: gate.run ? 'recording' : gate.reason });
   }
-
-  publish({ phase: 'syncing', blockedBy: null, lastError: null });
-  const userId = auth.userId!;
-
   try {
-    if (gate.bindTo) await bindCloudLink(gate.bindTo, now);
-
-    await pushProfile(userId);
+    guard();
+    if (!gate.run && (gate.reason === 'throttled' || gate.reason === 'backoff')) {
+      await refreshCounts();
+      guard();
+      if (gate.reason === 'throttled') {
+        throttleRetryAt = snapshot.pendingFlights + snapshot.pendingDeletions > 0
+          ? link.lastSyncAt! + CLOUD_CONFIG.minimumSyncIntervalMs : 0;
+      }
+      await restore.run(current);
+      guard();
+      scheduleRetry();
+      return publish({ phase: 'blocked', blockedBy: gate.reason });
+    }
+    throttleRetryAt = 0;
+    if (retryTimer) clearTimeout(retryTimer);
+    retryTimer = null;
+    publish({ phase: 'syncing', blockedBy: null, lastError: null });
+    if (gate.run && gate.bindTo) await bindCloudLink(gate.bindTo, now);
     const ignoreBackoff = trigger === 'manual';
-    const failures = await pushDeletions(userId, now, ignoreBackoff);
-    failures.push(...await pushFlights(userId, now, ignoreBackoff));
-    await pullProfile(userId);
-    await pullFlights(userId, link.flightsCursor);
-
-    // Let independent rows finish, but never report a completed backup while a row
-    // failed. Its own retry state remains stored even after this cycle ends.
-    if (failures.length > 0) throw failures[0];
-
+    const failures: unknown[] = [];
+    // Owner archive queues do not require rebinding the captured logbook.
+    failures.push(...await pushArchiveChanges(userId, guard, ignoreBackoff));
+    if (gate.run) failures.push(...await pushDeletions(userId, now, ignoreBackoff, guard));
+    failures.push(...await pullFlightDeletions(userId, guard));
+    await pullArchiveCatalogue(userId, guard, true);
+    if (gate.run) {
+      await pullProfile(userId, guard);
+      await pushProfile(userId, guard);
+      failures.push(...await pushFlights(userId, now, ignoreBackoff, guard));
+    }
+    failures.push(...await pullFlightDeletions(userId, guard));
+    await pullArchiveCatalogue(userId, guard);
+    guard();
+    await restore.run(current);
+    guard();
     cycleAttemptCount = 0;
     cycleNextAttemptAt = 0;
-    await setCloudCursors({ lastSyncAt: now, lastSyncError: null });
+    if (gate.run && failures.length === 0) await setCloudCursors({ lastSyncAt: now, lastSyncError: null });
     await refreshCounts();
-    return publish({ phase: 'idle', blockedBy: null, lastSyncAt: now, lastError: null });
-  } catch (error) {
-    const kind = classifySyncError(error);
-    if (kind === 'reauth') {
-      // The token is no longer accepted. Sign out so the account screen offers a way
-      // back in, rather than retrying with a credential the server has rejected.
-      // A failed logout already reports its error through the auth snapshot. Keep
-      // this cycle's original sync error and retry schedule even if logout fails.
-      await cloudAuthService.signOut().catch(() => undefined);
+    guard();
+    if (gate.run && failures.length === 0 && snapshot.pendingFlights + snapshot.pendingDeletions > 0) {
+      throttleRetryAt = now + CLOUD_CONFIG.minimumSyncIntervalMs;
     }
+    scheduleRetry();
+    const archives = await archiveRepository.list(userId);
+    guard();
+    publish({ cloudOnlyFlights: archives.length });
+    notifyJournal({ kind: 'metadata' });
+    if (failures.length) throw failures[0];
+    return publish({ phase: gate.run ? 'idle' : 'blocked', blockedBy: gate.run ? null : 'account_mismatch',
+      ...(gate.run ? { lastSyncAt: now } : {}), lastError: null });
+  } catch (error) {
+    if (error instanceof StaleSyncError || !current()) return snapshot;
+    const kind = classifySyncError(error);
+    if (kind === 'reauth' && current()) await cloudAuthService.signOut().catch(() => undefined);
+    if (!current()) return snapshot;
     const backoff = nextBackoff(cycleAttemptCount, now, Math.random);
     cycleAttemptCount = backoff.attemptCount;
     cycleNextAttemptAt = backoff.nextAttemptAt;
+    scheduleRetry();
     await setCloudCursors({ lastSyncError: messageOf(error) }).catch(() => undefined);
     await refreshCounts();
+    if (!current()) return snapshot;
     return publish({ phase: 'error', lastError: messageOf(error) });
   }
 }
 
 export const cloudSyncEngine: CloudSyncEngine = {
   getSnapshot: () => snapshot,
-
-  rebindTo: async (userId: string) => {
+  authChanged,
+  setEnvironment(patch) {
+    const wasEligible = eligible();
+    const changed = Object.entries(patch).some(([key, value]) => environment[key as keyof RestoreEnvironment] !== value);
+    environment = { ...environment, ...patch };
+    if (changed) environmentRevision += 1;
+    restore.setEnvironment(patch);
+    scheduleRetry();
+    if (activeOwner && eligible() && (!wasEligible || (changed && patch.network !== undefined))) {
+      void cloudSyncEngine.requestSync('foreground');
+    }
+  },
+  pauseRestore: () => { void restore.pause().catch((error) => publish({ lastError: messageOf(error) })); },
+  resumeRestore: (options) => { void restore.resume(options.allowMobileData).then(() => cloudSyncEngine.requestSync('manual')).catch((error) => publish({ lastError: messageOf(error) })); },
+  retryRestore: (options) => { void restore.resume(options.allowMobileData).then(() => cloudSyncEngine.requestSync('manual')).catch((error) => publish({ lastError: messageOf(error) })); },
+  rebindTo: async (userId) => {
     await resetCloudLink(userId);
-    // resetCloudLink binds to `userId`, so that is what the snapshot must report.
     publish({ blockedBy: null, lastError: null, cloudOnlyFlights: 0, linkedUserId: userId });
     await refreshCounts();
   },
-
-  /**
-   * Overlapping triggers coalesce onto one cycle rather than queueing. Two foreground
-   * events in the same second should do the work once, not twice.
-   */
-  requestSync: (trigger: SyncTrigger, options?: { recorderRecovering?: boolean }) => {
+  requestSync: async (trigger, options) => {
+    if (!cloudConfigured) return snapshot;
+    let initializationGeneration = authGeneration;
+    try {
+      const initialization = authChanged();
+      initializationGeneration = authGeneration;
+      await initialization;
+    } catch (error) {
+      return initializationGeneration === authGeneration ? publish({ phase: 'error', lastError: messageOf(error) }) : snapshot;
+    }
+    const requestedGeneration = authGeneration;
+    const requestedMutationRevision = trigger === 'post-save' ? ++mutationRevision : mutationRevision;
+    if (trigger === 'post-save') void refreshCounts();
+    let nextTrigger = trigger;
+    if (inFlight) {
+      const joinedGeneration = inFlightGeneration;
+      const joinedEnvironmentRevision = inFlightEnvironmentRevision;
+      const joinedMutationRevision = inFlightMutationRevision;
+      const result = await inFlight;
+      if (requestedGeneration !== authGeneration) return snapshot;
+      const changedDuringCycle = requestedMutationRevision > joinedMutationRevision;
+      if (joinedGeneration === requestedGeneration && trigger !== 'manual' &&
+          joinedEnvironmentRevision === environmentRevision && !changedDuringCycle) return result;
+      if (changedDuringCycle && trigger !== 'manual') nextTrigger = 'post-save';
+    }
     if (!inFlight) {
-      inFlight = runCycle(trigger, options?.recorderRecovering ?? false).finally(() => {
-        inFlight = null;
-      });
+      inFlightGeneration = authGeneration;
+      inFlightEnvironmentRevision = environmentRevision;
+      inFlightMutationRevision = mutationRevision;
+      inFlight = runCycle(nextTrigger, options?.recorderRecovering ?? false)
+        .catch((error) => requestedGeneration === authGeneration ? publish({ phase: 'error', lastError: messageOf(error) }) : snapshot)
+        .finally(() => { inFlight = null; });
     }
     return inFlight;
   },
-
   subscribe: (listener) => {
     listeners.add(listener);
     listener(snapshot);
     void refreshCounts();
-    return () => {
-      listeners.delete(listener);
-    };
+    return () => { listeners.delete(listener); };
   },
 };

@@ -17,7 +17,7 @@ export function AccountCard({
   const confirmSignOut = () => {
     Alert.alert(
       'Log out?',
-      'Your flights stay on this phone. Backup pauses until you sign in again.',
+      'Your recordings and downloaded flights stay available on this phone. Backup and restoration pause until you sign in again.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Log out', style: 'destructive', onPress: onSignOut },

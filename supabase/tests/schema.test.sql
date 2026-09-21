@@ -15,9 +15,9 @@ select throws_ok($$update public.profiles set pilot_name = repeat('x',61)$$, '23
 insert into public.flights (id,user_id,recording_session_id,status,started_at,client_created_at,client_updated_at)
 values ('cccccccc-0000-0000-0000-000000000001','33333333-3333-3333-3333-333333333333','cccccccc-0000-0000-0000-000000000001','completed',1000,1000,1000);
 select throws_ok($$update public.flights set ended_at = 999$$, '23514', null, 'flight time order enforced');
-select throws_ok($$update public.flights set title = repeat('x',121)$$, '23514', null, 'title length enforced');
-select throws_ok($$update public.flights set site = repeat('x',121)$$, '23514', null, 'site length enforced');
-select throws_ok($$update public.flights set notes = repeat('x',4001)$$, '23514', null, 'notes length enforced');
+select throws_ok($$update public.flights set title = repeat('x',121), client_updated_at = 2000$$, '23514', null, 'title length enforced');
+select throws_ok($$update public.flights set site = repeat('x',121), client_updated_at = 2000$$, '23514', null, 'site length enforced');
+select throws_ok($$update public.flights set notes = repeat('x',4001), client_updated_at = 2000$$, '23514', null, 'notes length enforced');
 select is((select created_at from public.flights), now(), 'creation uses server time by default');
 select * from finish();
 rollback;

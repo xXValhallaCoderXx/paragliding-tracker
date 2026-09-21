@@ -1,4 +1,5 @@
 import {
+  archivedRouteMessage,
   trackPlateAccessibilityLabel,
   trackPlateLabels,
   trackPlateState,
@@ -7,6 +8,15 @@ import { buildTrackPlate } from '@/lib/track/plate';
 import { flight, metrics } from '../../../../tests/support/fixtures';
 
 const TRACK = [[46.5, 11.5, 46.51, 11.52, 46.52, 11.55]];
+
+it('distinguishes a route waiting to restore from a flight that recorded no GPS', () => {
+  const archived = { ...flight(), source: 'archive' as const, ownerUserId: 'pilot', sessionStatus: null,
+    archive: { trackState: 'pending' as const, error: null, downloadedAt: null } };
+  expect(archivedRouteMessage(archived)).toBe('Archived route waiting to download.');
+  expect(archivedRouteMessage({ ...archived, archive: { ...archived.archive, trackState: 'missing' as const } }))
+    .toBe('Flight summary restored; no archived route was backed up.');
+  expect(archivedRouteMessage(flight())).toBeNull();
+});
 
 describe('trackPlateState', () => {
   it('is ready for a finished flight with a shape', () => {

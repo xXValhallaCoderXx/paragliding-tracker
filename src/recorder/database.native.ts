@@ -2,6 +2,7 @@ import { readFlightReplay } from './replay-repository-core';
 import { readLiveMapPage } from './live-map-repository-core';
 import type { LiveMapRead } from '../lib/live/types';
 import * as SQLite from 'expo-sqlite';
+import { cancelDeletedPublication, enqueueFinalizedPublication, stampCapture, type CaptureSharingStamp } from './publication-repository-core';
 
 import {
   EXPECTED_V1_TABLE_COLUMNS,
@@ -17,6 +18,10 @@ import {
   EXPECTED_V7_INDEX_NAMES,
   EXPECTED_V7_TABLE_COLUMNS,
   EXPECTED_V8_INDEX_NAMES,
+  EXPECTED_V9_INDEX_NAMES,
+  EXPECTED_V9_TABLE_COLUMNS,
+  EXPECTED_V10_INDEX_NAMES,
+  EXPECTED_V10_TABLE_COLUMNS,
   LATEST_DATABASE_VERSION,
   flightStatusForSession,
   getSchemaMigrationSteps,
@@ -77,12 +82,12 @@ import type {
   ExportArtifact,
   CloudLink,
   FlightDeletionRecord,
-  FlightDetail,
+  RecordedFlightDetail as FlightDetail,
   FlightMetadataPatch,
   FlightMetricsRecord,
   FlightRecord,
   FlightStatus,
-  FlightSummary,
+  RecordedFlightSummary as FlightSummary,
   FlightSyncCandidate,
   LocationFixRecord,
   PilotProfile,
@@ -213,8 +218,9 @@ async function assertRawRowCounts(
 async function createMigrationBackup(
   database: SQLite.SQLiteDatabase,
   fromVersion: number,
+  purpose = '',
 ): Promise<string> {
-  const backupName = `xc-recorder-migration-v${fromVersion}-to-v${LATEST_DATABASE_VERSION}-${Date.now()}.db`;
+  const backupName = `xc-recorder-migration-v${fromVersion}-to-v${LATEST_DATABASE_VERSION}-${purpose}${Date.now()}.db`;
   const backup = await SQLite.openDatabaseAsync(backupName, { useNewConnection: true });
   try {
     await SQLite.backupDatabaseAsync({ sourceDatabase: database, destDatabase: backup });
@@ -225,6 +231,38 @@ async function createMigrationBackup(
   }
   await backup.closeAsync();
   return backupName;
+}
+
+/** Repair only artifacts whose exact owner/flight already has an explicit deletion receipt. */
+async function finishInterruptedArchiveCleanup(database: SQLite.SQLiteDatabase, version: number): Promise<void> {
+  // The first schema-9 build relied on ON DELETE CASCADE from an Expo exclusive
+  // transaction. Its separate connection did not inherit foreign_keys = ON.
+  // An absent catalogue row alone is never permission to delete a stored file.
+  const removable = `NOT EXISTS (
+    SELECT 1 FROM archive_flights a WHERE a.owner_user_id = archive_artifacts.owner_user_id
+      AND a.flight_id = archive_artifacts.flight_id
+  ) AND EXISTS (
+    SELECT 1 FROM archive_deletions d WHERE d.owner_user_id = archive_artifacts.owner_user_id
+      AND d.flight_id = archive_artifacts.flight_id
+  )`;
+  const pending = await database.getFirstAsync<{ count: number }>(
+    `SELECT COUNT(*) AS count FROM archive_artifacts WHERE ${removable}`,
+  );
+  if (!pending?.count) return;
+  const originalCounts = await getRawRowCounts(database);
+  const backupName = await createMigrationBackup(database, version, 'archive-cleanup-');
+  try {
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      await transaction.execAsync(`DELETE FROM archive_artifacts WHERE ${removable}`);
+      await assertRawRowCounts(transaction, originalCounts);
+      // Any unrelated corruption rolls back this repair; integrity checks stay strict.
+      await assertDatabaseIntegrity(transaction);
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${message} Archive cleanup backup retained as ${backupName}.`, { cause: error });
+  }
+  // Retain the one-time pre-repair backup on the phone for recovery evidence.
 }
 
 export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<void> {
@@ -282,8 +320,21 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
     await validateExpectedIndexes(database, EXPECTED_V7_INDEX_NAMES);
   }
 
-  if (currentVersion === LATEST_DATABASE_VERSION) {
+  if (currentVersion >= 8) {
     await validateExpectedIndexes(database, EXPECTED_V8_INDEX_NAMES);
+  }
+  if (currentVersion >= 9) {
+    await validateExpectedSchema(database, EXPECTED_V9_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V9_INDEX_NAMES);
+    // A schema-9 cleanup receipt remains authoritative when upgrading to schema 10.
+    await finishInterruptedArchiveCleanup(database, currentVersion);
+    await assertDatabaseIntegrity(database);
+  }
+  if (currentVersion >= 10) {
+    await validateExpectedSchema(database, EXPECTED_V10_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V10_INDEX_NAMES);
+  }
+  if (currentVersion === LATEST_DATABASE_VERSION) {
     await assertDatabaseIntegrity(database);
     return;
   }
@@ -326,6 +377,10 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
     await validateExpectedSchema(database, EXPECTED_V7_TABLE_COLUMNS);
     await validateExpectedIndexes(database, EXPECTED_V7_INDEX_NAMES);
     await validateExpectedIndexes(database, EXPECTED_V8_INDEX_NAMES);
+    await validateExpectedSchema(database, EXPECTED_V9_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V9_INDEX_NAMES);
+    await validateExpectedSchema(database, EXPECTED_V10_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V10_INDEX_NAMES);
     await assertDatabaseIntegrity(database);
     if (backupName) await SQLite.deleteDatabaseAsync(backupName);
   } catch (error) {
@@ -359,6 +414,18 @@ async function openDatabase(): Promise<SQLite.SQLiteDatabase> {
     });
   }
   return databasePromise;
+}
+
+/** Archive reads share the migrated connection; writes must use the serializer below. */
+export const getArchiveDatabase = openDatabase;
+
+export function withArchiveWrite<T>(operation: (transaction: SQLite.SQLiteDatabase) => Promise<T>): Promise<T> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    let result!: T;
+    await database.withExclusiveTransactionAsync(async (transaction) => { result = await operation(transaction); });
+    return result;
+  });
 }
 
 function parseJsonObject(value: string): Record<string, unknown> {
@@ -418,6 +485,7 @@ function mapSession(row: SessionRow): SessionRecord {
 
 interface FlightRow {
   id: string;
+  cloud_owner_user_id?: string | null;
   recording_session_id: string;
   status: FlightStatus;
   started_at: number;
@@ -456,6 +524,7 @@ interface FlightMetricsRow {
 function mapFlight(row: FlightRow): FlightRecord {
   return {
     id: row.id,
+    cloudOwnerUserId: row.cloud_owner_user_id ?? null,
     recordingSessionId: row.recording_session_id,
     status: row.status,
     startedAt: row.started_at,
@@ -499,6 +568,8 @@ export async function createSession(input: {
   deviceMetadata: Record<string, unknown>;
   appMetadata: Record<string, unknown>;
   startPower: PowerReading;
+  sharingConsent?: CaptureSharingStamp;
+  sharingConsentCurrent?: () => boolean;
 }): Promise<void> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
@@ -542,6 +613,9 @@ export async function createSession(input: {
         `session-armed:${input.id}`,
         JSON.stringify({ startPower: input.startPower }),
       );
+      if (input.sharingConsent && input.sharingConsentCurrent?.()) {
+        await stampCapture(transaction, input.flightId ?? input.id, input.sharingConsent, input.startedAt);
+      }
     });
   });
 }
@@ -1197,7 +1271,7 @@ export async function updateFlightMetadata(
 
     if (assignments.length > 0) {
       const result = await database.runAsync(
-        `UPDATE flights SET ${assignments.join(', ')}, updated_at = ? WHERE id = ?`,
+        `UPDATE flights SET ${assignments.join(', ')}, updated_at = MAX(?, updated_at + 1) WHERE id = ?`,
         ...params,
         updatedAt,
         flightId,
@@ -1285,22 +1359,27 @@ export async function setFlightStatus(input: {
 }): Promise<FlightRecord> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
-    const shouldUpdateEndedAt = Object.prototype.hasOwnProperty.call(input, 'endedAt');
-    const result = shouldUpdateEndedAt
-      ? await database.runAsync(
+    await database.withExclusiveTransactionAsync(async transaction => {
+      const shouldUpdateEndedAt = Object.prototype.hasOwnProperty.call(input, 'endedAt');
+      const result = shouldUpdateEndedAt
+        ? await transaction.runAsync(
           'UPDATE flights SET status = ?, ended_at = ?, updated_at = ? WHERE id = ?',
           input.status,
           input.endedAt ?? null,
           input.updatedAt,
           input.flightId,
         )
-      : await database.runAsync(
+        : await transaction.runAsync(
           'UPDATE flights SET status = ?, updated_at = ? WHERE id = ?',
           input.status,
           input.updatedAt,
           input.flightId,
         );
-    if (result.changes !== 1) throw new Error(`Flight ${input.flightId} was not found.`);
+      if (result.changes !== 1) throw new Error(`Flight ${input.flightId} was not found.`);
+      if (input.status === 'completed' || input.status === 'partial') {
+        await enqueueFinalizedPublication(transaction, input.flightId, input.updatedAt);
+      }
+    });
 
     const row = await database.getFirstAsync<FlightRow>(
       'SELECT * FROM flights WHERE id = ?',
@@ -1314,17 +1393,21 @@ export async function setFlightStatus(input: {
 export async function deleteCompletedFlight(
   flightId: string,
   deletedAt = Date.now(),
-): Promise<void> {
+  options?: { remoteOwnerUserId: string; recordingSessionId?: string },
+): Promise<'deleted' | 'absent' | 'deferred'> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
+    let outcome: 'deleted' | 'absent' | 'deferred' = 'absent';
     await database.withExclusiveTransactionAsync(async (transaction) => {
       const row = await transaction.getFirstAsync<{
         recording_session_id: string;
         flight_status: FlightStatus;
         session_status: SessionRecord['status'];
+        cloud_owner_user_id: string | null;
       }>(
         `SELECT
            f.recording_session_id,
+           f.cloud_owner_user_id,
            f.status AS flight_status,
            s.status AS session_status
          FROM flights f
@@ -1332,13 +1415,20 @@ export async function deleteCompletedFlight(
          WHERE f.id = ?`,
         flightId,
       );
-      if (!row) throw new Error(`Flight ${flightId} was not found.`);
+      if (!row) {
+        if (options) return;
+        throw new Error(`Flight ${flightId} was not found.`);
+      }
+      if (options && (row.cloud_owner_user_id !== options.remoteOwnerUserId ||
+          (options.recordingSessionId !== undefined && row.recording_session_id !== options.recordingSessionId))) return;
       if (
         !['completed', 'partial'].includes(row.flight_status) ||
         row.session_status !== 'completed'
       ) {
+        if (options) { outcome = 'deferred'; return; }
         throw new Error(`Flight ${flightId} is active or unfinished and cannot be deleted.`);
       }
+      await cancelDeletedPublication(transaction, flightId, deletedAt);
 
       await transaction.runAsync(
         `INSERT OR IGNORE INTO pending_file_deletions (path, created_at)
@@ -1368,17 +1458,37 @@ export async function deleteCompletedFlight(
       // Tombstone before the row disappears, so a later sync can push the delete
       // instead of the next pull resurrecting the flight from the server. The sync
       // state row holds a RESTRICT foreign key, so it must go before flights.
-      await transaction.runAsync(
-        `INSERT OR IGNORE INTO flight_deletions (flight_id, recording_session_id, deleted_at)
-         VALUES (?, ?, ?)`,
-        flightId,
-        row.recording_session_id,
-        deletedAt,
-      );
+      if (!options) {
+        await transaction.runAsync(
+          `INSERT OR IGNORE INTO flight_deletions (flight_id, recording_session_id, deleted_at, owner_user_id)
+           VALUES (?, ?, ?, ?)`, flightId, row.recording_session_id, deletedAt, row.cloud_owner_user_id,
+        );
+      }
+      if (row.cloud_owner_user_id) {
+        // A hidden archive copy must not reappear when its preferred captured copy disappears.
+        await transaction.runAsync(`INSERT OR IGNORE INTO archive_deletions
+          (owner_user_id, flight_id, recording_session_id, deleted_at, acknowledged_at) VALUES (?, ?, ?, ?, ?)`,
+        row.cloud_owner_user_id, flightId, row.recording_session_id, deletedAt, options ? deletedAt : null);
+        // The exclusive connection does not inherit foreign_keys from the primary connection.
+        await transaction.runAsync('DELETE FROM archive_artifacts WHERE owner_user_id = ? AND flight_id = ?', row.cloud_owner_user_id, flightId);
+        await transaction.runAsync('DELETE FROM archive_flights WHERE owner_user_id = ? AND flight_id = ?', row.cloud_owner_user_id, flightId);
+      }
       await transaction.runAsync('DELETE FROM flight_sync_state WHERE flight_id = ?', flightId);
       await transaction.runAsync('DELETE FROM flights WHERE id = ?', flightId);
       await transaction.runAsync('DELETE FROM sessions WHERE id = ?', row.recording_session_id);
+      outcome = 'deleted';
     });
+    return outcome;
+  });
+}
+
+/** Claims only unowned captured flights; an account switch never changes existing ownership. */
+export async function markFlightCloudOwner(flightId: string, ownerUserId: string): Promise<void> {
+  return enqueueWrite(async () => {
+    const database = await openDatabase();
+    const result = await database.runAsync(`UPDATE flights SET cloud_owner_user_id = ? WHERE id = ?
+      AND (cloud_owner_user_id IS NULL OR cloud_owner_user_id = ?)`, ownerUserId, flightId, ownerUserId);
+    if (result.changes !== 1) throw new Error('This recorded flight is missing or belongs to another account.');
   });
 }
 
@@ -1740,11 +1850,12 @@ export async function setCloudCursors(patch: CloudCursorPatch): Promise<void> {
 export async function listDirtyFlights(
   limit: number,
   now = Date.now(),
-  options?: { ignoreBackoff?: boolean },
+  options?: { ignoreBackoff?: boolean; ownerUserId?: string },
 ): Promise<FlightSyncCandidate[]> {
   const database = await openDatabase();
   const rows = await database.getAllAsync<FlightSyncCandidateRow>(
-    DIRTY_FLIGHTS_SQL,
+    options?.ownerUserId ? DIRTY_FLIGHTS_SQL.replace('WHERE s.status', 'WHERE (f.cloud_owner_user_id IS NULL OR f.cloud_owner_user_id = ?) AND s.status') : DIRTY_FLIGHTS_SQL,
+    ...(options?.ownerUserId ? [options.ownerUserId] : []),
     options?.ignoreBackoff ? 1 : 0,
     now,
     limit,
@@ -1752,10 +1863,13 @@ export async function listDirtyFlights(
   return rows.map(mapFlightSyncCandidate);
 }
 
-export async function countPendingSync(): Promise<{ flights: number; deletions: number }> {
+export async function countPendingSync(ownerUserId?: string): Promise<{ flights: number; deletions: number }> {
   const database = await openDatabase();
   const row = await database.getFirstAsync<{ flights: number; deletions: number }>(
-    COUNT_PENDING_SYNC_SQL,
+    ownerUserId ? COUNT_PENDING_SYNC_SQL
+      .replace('WHERE s.status', 'WHERE (f.cloud_owner_user_id IS NULL OR f.cloud_owner_user_id = ?) AND s.status')
+      .replace('(SELECT COUNT(*) FROM flight_deletions)', '(SELECT COUNT(*) FROM flight_deletions WHERE owner_user_id = ?)') : COUNT_PENDING_SYNC_SQL,
+    ...(ownerUserId ? [ownerUserId, ownerUserId] : []),
   );
   return { flights: row?.flights ?? 0, deletions: row?.deletions ?? 0 };
 }
@@ -1808,11 +1922,12 @@ export async function recordFlightSyncFailure(
 export async function listPendingFlightDeletions(
   limit: number,
   now = Date.now(),
-  options?: { ignoreBackoff?: boolean },
+  options?: { ignoreBackoff?: boolean; ownerUserId?: string },
 ): Promise<FlightDeletionRecord[]> {
   const database = await openDatabase();
   const rows = await database.getAllAsync<FlightDeletionRow>(
-    PENDING_FLIGHT_DELETIONS_SQL,
+    options?.ownerUserId ? PENDING_FLIGHT_DELETIONS_SQL.replace('WHERE ', 'WHERE owner_user_id = ? AND ') : PENDING_FLIGHT_DELETIONS_SQL,
+    ...(options?.ownerUserId ? [options.ownerUserId] : []),
     options?.ignoreBackoff ? 1 : 0,
     now,
     limit,
@@ -1820,10 +1935,10 @@ export async function listPendingFlightDeletions(
   return rows.map(mapFlightDeletion);
 }
 
-export async function clearFlightDeletion(flightId: string): Promise<void> {
+export async function clearFlightDeletion(flightId: string, ownerUserId?: string): Promise<void> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
-    await database.runAsync('DELETE FROM flight_deletions WHERE flight_id = ?', flightId);
+    await database.runAsync(`DELETE FROM flight_deletions WHERE flight_id = ?${ownerUserId ? ' AND owner_user_id = ?' : ''}`, flightId, ...(ownerUserId ? [ownerUserId] : []));
   });
 }
 
@@ -1831,10 +1946,11 @@ export async function recordFlightDeletionFailure(
   flightId: string,
   error: string,
   nextAttemptAt: number,
+  ownerUserId?: string,
 ): Promise<void> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
-    await database.runAsync(RECORD_FLIGHT_DELETION_FAILURE_SQL, nextAttemptAt, error, flightId);
+    await database.runAsync(`${RECORD_FLIGHT_DELETION_FAILURE_SQL}${ownerUserId ? ' AND owner_user_id = ?' : ''}`, nextAttemptAt, error, flightId, ...(ownerUserId ? [ownerUserId] : []));
   });
 }
 

@@ -21,8 +21,12 @@ function pendingDetail(snapshot: SyncSnapshot): string {
     return total === 1 ? '1 deletion still to send.' : `${total} deletions still to send.`;
   }
   const flights =
-    snapshot.pendingFlights === 1 ? '1 flight' : `${snapshot.pendingFlights} flights`;
-  return `${flights} still to back up.`;
+    snapshot.pendingFlights === 1 ? '1 flight change' : `${snapshot.pendingFlights} flight changes`;
+  const deletions = snapshot.pendingDeletions === 1
+    ? '1 deletion' : `${snapshot.pendingDeletions} deletions`;
+  return snapshot.pendingDeletions > 0
+    ? `${flights} and ${deletions} still to send.`
+    : `${flights} still to send.`;
 }
 
 /**
@@ -125,10 +129,10 @@ export function relativeSyncTime(lastSyncAt: number, now: number): string {
   return days === 1 ? 'Yesterday' : `${days} days ago`;
 }
 
-/** Cloud-only flights are counted, never downloaded — this is how we say so. */
+/** Summary discovery can precede the archived route download. */
 export function cloudOnlySummary(snapshot: SyncSnapshot): string | null {
   if (snapshot.cloudOnlyFlights <= 0) return null;
   const flights =
     snapshot.cloudOnlyFlights === 1 ? '1 flight' : `${snapshot.cloudOnlyFlights} flights`;
-  return `${flights} in your account were recorded on another phone. They stay in the cloud — this app does not download flights.`;
+  return `${flights} from another phone in your logbook. Archived routes download over Wi-Fi by default.`;
 }

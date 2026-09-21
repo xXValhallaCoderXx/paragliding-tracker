@@ -20,6 +20,9 @@ test('boundary checks resolve aliases, relative paths, dynamic imports and requi
     ['src/sites/probe.ts', "import { x } from '../store/api';"],
     ['src/features/probe.ts', "import { x } from '../recorder/database.native';"],
     ['src/cloud/probe.ts', "import { x } from '../features/foo';"],
+    ['src/social/probe.ts', "import { x } from '../features/foo';"],
+    ['src/social/probe.ts', "import { x } from '../journal/repository.native';"],
+    ['src/recorder/probe.ts', "import { x } from '../social/service';"],
   ]) assert.equal((await messages(file, code)).length, 1, file);
 });
 test('type-only edges and local helpers are allowed', async () => {

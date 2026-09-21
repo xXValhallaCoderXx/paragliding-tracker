@@ -1,8 +1,9 @@
 import React from 'react';
-import { Alert } from 'react-native';
+import { Alert, Switch } from 'react-native';
 
 import AccountScreen from '@/app/(tabs)/account';
 import type { AuthSnapshot, SyncSnapshot } from '@/cloud/types';
+import { EMPTY_RESTORE } from '@/cloud/restore-plan';
 import { Button, Input, ListRow, Notice } from '@/components/ui';
 import { AccountCard, RestoringAccountCard } from '../components/account-card';
 import { IdentityCard } from '../components/identity-card';
@@ -14,6 +15,7 @@ let mockAuth: AuthSnapshot;
 const mockSignOut = jest.fn();
 const mockRequestOtp = jest.fn();
 const mockVerifyOtp = jest.fn();
+const mockResumeRestore = jest.fn();
 const mockProfile = profile({ pilotName: 'Local pilot' });
 const mockFlights = [flight()];
 const mockSync: SyncSnapshot = {
@@ -29,7 +31,7 @@ jest.mock('../auth-provider', () => ({
   }),
 }));
 jest.mock('../cloud-sync-provider', () => ({
-  useCloudSync: () => ({ ...mockSync, requestSync: jest.fn() }),
+  useCloudSync: () => ({ ...mockSync, requestSync: jest.fn(), pauseRestore: jest.fn(), resumeRestore: mockResumeRestore, retryRestore: jest.fn() }),
 }));
 jest.mock('@/features/record/recorder-lifecycle', () => ({
   useRecorderLifecycle: () => ({ ready: true }),
@@ -77,6 +79,7 @@ beforeEach(() => {
   mockSignOut.mockReset().mockResolvedValue(undefined);
   mockRequestOtp.mockResolvedValue(undefined);
   mockVerifyOtp.mockResolvedValue(undefined);
+  mockSync.restore = undefined;
   jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
 });
 afterEach(async () => {
@@ -137,7 +140,7 @@ it('confirms logout, disables it while pending and retains the local pilot page 
   expect(mockSignOut).not.toHaveBeenCalled();
   const [title, message, actions] = jest.mocked(Alert.alert).mock.calls[0];
   expect(title).toBe('Log out?');
-  expect(message).toContain('Your flights stay on this phone.');
+  expect(message).toContain('Your recordings and downloaded flights stay available on this phone.');
   expect(actions?.find((action) => action.text === 'Cancel')?.style).toBe('cancel');
   await press(() => actions?.find((action) => action.text === 'Log out')?.onPress?.());
   expect(mockSignOut).toHaveBeenCalledTimes(1);
@@ -147,6 +150,17 @@ it('confirms logout, disables it while pending and retains the local pilot page 
   expect(button('Sign in')).toBeDefined();
   expect(rendered.root.findByType(IdentityCard).props.profile).toBe(mockProfile);
   expect(rendered.root.findByType(IdentityCard).props.stats.flightCount).toBe(1);
+});
+
+it('connects restore controls to the current account and resets mobile consent when accounts change', async () => {
+  mockAuth = { ...mockAuth, status: 'signed_in', userId: 'first-pilot' };
+  mockSync.restore = { ...EMPTY_RESTORE, phase: 'paused', pauseReason: 'wifi', total: 2 };
+  await mount();
+  await press(() => rendered.root.findByType(Switch).props.onValueChange(true));
+  await updateAuth({ userId: 'second-pilot' });
+  expect(rendered.root.findByType(Switch).props.value).toBe(false);
+  await press(() => button('Resume restoration')!.props.onPress());
+  expect(mockResumeRestore).toHaveBeenCalledWith({ allowMobileData: false });
 });
 
 it.each(['signed_in', 'signed_out'] as const)(

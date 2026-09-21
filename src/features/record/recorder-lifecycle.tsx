@@ -15,6 +15,8 @@ interface RecorderLifecycleState {
   ready: boolean;
   recovering: boolean;
   recoveryError: string | null;
+  /** Advances even when a fast foreground recovery batches back to the same flags. */
+  recoveryVersion: number;
 }
 
 const RecorderLifecycleContext = createContext<RecorderLifecycleState | null>(null);
@@ -37,6 +39,7 @@ export function RecorderLifecycleProvider({ children }: { children: ReactNode })
   const [ready, setReady] = useState(false);
   const [recovering, setRecovering] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [recoveryVersion, setRecoveryVersion] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -56,6 +59,7 @@ export function RecorderLifecycleProvider({ children }: { children: ReactNode })
         if (mounted) {
           setReady(true);
           setRecovering(false);
+          setRecoveryVersion((version) => version + 1);
         }
       }
     };
@@ -72,8 +76,8 @@ export function RecorderLifecycleProvider({ children }: { children: ReactNode })
   }, []);
 
   const value = useMemo(
-    () => ({ ready, recovering, recoveryError }),
-    [ready, recovering, recoveryError],
+    () => ({ ready, recovering, recoveryError, recoveryVersion }),
+    [ready, recovering, recoveryError, recoveryVersion],
   );
 
   return (

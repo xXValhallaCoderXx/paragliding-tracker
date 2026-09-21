@@ -9,12 +9,15 @@ import { useGetFlightQuery, useUpdateFlightMutation } from '@/store/endpoints';
 import { create, act } from '../../../../tests/support/renderer';
 const mockPush = jest.fn();
 const mockRequestSync = jest.fn();
+const mockRetryRestore = jest.fn();
+const mockShareArchivedIgc = jest.fn();
+jest.mock('@/journal/artifacts', () => ({ shareArchivedIgc: (...args: unknown[]) => mockShareArchivedIgc(...args) }));
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'flight-123' }),
   useRouter: () => ({ push: mockPush }),
 }));
 jest.mock('@/features/account/auth-provider', () => ({ useCloudAuth: () => ({ status: 'signed_out' }) }));
-jest.mock('@/features/account/cloud-sync-provider', () => ({ useCloudSync: () => ({ requestSync: mockRequestSync }) }));
+jest.mock('@/features/account/cloud-sync-provider', () => ({ useCloudSync: () => ({ requestSync: mockRequestSync, retryRestore: mockRetryRestore }) }));
 jest.mock('@/recorder/recorder-service', () => ({ recorderService: {} }));
 jest.mock('@/store/endpoints', () => ({
   useGetFlightQuery: jest.fn(),
@@ -30,6 +33,7 @@ jest.mock('@/components/ui', () => ({
 }));
 jest.mock('@/components/ui/journal-art', () => ({ JournalArt: () => null }));
 jest.mock('@/features/postcard/postcard-composer', () => ({ PostcardComposer: () => null }));
+jest.mock('@/features/feed/flight-sharing-section', () => ({ FlightSharingSection: () => null }));
 jest.mock('../components/evidence', () => ({ EvidenceBlock: jest.fn(() => null) }));
 jest.mock('../components/hero', () => ({ FlightHero: () => null }));
 jest.mock('../components/metadata-sheet', () => ({ MetadataSheet: jest.fn(() => null) }));
@@ -103,4 +107,30 @@ it('routes metadata edits through the existing mutation and requests backup only
   await act(async () => save(patch));
   expect(updateFlight).toHaveBeenLastCalledWith({ flightId: 'flight-123', patch });
   expect(mockRequestSync).toHaveBeenCalledWith('post-save');
+});
+
+it('shares an archived original without requesting recorder evidence, and leaves metadata editable', async () => {
+  await render({ source: 'archive', ownerUserId: 'pilot', sessionStatus: null, session: null,
+    archive: { trackState: 'ready', error: null, downloadedAt: 1000 } });
+  expect(buttons().some((button) => button.label === 'Replay flight')).toBe(true);
+  expect(buttons().some((button) => button.label === 'Edit flight')).toBe(true);
+  expect(jest.mocked(EvidenceBlock).mock.calls.at(-1)![0].exportDisabled).toBe(true);
+  await act(async () => buttons().find((button) => button.label === 'Share original archived IGC')!.onPress());
+  expect(mockShareArchivedIgc).toHaveBeenCalledWith('flight-123');
+});
+
+it('keeps an archive with a missing route reviewable and editable instead of claiming it is processing', async () => {
+  await render({ source: 'archive', ownerUserId: 'pilot', sessionStatus: null, session: null,
+    archive: { trackState: 'missing', error: null, downloadedAt: null }, metrics: null });
+  expect(buttons().some((button) => button.label === 'Edit flight')).toBe(true);
+  expect(buttons().find((button) => button.label === 'Delete flight permanently')!.disabled).toBe(false);
+  expect(buttons().find((button) => button.label === 'Archived IGC not available yet')!.disabled).toBe(true);
+  expect(jest.mocked(Notice).mock.calls.some(([props]) => props.title === 'No archived route')).toBe(true);
+});
+
+it('keeps the previously verified archive shareable when a replacement download fails', async () => {
+  await render({ source: 'archive', ownerUserId: 'pilot', sessionStatus: null, session: null,
+    archive: { trackState: 'error', error: 'Download interrupted', downloadedAt: 1000 } });
+  expect(buttons().find((button) => button.label === 'Share original archived IGC')!.disabled).toBe(false);
+  expect(jest.mocked(Notice).mock.calls.some(([props]) => props.title === 'Archive update waiting')).toBe(true);
 });

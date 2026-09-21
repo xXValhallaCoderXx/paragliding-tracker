@@ -64,11 +64,12 @@ export function evaluateSyncGate(input: SyncGateInput): SyncGateDecision {
     return { run: false, reason: 'backoff' };
   }
   if (
-    input.trigger !== 'manual' &&
+    input.trigger !== 'manual' && input.trigger !== 'post-save' &&
     input.lastSyncAt !== null &&
     input.now - input.lastSyncAt < CLOUD_CONFIG.minimumSyncIntervalMs
   ) {
-    // A manual tap always runs: if a pilot asks, something visible must happen.
+    // Fresh local changes must not wait for another navigation event. Failure
+    // backoff above still applies to post-save; only a manual retry bypasses it.
     return { run: false, reason: 'throttled' };
   }
   return {

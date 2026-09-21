@@ -1,9 +1,10 @@
 import React from 'react';
 import { NativeModules, StyleSheet, View } from 'react-native';
-import { MapView, ShapeSource } from '@rnmapbox/maps';
+import { Camera, MapView, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { styled } from 'nativewind';
 
 import type { FlightMapTrack } from '@/lib/track/map-geometry';
+import { OfflineCoverageContext } from '@/offline-maps/coverage-context';
 import { act, create } from '../../../../tests/support/renderer';
 import type { FlightMapProps } from '../types';
 
@@ -115,12 +116,12 @@ it('fits after layout and style load, then preserves camera and static sources a
 });
 
 it('waits for the supported tile-ready idle event after fitting and reports through the current callback once', async () => {
-  await event(() => map().onMapIdle());
-  await event(() => map().onDidFinishLoadingStyle());
+  expect(rendered.root.findAllByType(MapView)).toHaveLength(0);
+  await layout();
   await event(() => map().onMapIdle());
   expect(props.onReady).not.toHaveBeenCalled();
   expect(mockSetCamera).not.toHaveBeenCalled();
-  await layout();
+  await event(() => map().onDidFinishLoadingStyle());
   // Loading the style and setting the camera do not prove the basemap tiles rendered.
   expect(props.onReady).not.toHaveBeenCalled();
   const previousReady = props.onReady;
@@ -132,6 +133,53 @@ it('waits for the supported tile-ready idle event after fitting and reports thro
   expect(props.onError).not.toHaveBeenCalled();
   await event(() => map().onMapLoadingError());
   expect(props.onError).toHaveBeenCalledWith(expect.stringContaining('Grid'));
+});
+
+it('mounts its first native viewport at the measured flight bounds before loading the style', async () => {
+  expect(rendered.root.findAllByType(MapView)).toHaveLength(0);
+  await layout();
+  const initial = rendered.root.findByType(Camera).props.defaultSettings;
+  expect(initial.centerCoordinate[0]).toBeCloseTo(103.81);
+  expect(initial.centerCoordinate[1]).toBeCloseTo(1.31);
+  expect(initial.zoomLevel).toBeGreaterThan(12);
+  expect(initial.zoomLevel).toBeLessThan(14);
+  expect(initial).toMatchObject({ heading: 0, pitch: 0, animationDuration: 0, animationMode: 'none' });
+  expect(mockSetCamera).not.toHaveBeenCalled();
+  expect(props.onReady).not.toHaveBeenCalled();
+  // Initial-camera setup must not conceal a real tile/style error at the intended area.
+  await event(() => map().onMapLoadingError());
+  expect(props.onError).toHaveBeenCalledWith(expect.stringContaining('Grid'));
+});
+
+it('uses the downloaded Outdoors glyph stack for both saved-flight endpoint labels', async () => {
+  await layout();
+  const labels = rendered.root.findAllByType(SymbolLayer)
+    .filter((node) => ['flight-first-label', 'flight-last-label'].includes(node.props.id));
+  expect(labels.map((node) => node.props.id).sort()).toEqual(['flight-first-label', 'flight-last-label']);
+  for (const label of labels) expect(label.props.style.textFont).toEqual(['DIN Pro Medium', 'Arial Unicode MS Regular']);
+});
+
+it.each(['offline', 'unknown'] as const)('caps the initial and fitted camera before saved coverage hydrates when network is %s', async (network) => {
+  await event(() => rendered.unmount());
+  props = { ...props, track: { ...track, bounds: { ne: [103.8, 1.3], sw: [103.8, 1.3] } } };
+  await act(async () => { rendered = create(React.createElement(OfflineCoverageContext.Provider, {
+    value: { regions: [], network, activate: jest.fn() },
+  }, React.createElement(FlightMap, props))); });
+  await layout();
+  expect(rendered.root.findByType(Camera).props.defaultSettings).toMatchObject({ centerCoordinate: [expect.closeTo(103.8), expect.closeTo(1.3)], zoomLevel: 14 });
+  expect(rendered.root.findByType(Camera).props.maxZoomLevel).toBe(14);
+  await event(() => map().onDidFinishLoadingStyle());
+  expect(mockSetCamera).toHaveBeenLastCalledWith(expect.objectContaining({ zoomLevel: 14 }));
+});
+
+it.each([
+  { mode: 'follow' as const, center: [104, 2] as [number, number], expected: [103.8, 1.3] },
+  { mode: 'manual' as const, center: [104, 2] as [number, number], expected: [104, 2] },
+])('starts a live $mode map at its intended center instead of the track fit or style default', async ({ mode, center, expected }) => {
+  await update({ liveCamera: { mode, center, zoom: 16 } });
+  await layout();
+  expect(rendered.root.findByType(Camera).props.defaultSettings).toMatchObject({ centerCoordinate: expected, zoomLevel: 16 });
+  expect(mockSetCamera).not.toHaveBeenCalled();
 });
 
 it('holds the parent scroll lock across multiple touches and releases on cancellation or unmount', async () => {

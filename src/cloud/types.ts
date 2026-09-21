@@ -1,3 +1,5 @@
+import type { RestoreEnvironment, RestoreSnapshot } from './restore-plan';
+
 /**
  * Cloud backup domain vocabulary.
  *
@@ -76,6 +78,8 @@ export type SyncBlockReason =
   | 'throttled';
 
 export interface SyncSnapshot {
+  /** Durable archive progress is separate from outgoing backup progress. */
+  restore?: RestoreSnapshot;
   phase: SyncPhase;
   blockedBy: SyncBlockReason | null;
   lastSyncAt: number | null;
@@ -106,6 +110,12 @@ export interface CloudAuthService {
 }
 
 export interface CloudSyncEngine {
+  setEnvironment(environment: Partial<RestoreEnvironment>): void;
+  pauseRestore(): void;
+  resumeRestore(options: { allowMobileData: boolean }): void;
+  retryRestore(options: { allowMobileData: boolean }): void;
+  /** Revokes in-flight owner work immediately and updates signed-out journal visibility. */
+  authChanged(): Promise<void>;
   getSnapshot(): SyncSnapshot;
   /**
    * Rebinds this device's logbook to `userId`, dropping every sync watermark so the

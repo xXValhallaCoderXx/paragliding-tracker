@@ -18,7 +18,7 @@ beforeEach(async () => {
   for (const { name } of await db.getAllAsync<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")) {
     await db.execAsync(`PRAGMA foreign_keys = OFF; DROP TABLE "${name}"; PRAGMA foreign_keys = ON`);
   }
-  await schemaAt(db, 7);
+  await schemaAt(db, 10);
   await seedSession(db); await db.execAsync(BACKFILL_FLIGHTS_SQL);
 });
 afterEach(() => jest.restoreAllMocks());
@@ -38,6 +38,52 @@ it('enforces one unfinished recording and singleton device settings in the appli
   await expect(seedSession(db, 'second', 'interrupted')).rejects.toThrow(/UNIQUE/);
   await expect(db.runAsync('INSERT INTO pilot_profile (id, updated_at) VALUES (2, 0)')).rejects.toThrow(/CHECK/);
   await expect(db.runAsync('INSERT INTO cloud_link (id) VALUES (2)')).rejects.toThrow(/CHECK/);
+});
+
+it('stamps only a newly created recording and queues its eligible publication atomically with finalized metrics', async () => {
+  await database.completeSession('session-1', 2000, 'stopped', power);
+  await db.runAsync("INSERT INTO social_sharing_preferences VALUES ('A', 1, 'generation')");
+  await database.createSession({ id: 'new-session', flightId: 'new-flight', startedAt: 3000, platform: 'android',
+    deviceMetadata: {}, appMetadata: {}, startPower: power,
+    sharingConsent: { ownerUserId: 'A', generation: 'generation', operationId: 'operation' }, sharingConsentCurrent: () => true });
+  expect(await db.getAllAsync('SELECT flight_id, owner_user_id, operation_id FROM social_capture_stamps')).toEqual([
+    { flight_id: 'new-flight', owner_user_id: 'A', operation_id: 'operation' },
+  ]);
+  await database.completeSession('new-session', 5000, 'stopped', power);
+  await database.setFlightStatus({ flightId: 'new-flight', status: 'completed', endedAt: 5000, updatedAt: 5000 });
+  expect(await db.getAllAsync('SELECT * FROM social_publication_intents')).toEqual([]);
+  await database.upsertFlightMetrics({ flightId: 'new-flight', algorithmVersion: 1, durationMs: 2000, trackDistanceMetres: 0,
+    minGpsAltitude: null, maxGpsAltitude: null, maxGroundSpeed: null, fixCount: 0,
+    medianSourceGapMs: null, p95SourceGapMs: null, maxSourceGapMs: null, quality: 'no_track', computedAt: 5000 });
+  await db.execAsync("CREATE TRIGGER queue_disk_full BEFORE INSERT ON social_publication_intents BEGIN SELECT RAISE(ABORT, 'disk full'); END");
+  await expect(database.setFlightStatus({ flightId: 'new-flight', status: 'completed', updatedAt: 6000 })).rejects.toThrow('disk full');
+  expect(await db.getFirstAsync("SELECT updated_at FROM flights WHERE id = 'new-flight'")).toEqual({ updated_at: 5000 });
+  await db.execAsync('DROP TRIGGER queue_disk_full');
+  await database.setFlightStatus({ flightId: 'new-flight', status: 'completed', updatedAt: 6000 });
+  await database.setFlightStatus({ flightId: 'new-flight', status: 'completed', updatedAt: 7000 });
+  expect(await db.getAllAsync('SELECT flight_id, operation_id, expected_revision, state FROM social_publication_intents')).toEqual([
+    { flight_id: 'new-flight', operation_id: 'operation', expected_revision: 0, state: 'pending' },
+  ]);
+  await database.deleteCompletedFlight('new-flight', 8000);
+  expect(await db.getAllAsync('SELECT state FROM social_publication_intents')).toEqual([{ state: 'cancelled' }]);
+  expect(await db.getAllAsync('SELECT * FROM social_capture_stamps')).toEqual([]);
+});
+
+it('does not stamp a recording when the owner changes while the creation transaction is waiting', async () => {
+  await database.completeSession('session-1', 2000, 'stopped', power);
+  await db.runAsync("INSERT INTO social_sharing_preferences VALUES ('A', 1, 'generation')");
+  await database.createSession({ id: 'new-session', startedAt: 3000, platform: 'android', deviceMetadata: {}, appMetadata: {}, startPower: power,
+    sharingConsent: { ownerUserId: 'A', generation: 'generation', operationId: 'operation' }, sharingConsentCurrent: () => false });
+  expect(await db.getAllAsync('SELECT * FROM social_capture_stamps')).toEqual([]);
+  expect(await database.getSession('new-session')).toMatchObject({ status: 'recording' });
+});
+
+it('orders captured metadata edits strictly even in the same millisecond or after a clock rollback', async () => {
+  const first = await database.updateFlightMetadata('session-1', { title: 'First' }, 2000);
+  const sameMillisecond = await database.updateFlightMetadata('session-1', { title: 'Second' }, 2000);
+  const rolledBack = await database.updateFlightMetadata('session-1', { notes: 'Newer edit' }, 1000);
+  expect([first.updatedAt, sameMillisecond.updatedAt, rolledBack.updatedAt]).toEqual([2000, 2001, 2002]);
+  expect(rolledBack).toMatchObject({ title: 'Second', notes: 'Newer edit' });
 });
 
 it('deduplicates callbacks and sources, rejects invalid fixes, and never moves the heartbeat backwards', async () => {
@@ -154,6 +200,82 @@ it('rejects deleting open or processing flights, then deletes all evidence and q
   expect(await database.listPendingFileDeletions()).toEqual(['/private/flight.igc']);
   expect(await database.listPendingFlightDeletions(10, 15_000)).toMatchObject([{ flightId: 'session-1', recordingSessionId: 'session-1', deletedAt: 14_000 }]);
   expect(await db.getAllAsync('PRAGMA foreign_key_check')).toEqual([]);
+});
+
+it('keeps captured ownership immutable and scopes remote deletion without touching active evidence', async () => {
+  await database.markFlightCloudOwner('session-1', 'owner-a');
+  await database.markFlightCloudOwner('session-1', 'owner-a');
+  await expect(database.markFlightCloudOwner('session-1', 'owner-b')).rejects.toThrow('another account');
+  await seedEvidence(db);
+  expect(await database.deleteCompletedFlight('session-1', 3000, { remoteOwnerUserId: 'owner-a' })).toBe('deferred');
+  expect(await database.deleteCompletedFlight('session-1', 3000, { remoteOwnerUserId: 'owner-b' })).toBe('absent');
+  expect(await db.getAllAsync('SELECT * FROM location_fixes')).toHaveLength(1);
+  await database.completeSession('session-1', 2000, 'stopped', power);
+  await database.setFlightStatus({ flightId: 'session-1', status: 'completed', endedAt: 2000, updatedAt: 2000 });
+  expect(await database.deleteCompletedFlight('session-1', 3000, { remoteOwnerUserId: 'owner-a', recordingSessionId: 'different' })).toBe('absent');
+  expect(await database.deleteCompletedFlight('session-1', 3000, { remoteOwnerUserId: 'owner-a', recordingSessionId: 'session-1' })).toBe('deleted');
+  expect(await database.deleteCompletedFlight('session-1', 3000, { remoteOwnerUserId: 'owner-a' })).toBe('absent');
+  expect(await database.listPendingFlightDeletions(10)).toEqual([]);
+  expect(await db.getFirstAsync('SELECT acknowledged_at FROM archive_deletions')).toEqual({ acknowledged_at: 3000 });
+  expect(await database.listPendingFileDeletions()).toEqual(['/private/flight.igc']);
+  expect(await db.getAllAsync('PRAGMA foreign_key_check')).toEqual([]);
+});
+
+it('queues owner-qualified local deletions and removes hidden archive copies atomically', async () => {
+  await database.markFlightCloudOwner('session-1', 'owner-a');
+  await database.completeSession('session-1', 2000, 'stopped', power);
+  await database.setFlightStatus({ flightId: 'session-1', status: 'completed', endedAt: 2000, updatedAt: 2000 });
+  await db.runAsync(`INSERT INTO archive_flights (owner_user_id, flight_id, recording_session_id, summary_json, started_at,
+    client_updated_at, remote_updated_at, track_state) VALUES ('owner-a', 'session-1', 'session-1', '{}', 1000, 2000, '2026-09-20T00:00:00Z', 'pending')`);
+  await database.deleteCompletedFlight('session-1', 3000);
+  expect(await db.getAllAsync('SELECT * FROM archive_flights')).toEqual([]);
+  expect(await database.listPendingFlightDeletions(10, 4000, { ownerUserId: 'owner-b' })).toEqual([]);
+  expect(await database.listPendingFlightDeletions(10, 4000, { ownerUserId: 'owner-a' })).toMatchObject([{ ownerUserId: 'owner-a' }]);
+  await database.clearFlightDeletion('session-1', 'owner-b');
+  await database.recordFlightDeletionFailure('session-1', 'wrong owner', 9000, 'owner-b');
+  expect(await database.listPendingFlightDeletions(10, 4000, { ownerUserId: 'owner-a' })).toMatchObject([{ attemptCount: 0 }]);
+  await database.clearFlightDeletion('session-1', 'owner-a');
+  expect(await database.listPendingFlightDeletions(10)).toEqual([]);
+  expect(await db.getFirstAsync('SELECT owner_user_id, acknowledged_at FROM archive_deletions')).toEqual({ owner_user_id: 'owner-a', acknowledged_at: null });
+});
+
+it.each(['local', 'remote'] as const)('removes hidden archive bytes during %s captured deletion with foreign keys disabled', async (origin) => {
+  await database.markFlightCloudOwner('session-1', 'owner-a');
+  await database.completeSession('session-1', 2000, 'stopped', power);
+  await database.setFlightStatus({ flightId: 'session-1', status: 'completed', endedAt: 2000, updatedAt: 2000 });
+  for (const owner of ['owner-a', 'owner-b']) {
+    await db.runAsync(`INSERT INTO archive_flights (owner_user_id, flight_id, recording_session_id, summary_json, started_at,
+      client_updated_at, remote_updated_at, track_state) VALUES (?, 'session-1', 'session-1', '{}', 1000, 2000, '2026-09-20T00:00:00Z', 'ready')`, owner);
+    await db.runAsync(`INSERT INTO archive_artifacts (owner_user_id, flight_id, sha256, artifact_version, byte_count, bytes, stored_at)
+      VALUES (?, 'session-1', 'digest', 1, 3, ?, 2000)`, owner, new Uint8Array([1, 2, 3]));
+  }
+  // Match the fresh connection used by Expo's exclusive transactions: foreign keys default to OFF.
+  await db.execAsync('PRAGMA foreign_keys = OFF');
+  await database.deleteCompletedFlight('session-1', 3000, origin === 'remote' ? { remoteOwnerUserId: 'owner-a' } : undefined);
+  await db.execAsync('PRAGMA foreign_keys = ON');
+  expect(await db.getAllAsync('PRAGMA foreign_key_check')).toEqual([]);
+  expect(await db.getAllAsync('SELECT owner_user_id, flight_id FROM archive_artifacts')).toEqual([
+    { owner_user_id: 'owner-b', flight_id: 'session-1' },
+  ]);
+  expect(await db.getAllAsync('SELECT owner_user_id, flight_id FROM archive_flights')).toEqual([
+    { owner_user_id: 'owner-b', flight_id: 'session-1' },
+  ]);
+  expect(await db.getFirstAsync('SELECT owner_user_id, acknowledged_at FROM archive_deletions')).toEqual({
+    owner_user_id: 'owner-a', acknowledged_at: origin === 'remote' ? 3000 : null,
+  });
+});
+
+it('filters immutable foreign owners before limiting dirty batches and counting pending work', async () => {
+  await database.completeSession('session-1', 2000, 'stopped', power);
+  await database.setFlightStatus({ flightId: 'session-1', status: 'completed', endedAt: 2000, updatedAt: 2000 });
+  await database.markFlightCloudOwner('session-1', 'owner-a');
+  await seedSession(db, 'newer', 'completed', 3000); await db.execAsync(BACKFILL_FLIGHTS_SQL);
+  await db.runAsync(`INSERT INTO flight_deletions (flight_id, recording_session_id, deleted_at, owner_user_id)
+    VALUES ('deleted-a', 'deleted-a', 1000, 'owner-a'), ('deleted-b', 'deleted-b', 1000, 'owner-b'), ('legacy', 'legacy', 1000, NULL)`);
+  const batch = await database.listDirtyFlights(1, 5000, { ownerUserId: 'owner-b' });
+  expect(batch.map(item => item.id)).toEqual(['newer']);
+  expect(await database.countPendingSync('owner-b')).toEqual({ flights: 1, deletions: 1 });
+  expect(await database.countPendingSync('owner-a')).toEqual({ flights: 2, deletions: 1 });
 });
 
 it('rolls deletion back if its cloud tombstone cannot be saved', async () => {

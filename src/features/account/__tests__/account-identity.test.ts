@@ -1,5 +1,5 @@
 import { buildUnsignedIgc } from '@/recorder/igc';
-import type { FlightMetricsRecord, FlightSummary, LocationFixRecord, PilotProfile } from '@/recorder/types';
+import type { FlightMetricsRecord, LocationFixRecord, PilotProfile, RecordedFlightSummary } from '@/recorder/types';
 
 import {
   accountStats,
@@ -43,7 +43,7 @@ function metrics(overrides: Partial<FlightMetricsRecord> = {}): FlightMetricsRec
   };
 }
 
-function flight(overrides: Partial<FlightSummary> & { id: string }): FlightSummary {
+function flight(overrides: Partial<RecordedFlightSummary> & { id: string }): RecordedFlightSummary {
   const startedAt = overrides.startedAt ?? Date.UTC(2026, 7, 16, 6, 42);
   return {
     recordingSessionId: `session-${overrides.id}`,

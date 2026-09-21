@@ -11,6 +11,8 @@ The earlier recorder smoke remains valid; EAS preview is still unconfigured.
 
 The target overlay and static Logbook/detail maps are implemented. The combined installed build
 and its observed cases are recorded below; broader failure/resource acceptance remains open.
+PAR-28 adds [downloaded map areas](./offline-maps.md) locally as of 20 September. Its cold-start
+offline coverage, size/storage and overlap/deletion checks remain unaccepted on a physical device.
 
 ## Decision and configuration
 
@@ -20,19 +22,21 @@ and its observed cases are recorded below; broader failure/resource acceptance r
 - Set `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` to a public Mapbox `pk.` token in `.env.local`; set the
   same public value in EAS's **preview** environment with **plaintext** visibility. The token is
   embedded in the app bundle. This Android setup uses no secret download token.
-- Preserve SDK ambient-cache defaults. Cached tiles may be available offline; no numeric cache
-  budget is enforced by the app and no downloaded-area coverage is promised.
+- PAR-28 now configures a shared tile/resource store and explicit downloaded regions. Ordinary
+  cache remains distinct from verified saved coverage. The [offline map policy](./offline-maps.md)
+  records the free-space reserve, lifecycle controls and pending physical acceptance.
 - Aim for worldwide online coverage. Singapore walks and Malaysian flying areas are primary
   checks, with no country restriction or requirement that a recording be an actual flight.
 
-Map downloads (PAR-28), the pilot's own in-flight map (PAR-29), 3D (PAR-21) and remote live sharing
-remain outside this increment. Mapbox's [regional offline support](https://docs.mapbox.com/android/maps/guides/offline/)
-provides a future path; downloads, storage management and offline guarantees need their own work.
+Map downloads (PAR-28) and the pilot's own in-flight map (PAR-29) were implemented as separate
+increments; see [offline maps](./offline-maps.md) and [in-flight maps](./in-flight-map.md).
+Their device acceptance remains separate from this historical replay-map evidence. 3D (PAR-21)
+and remote live sharing remain future work.
 
 ## Implementation contract
 
 - A shared map view accepts geographic route segments, track identity, a nullable current marker
-  and optional endpoints. It owns rendering/camera state, with separate saved and future live
+  and optional endpoints. It owns rendering/camera state, with separate saved and live
   adapters; it never owns GPS collection, recorder lifecycle, database access or a second clock.
 - Saved replay uses original normalized fixes and the existing playback timestamp. Preserve gaps
   over 15 seconds, absent telemetry, isolated fixes, partial tracks and antimeridian crossings.
@@ -51,8 +55,8 @@ provides a future path; downloads, storage management and offline guarantees nee
   The [patch maintenance note](./par-27-map-fallback-checks.md#why-the-dependency-patch-is-kept)
   records the 13 September release check, files to commit together and removal criteria.
 - Keep Mapbox logo/attribution and accessible controls visible. Map failure cannot affect saved
-  data or recording. A future live adapter will consume recorder-captured fixes without a new GPS
-  watcher; the current change adds no in-flight screen.
+  data or recording. The separately implemented live adapter consumes recorder-captured fixes
+  without a new GPS watcher.
 
 ## Static Logbook and detail maps
 
@@ -187,7 +191,8 @@ PAR-19's remaining criteria stay open; PAR-20 retains that dependency and PAR-27
 4. Check automatic Grid fallback for missing configuration, native failure and the 15-second
    timeout; use **Retry map** after failure. Replay position/playback must survive fallback/retry.
    Confirm Grid Play/Pause/scrubbing offline without requiring a manual mode choice.
-   A cached map may work offline; no downloaded map coverage is assumed.
+   A cached map may work offline. Test deliberate downloaded coverage separately using the
+   [PAR-28 cold-start checklist](./offline-maps.md#android-physical-acceptance--all-pending).
 5. Background/return paused; reopen and retry repeatedly. Check gestures with scrolling,
    accessible labels, resource cleanup and comparative Grid/map responsiveness on the same track.
 6. Attach actual results and fix/retest concrete blockers. Full replay and long-flight studies

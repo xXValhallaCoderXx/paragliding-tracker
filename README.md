@@ -9,15 +9,27 @@ recorder carried on a flight.
 ## Documentation
 
 - [Project overview](./docs/project-overview.md): current features, backup behavior and limits.
-- [Feature plan and roadmap](./docs/feature-plan.md): saved replay maps, broader sharing/replay
-  acceptance, then friends, shared-flight viewing and future maps.
+- [Friends](./docs/friends.md): pilot search, mutual requests, friend profiles and backed-up flight counts.
+- [Shared flights](./docs/shared-flights.md): accepted-friends feed, publication consent, safe replay and release acceptance.
+- [Kudos](./docs/kudos.md): reversible support, supporter names, visibility rules and release acceptance.
+- [Feature plan and roadmap](./docs/feature-plan.md): map/download acceptance, broader sharing/replay
+  acceptance and the selected social stages.
 - [Saved replay maps](./docs/saved-replay-maps.md): Mapbox decision, configuration and Android checks.
 - [Optional in-flight map](./docs/in-flight-map.md): implementation, bounded live data and pending Android acceptance.
+- [Offline map areas](./docs/offline-maps.md): PAR-28 downloads, storage/recovery policy and pending Android acceptance.
+- [Private flight restoration](./docs/private-flight-restoration.md): PAR-22 archive restore, replay/export provenance, cross-device deletion and acceptance gates.
 - [Email setup](./docs/email-setup.md): hosted sign-in email configuration.
 
 Postcard PNG sharing and offline 2D replay are implemented. Full device acceptance remains
 pending; the roadmap carries the remaining checks. Recording works without an account, and
-backup does not yet restore a logbook onto a new phone. Development and test commands follow.
+PAR-22 implements automatic restoration of private flight summaries and archived IGCs on a new
+phone; hosted migration and exact-build physical acceptance are tracked in its guide. Development
+and test commands follow.
+
+PAR-28 is implemented locally: **Settings → Offline maps** searches destinations, previews named
+coverage and manages multiple downloaded areas for live recording and saved replay. It requires
+a new Android build. Cold-start airplane-mode use, measured download sizes and overlap/deletion
+behavior still need the [physical acceptance checks](./docs/offline-maps.md#android-physical-acceptance--all-pending).
 
 ## Mapbox configuration
 
@@ -35,6 +47,8 @@ The native map module/config plugin requires an Android rebuild; Fast Refresh or
 cannot add it. Preserve the existing signing key and phone logbook, follow the in-place prebuild
 and compatible installation steps below, then run the [map phone checklist](./docs/saved-replay-maps.md#android-acceptance).
 Native compatibility and acceptance results are tracked separately in that document and Linear.
+PAR-28 extends the pinned Mapbox native patch with a shared tile store, style/tile downloads and
+verified completion receipts; [its guide](./docs/offline-maps.md) records the storage and rebuild contract.
 The approved replay UI opens Map when configured, automatically falls back to Grid for missing
 configuration, native failure or a 15-second timeout, and offers **Retry map** after a failed
 attempt. There is no Map/Grid selector. The approved **Fit flight** target icon sits inside the
@@ -57,7 +71,7 @@ assets require a new native build to appear on an installed app.
 
 ## Accounts and cloud backup
 
-Signing in is **optional and never gates anything**. The recorder, the logbook and every export
+Signing in is **optional for the personal journal**. Friends requires an account; the recorder, the logbook and every export
 work with no account and no signal — a login wall in front of a device that records in the air
 would break the product, and App Store Guideline 5.1.1(v) forbids requiring registration for
 features that do not need an account. There is deliberately no `Stack.Protected` in this app.
@@ -74,14 +88,27 @@ The pilot profile is stored locally and does not mean a cloud account is signed 
 Account shows the current sign-in state: **Sign in** opens the email-code form;
 an active session shows its email and **Log out**. Upload progress is shown separately.
 
-**Backup is push-only.** The phone is the source of truth:
+**Friends** adds a separate chosen display name, editable `@username`, optional search visibility
+and mutual friendship requests. Accepted-friend profiles show backed-up flight counts. Its feed supports explicitly shared finished
+flights and 2D replay, plus optional automatic posting of future recordings, off by default.
+Give or remove kudos on a friend's published flight and open its supporter names and initials.
+Signing in alone publishes neither a social profile nor a flight. Current accepted friends see
+published history; private notes, original flight rows, export details and IGCs remain owner-only.
+Social viewing follows the signed-in account and is not retained offline. See [Friends v1](./docs/friends.md)
+for the foundation's evidence and [shared flights](./docs/shared-flights.md) for consent, Hide,
+durable retries and separate release gates.
 
-- Flight facts (status, timestamps, metrics, IGC references) are pushed and never pulled.
-- Only `title`, `site` and `notes` merge back down, last-write-wins on the client clock.
-- Newer pilot profile fields also merge back down; this does not restore recorded flights.
-- A deletion on this phone is pushed; a deletion elsewhere never removes local evidence.
-- Raw fixes and pressure samples are never uploaded — the derived IGC file is the archive.
-- A fresh install does **not** re-download flights. Cloud-only flights are counted and shown.
+**Private backup and restoration:** completed summaries and archived IGCs restore automatically
+into the normal logbook after sign-in. IGC transfers use foreground Wi-Fi by default, with explicit
+mobile-data consent and Pause/Resume/Retry controls. Downloaded archives remain usable offline.
+Restored flights retain their backed-up totals, are marked **Restored**, and never invent raw GPS,
+pressure or diagnostic evidence. Original local recordings remain the evidence source when present.
+
+Title, site/attribution and notes synchronize through canonical metadata writes; newer client edit
+timestamps win. Explicit individual-flight deletion propagates to linked phones, including a
+verified original finished recording, while deleting the cloud account retains local copies.
+See [PAR-22 behavior and acceptance](./docs/private-flight-restoration.md) for account boundaries,
+conflict rules, original IGC export, server migration order and older-APK limits.
 
 **Sync now** retries immediately, including flights delayed after a failed attempt.
 Automatic triggers keep their retry delay. Failures remain visible until the next attempt,
@@ -100,17 +127,19 @@ the ESLint rule in `scripts/eslint/architecture.cjs` enforces the dependency bou
 | --- | --- |
 | `src/cloud/` | Domain layer: config, types, pure policy, Supabase client, auth service, sync engine. Imports `src/recorder`, never the reverse. |
 | `src/features/account/` | The `/account` route's providers, presentation and components. |
+| `src/archives/`, `src/journal/` | Account-scoped archive persistence/parser and the combined recorded/restored logbook. |
 | `src/recorder/sync-repository-core.ts` | Platform-free SQL and mappers for the v5 sync bookkeeping tables. |
 | `supabase/migrations/` | Server schema, RLS policies and the IGC storage bucket. |
-| `supabase/functions/delete-account/` | In-app account deletion (needs `service_role`, so it cannot be done from the client). |
+| `src/social/`, `src/features/feed/` | Accepted-friends feed, publication consent, authorized remote detail/replay and account-scoped memory. |
+| `supabase/functions/delete-account/`, `supabase/functions/shared-flight/` | Privileged account cleanup and authorized shared replay transfer; secrets stay server-side. |
 
 ### Setup
 
 Copy `.env.example` to `.env.local` and fill in the two values from Supabase's Project Settings →
 API: the project URL and the **publishable key** (`sb_publishable_...`, formerly called the anon
 key). Both are public by design and ship inside the bundle — row level security is what protects
-the data. The secret key is never needed by the app; the account-deletion Edge Function is the
-only thing that uses one, and Supabase injects it there automatically.
+the data. The secret key is never needed by the app; privileged account-deletion and shared-flight
+Edge Functions use server-side credentials supplied by Supabase.
 
 Register the same variables as EAS environment variables too: EAS Build respects `.gitignore`, so
 an ignored `.env.local` alone would produce a build with no backend. A build with no configuration
@@ -318,7 +347,7 @@ or release builds, but it is not part of the daily Android development loop.
 
 Use Node 24 (`.node-version`), install with `pnpm install --frozen-lockfile`, and start Docker.
 `pnpm test` runs TypeScript, ESLint and its architecture regressions, Jest with real SQLite,
-Deno account-deletion handler tests, then pgTAP and generated-type drift checks against a disposable Postgres database. Docker is
+Deno edge-function handler tests, then pgTAP and generated-type drift checks against a disposable Postgres database. Docker is
 required: an unavailable engine fails the command, and database checks are never skipped.
 
 ```bash

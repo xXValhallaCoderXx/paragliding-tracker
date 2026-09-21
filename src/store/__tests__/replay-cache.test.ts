@@ -2,11 +2,13 @@
  * @jest-environment-options {"customExportConditions":["node","node-addons"]}
  */
 import { configureStore } from '@reduxjs/toolkit';
-import { flightRepository } from '@/recorder/flight-repository';
+import { journalRepository as flightRepository } from '@/journal/repository';
 import { dataApi } from '../endpoints';
 
+jest.mock('@/journal/repository', () => ({
+  journalRepository: { getReplay: jest.fn(), updateFlight: jest.fn(), deleteFlight: jest.fn() },
+}));
 jest.mock('@/recorder/flight-repository', () => ({
-  flightRepository: { getReplay: jest.fn(), updateFlight: jest.fn(), deleteFlight: jest.fn() },
   appSettingsRepository: {}, pilotProfileRepository: {},
 }));
 jest.mock('@/sites/site-service', () => ({ fetchNearbySites: jest.fn(), searchSitesByName: jest.fn() }));

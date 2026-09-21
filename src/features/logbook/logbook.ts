@@ -170,12 +170,14 @@ export function flightInsightText(insight: FlightInsight): string {
  * chances to disagree.
  */
 export function isFlightProcessing(flight: FlightSummary): boolean {
+  if (flight.source === 'archive') return false;
   return flight.status === 'processing' || (flight.endedAt !== null && flight.metrics === null);
 }
 
 export function flightChips(flight: FlightSummary): { label: string; tone: ChipTone }[] {
   const chips: { label: string; tone: ChipTone }[] = [];
   const metrics = flight.metrics;
+  if (flight.source === 'archive') chips.push({ label: 'Restored', tone: 'muted' });
   if (isFlightProcessing(flight)) {
     chips.push({ label: 'Finishing stats', tone: 'muted' });
     return chips;

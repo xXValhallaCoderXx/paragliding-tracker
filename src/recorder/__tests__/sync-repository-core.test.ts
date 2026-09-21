@@ -75,6 +75,7 @@ it('records an IGC before the first metadata watermark and preserves a concurren
 
 it('merges only newer metadata, resets provenance, and advances the watermark without an echo', async () => {
   await flight('f'); await seedEvidence(db, 'f');
+  await db.runAsync(MARK_FLIGHT_PUSHED_SQL, 'f', 1000, 'previous');
   await db.runAsync("UPDATE flights SET title = 'Local', site = 'Launch', site_source = 'osm', takeoff_latitude = 46, takeoff_longitude = 8");
   const facts = await db.getFirstAsync('SELECT recording_session_id, status, started_at, ended_at, takeoff_latitude, takeoff_longitude FROM flights');
   const evidence = await db.getAllAsync('SELECT * FROM location_fixes');
@@ -82,7 +83,7 @@ it('merges only newer metadata, resets provenance, and advances the watermark wi
   await db.withExclusiveTransactionAsync(async (tx) => {
     expect(await applyRemoteFlightMetadataTransaction(tx, remote, '2026-09-06T00:00:00Z')).toBe('applied');
   });
-  expect(await db.getFirstAsync('SELECT * FROM flights')).toMatchObject({ ...facts as object, title: 'Remote', site: 'Elsewhere', site_source: 'manual', notes: 'Remote notes', updated_at: 9000 });
+  expect(await db.getFirstAsync('SELECT * FROM flights')).toMatchObject({ ...facts as object, title: 'Remote', site: 'Elsewhere', site_source: null, notes: 'Remote notes', updated_at: 9000 });
   expect(await candidates()).toEqual([]);
   for (const clientUpdatedAt of [1000, 9000]) {
     expect(await applyRemoteFlightMetadataTransaction(db, { ...remote, title: 'Stale', clientUpdatedAt }, 'later')).toBe('local_newer');
@@ -96,11 +97,34 @@ it('merges only newer metadata, resets provenance, and advances the watermark wi
 
 it('rolls back the metadata merge when advancing its watermark fails', async () => {
   await flight('f');
+  await db.runAsync(MARK_FLIGHT_PUSHED_SQL, 'f', 1000, 'previous');
   await db.execAsync("CREATE TRIGGER full_disk BEFORE INSERT ON flight_sync_state BEGIN SELECT RAISE(ABORT, 'disk full'); END");
   await expect(db.withExclusiveTransactionAsync(async (tx) => {
     await applyRemoteFlightMetadataTransaction(tx, { flightId: 'f', title: 'Lost', site: null, notes: null, clientUpdatedAt: 9000 }, 'later');
   })).rejects.toThrow('disk full');
   expect(await db.getFirstAsync('SELECT title, updated_at FROM flights')).toEqual({ title: null, updated_at: 1000 });
+});
+
+it('adopts a canonical server tie without erasing an edit made while the request was in flight', async () => {
+  await flight('f');
+  const response = { flightId: 'f', title: 'Server tie winner', site: 'Launch', siteSource: 'osm' as const,
+    notes: 'Canonical', clientUpdatedAt: 1000, expectedLocalUpdatedAt: 1000 };
+  expect(await applyRemoteFlightMetadataTransaction(db, response, 'server')).toBe('applied');
+  expect(await db.getFirstAsync('SELECT title, site_source FROM flights')).toEqual({ title: 'Server tie winner', site_source: 'osm' });
+  await db.runAsync("UPDATE flights SET title = 'Newer local edit', updated_at = 1001 WHERE id = 'f'");
+  expect(await applyRemoteFlightMetadataTransaction(db, { ...response, clientUpdatedAt: 9999 }, 'later')).toBe('local_newer');
+  await db.runAsync(MARK_FLIGHT_PUSHED_SQL, 'f', 1000, 'later');
+  expect(await applyRemoteFlightMetadataTransaction(db, { ...response, expectedLocalUpdatedAt: undefined, clientUpdatedAt: 9999 }, 'catalogue')).toBe('local_newer');
+  expect(await db.getFirstAsync('SELECT title, updated_at FROM flights')).toEqual({ title: 'Newer local edit', updated_at: 1001 });
+  expect((await candidates()).map(row => row.id)).toEqual(['f']);
+});
+
+it('keeps the canonical acknowledgement when a delayed dispatched-version acknowledgement arrives', async () => {
+  await flight('f');
+  await applyRemoteFlightMetadataTransaction(db, { flightId: 'f', title: 'Canonical', site: null, notes: null, clientUpdatedAt: 9999, expectedLocalUpdatedAt: 1000 }, 'remote');
+  await db.runAsync(MARK_FLIGHT_PUSHED_SQL, 'f', 1000, 'remote');
+  expect(await db.getFirstAsync('SELECT pushed_updated_at FROM flight_sync_state')).toEqual({ pushed_updated_at: 9999 });
+  expect(await candidates()).toEqual([]);
 });
 
 it('claims only an unbound account and resets sync state without changing the logbook or evidence', async () => {
