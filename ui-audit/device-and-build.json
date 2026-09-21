@@ -1,0 +1,21 @@
+{
+  "startedAt": "2026-09-20T21:26:01.403620+00:00",
+  "device": "Samsung SM-S938B",
+  "resolution": [
+    1080,
+    2340
+  ],
+  "androidVersion": "16",
+  "sourceCommit": "5d8d31b61f40a943923366b79cc9fdf755c13bfd",
+  "normalApkSha256": "b3939fbc8411bedbcf1ba8b9b2e4d8a976e1088c9a558ac50cf224122a5965ca",
+  "qaApkSha256": "eb763eb19e196d48d16d1d4472bcfdb34890ac8944e52f080ab3bf397015badf",
+  "buildNote": "Normal and isolated QA have byte-identical application JavaScript/assets; package, signer and dex optimization differ. App built before source commit; source receipt verifies application files.",
+  "originalSettings": {
+    "wifi_on": "1",
+    "mobile_data": "1",
+    "bluetooth_on": "1",
+    "airplane_mode_on": "0",
+    "stay_on_while_plugged_in": "0",
+    "screen_off_timeout": "300000"
+  }
+}

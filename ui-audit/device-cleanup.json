@@ -1,0 +1,74 @@
+{
+  "kind": "ui-audit-device-cleanup",
+  "startedAt": "2026-09-20T21:50:29.039690+00:00",
+  "baseline": "device-and-build.json",
+  "baselineSha256": "f811f0f6560419b89e2508babd5679346e1a8c6e1025e3110b0e6aa790968692",
+  "status": "passed",
+  "operatorConfirmedQaIdle": true,
+  "recordingGuard": {
+    "qaAlreadyAbsent": true
+  },
+  "ownerPackagePresentBefore": true,
+  "ownerApkSha256Before": "b3939fbc8411bedbcf1ba8b9b2e4d8a976e1088c9a558ac50cf224122a5965ca",
+  "qaApkSha256Before": null,
+  "qaUninstalled": false,
+  "qaAlreadyAbsent": true,
+  "settingsBefore": {
+    "wifi_on": "1",
+    "mobile_data": "1",
+    "bluetooth_on": "1",
+    "airplane_mode_on": "0",
+    "stay_on_while_plugged_in": "2",
+    "screen_off_timeout": "300000"
+  },
+  "originalSettings": {
+    "wifi_on": "1",
+    "mobile_data": "1",
+    "bluetooth_on": "1",
+    "airplane_mode_on": "0",
+    "stay_on_while_plugged_in": "0",
+    "screen_off_timeout": "300000"
+  },
+  "restoredSettings": [
+    {
+      "setting": "stay_on_while_plugged_in",
+      "restoredTo": "0"
+    }
+  ],
+  "ownerForceStoppedOrCleared": false,
+  "ownerUninstalled": false,
+  "hostedOperationsPerformed": false,
+  "temporaryFilesRemoved": [
+    "/sdcard/social-qa.xml",
+    "/sdcard/social-qa.png"
+  ],
+  "qaPackagePresentAfter": false,
+  "ownerPackagePresentAfter": true,
+  "ownerApkSha256After": "b3939fbc8411bedbcf1ba8b9b2e4d8a976e1088c9a558ac50cf224122a5965ca",
+  "ownerApkUnchanged": true,
+  "settingsAfter": {
+    "wifi_on": "1",
+    "mobile_data": "1",
+    "bluetooth_on": "1",
+    "airplane_mode_on": "0",
+    "stay_on_while_plugged_in": "0",
+    "screen_off_timeout": "300000"
+  },
+  "settingsMatchBaseline": true,
+  "radiosAfter": {
+    "wifiEnabled": true,
+    "bluetoothEnabled": true,
+    "airplaneModeEnabled": false,
+    "mobileData": "The global enabled preference is verified separately; carrier connectivity is not asserted."
+  },
+  "finishedAt": "2026-09-20T21:50:36.857805+00:00",
+  "previousAttempts": [
+    {
+      "finishedAt": "2026-09-20T21:49:52.417493+00:00",
+      "status": "failed",
+      "qaUninstalled": false,
+      "failure": "Device command failed; raw device output was withheld."
+    }
+  ],
+  "recoveryNote": "The first attempt removed QA, then its absence check treated Android pm path exit status 1 as an error. Independent package-list verification confirmed QA absent. The retry verified the owner APK, restored settings and removed scratch files. The initial failed receipt is retained above."
+}

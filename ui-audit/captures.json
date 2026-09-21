@@ -1,0 +1,1084 @@
+{
+  "captures": [
+    {
+      "id": "settings-settings-top",
+      "group": "settings",
+      "title": "Settings \u2014 upper section",
+      "file": "screens/settings/settings-top.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:26:06.312767+00:00",
+      "accountKind": "owner read-only",
+      "sourceBuild": "normal b3939fbc"
+    },
+    {
+      "id": "settings-settings-bottom",
+      "group": "settings",
+      "title": "Settings \u2014 legal and app information",
+      "file": "screens/settings/settings-bottom.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:26:15.653345+00:00",
+      "accountKind": "owner read-only",
+      "sourceBuild": "normal b3939fbc"
+    },
+    {
+      "id": "offline-maps-saved-areas-top",
+      "group": "offline-maps",
+      "title": "Offline maps \u2014 saved areas, part 1",
+      "file": "screens/offline-maps/saved-areas-top.png",
+      "notes": "Existing owner areas; navigation only.",
+      "capturedAt": "2026-09-20T21:26:19.620947+00:00",
+      "accountKind": "owner read-only",
+      "sourceBuild": "normal b3939fbc"
+    },
+    {
+      "id": "offline-maps-saved-areas-bottom",
+      "group": "offline-maps",
+      "title": "Offline maps \u2014 saved areas, part 2",
+      "file": "screens/offline-maps/saved-areas-bottom.png",
+      "notes": "Existing owner areas; navigation only.",
+      "capturedAt": "2026-09-20T21:26:24.392272+00:00",
+      "accountKind": "owner read-only",
+      "sourceBuild": "normal b3939fbc"
+    },
+    {
+      "id": "friends-profile-username-conflict-draft",
+      "group": "friends-profile",
+      "title": "Username conflict preserves draft",
+      "file": "screens/friends-profile/username-conflict-draft.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:03:37.389813+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "feed-profile-created-feed",
+      "group": "feed",
+      "title": "Friends feed \u2014 empty",
+      "file": "screens/feed/profile-created-feed.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:04:08.425875+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "pilot-search-name-search",
+      "group": "pilot-search",
+      "title": "Search results",
+      "file": "screens/pilot-search/name-search.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:04:33.607024+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "pilot-search-outgoing-request",
+      "group": "pilot-search",
+      "title": "Request sent",
+      "file": "screens/pilot-search/outgoing-request.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:04:41.520190+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "pilot-search-incoming-request",
+      "group": "pilot-search",
+      "title": "Incoming request",
+      "file": "screens/pilot-search/incoming-request.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:05:10.241165+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "pilot-search-request-accepted",
+      "group": "pilot-search",
+      "title": "Accepted friend in search",
+      "file": "screens/pilot-search/request-accepted.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:05:42.182997+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "friend-profile-accepted-profile",
+      "group": "friend-profile",
+      "title": "Friend profile \u2014 no backed-up flights",
+      "file": "screens/friend-profile/accepted-profile.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:05:49.519021+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "pilot-search-hidden-friend-search-empty",
+      "group": "pilot-search",
+      "title": "No results",
+      "file": "screens/pilot-search/hidden-friend-search-empty.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:06:13.330916+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "friends-profile-renamed-hidden-profile",
+      "group": "friends-profile",
+      "title": "Edit profile \u2014 discovery off",
+      "file": "screens/friends-profile/renamed-hidden-profile.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:06:59.165314+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "pilot-search-confirm-stranger-block",
+      "group": "pilot-search",
+      "title": "Block pilot confirmation",
+      "file": "screens/pilot-search/confirm-stranger-block.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:07:51.038931+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "manage-friends-unblocked-no-friendship",
+      "group": "manage-friends",
+      "title": "Unblocked pilot \u2014 no friendship restored",
+      "file": "screens/manage-friends/unblocked-no-friendship.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:08:36.364487+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "pilot-search-offline-search-cleared",
+      "group": "pilot-search",
+      "title": "Offline search",
+      "file": "screens/pilot-search/offline-search-cleared.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:08:52.717132+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "pilot-search-signed-out-search-cleared",
+      "group": "pilot-search",
+      "title": "Signed-out search",
+      "file": "screens/pilot-search/signed-out-search-cleared.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:10:08.338046+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "pilot-search-switched-account-empty-search",
+      "group": "pilot-search",
+      "title": "Search \u2014 start state",
+      "file": "screens/pilot-search/switched-account-empty-search.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:12:07.130989+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "friend-profile-removed-profile-denied",
+      "group": "friend-profile",
+      "title": "Friend profile \u2014 access unavailable",
+      "file": "screens/friend-profile/removed-profile-denied.png",
+      "notes": "Captured earlier on 21 September during pilot-search acceptance, from the same installed QA build. Disposable accounts have since been removed.",
+      "capturedAt": "2026-09-20T21:13:16.125644+00:00",
+      "accountKind": "disposable QA \u2014 earlier acceptance",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "onboarding-welcome",
+      "group": "onboarding",
+      "title": "Welcome and recorder disclaimer",
+      "file": "screens/onboarding/welcome.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:26:59.000411+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "onboarding-pilot",
+      "group": "onboarding",
+      "title": "Setup \u2014 pilot details",
+      "file": "screens/onboarding/pilot.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:27:21.909271+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "onboarding-glider",
+      "group": "onboarding",
+      "title": "Setup \u2014 glider",
+      "file": "screens/onboarding/glider.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:27:29.072010+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "onboarding-location",
+      "group": "onboarding",
+      "title": "Setup \u2014 location and permissions",
+      "file": "screens/onboarding/location.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:27:38.925103+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "onboarding-backup",
+      "group": "onboarding",
+      "title": "Setup \u2014 optional cloud backup",
+      "file": "screens/onboarding/backup.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:27:52.547794+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "feed-signed-out",
+      "group": "feed",
+      "title": "Friends \u2014 sign-in invitation",
+      "file": "screens/feed/signed-out.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:27:59.680073+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "logbook-empty",
+      "group": "logbook",
+      "title": "Logbook \u2014 empty journal",
+      "file": "screens/logbook/empty.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:28:03.797326+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "recorder-missing-permissions",
+      "group": "recorder",
+      "title": "Pre-flight \u2014 permissions needed",
+      "file": "screens/recorder/missing-permissions.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:28:10.617568+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "system-permissions-precise-location",
+      "group": "system-permissions",
+      "title": "Android \u2014 precise location permission",
+      "file": "screens/system-permissions/precise-location.png",
+      "notes": "System permission prompt for isolated Flight Log QA.",
+      "capturedAt": "2026-09-20T21:28:30.966399+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "system-permissions-background-location",
+      "group": "system-permissions",
+      "title": "Android \u2014 background location access",
+      "file": "screens/system-permissions/background-location.png",
+      "notes": "System settings for isolated Flight Log QA.",
+      "capturedAt": "2026-09-20T21:28:42.801997+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "recorder-instruments",
+      "group": "recorder",
+      "title": "Recording \u2014 instruments on the ground",
+      "file": "screens/recorder/instruments.png",
+      "notes": "Temporary QA recording indoors; live GPS may be unavailable. No field-reliability claim.",
+      "capturedAt": "2026-09-20T21:29:03.333822+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "recorder-recorder-current",
+      "group": "recorder",
+      "title": "Recording \u2014 current state",
+      "file": "screens/recorder/recorder-current.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:30:09.765338+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "recorder-live-map",
+      "group": "recorder",
+      "title": "Recording \u2014 map loading",
+      "file": "screens/recorder/live-map.png",
+      "notes": "Actual ground recording position; this capture displays Loading map. See live-map-ready.png for the later rendered basemap.",
+      "capturedAt": "2026-09-20T21:30:19.798428+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "recorder-leave-dialog",
+      "group": "recorder",
+      "title": "Recording continues \u2014 leave confirmation",
+      "file": "screens/recorder/leave-dialog.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:30:21.424930+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "logbook-recording-card",
+      "group": "logbook",
+      "title": "Logbook \u2014 active recording",
+      "file": "screens/logbook/recording-card.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:30:27.885534+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "flight-detail-ground-flight",
+      "group": "flight-detail",
+      "title": "Saved ground recording \u2014 summary",
+      "file": "screens/flight-detail/ground-flight.png",
+      "notes": "Temporary actual-GPS QA session, created only for UI review.",
+      "capturedAt": "2026-09-20T21:30:34.255874+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "flight-detail-ground-flight-middle",
+      "group": "flight-detail",
+      "title": "Saved ground recording \u2014 statistics and actions",
+      "file": "screens/flight-detail/ground-flight-middle.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:30:46.114274+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "flight-detail-ground-flight-bottom",
+      "group": "flight-detail",
+      "title": "Saved ground recording \u2014 metadata and integrity",
+      "file": "screens/flight-detail/ground-flight-bottom.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:30:50.815545+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "flight-detail-integrity-expanded",
+      "group": "flight-detail",
+      "title": "Recording integrity \u2014 expanded",
+      "file": "screens/flight-detail/integrity-expanded.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:30:58.640480+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "flight-detail-integrity-lower",
+      "group": "flight-detail",
+      "title": "Recording integrity \u2014 diagnostics and export",
+      "file": "screens/flight-detail/integrity-lower.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:31:03.384792+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "flight-detail-delete-local-confirmation",
+      "group": "flight-detail",
+      "title": "Recorded flight \u2014 deletion confirmation while signed out",
+      "file": "screens/flight-detail/delete-local-confirmation.png",
+      "notes": "The dialog also warns about deleting backed-up copies from account and linked phones. No deletion confirmed.",
+      "capturedAt": "2026-09-20T21:31:27.273781+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "account-signed-out-top",
+      "group": "account",
+      "title": "Account \u2014 signed out, part 1",
+      "file": "screens/account/signed-out-top.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:31:34.583287+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "account-pilot-details",
+      "group": "account",
+      "title": "Pilot details \u2014 editor",
+      "file": "screens/account/pilot-details.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:31:51.788183+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "account-pilot-details-keyboard",
+      "group": "account",
+      "title": "Pilot details \u2014 keyboard open",
+      "file": "screens/account/pilot-details-keyboard.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:31:57.002322+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "account-signed-out-bottom",
+      "group": "account",
+      "title": "Account \u2014 signed-out backup and footer",
+      "file": "screens/account/signed-out-bottom.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:32:09.157921+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "account-email",
+      "group": "account",
+      "title": "Account \u2014 email sign-in",
+      "file": "screens/account/email.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:32:36.705433+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "account-email-keyboard",
+      "group": "account",
+      "title": "Email sign-in \u2014 keyboard open",
+      "file": "screens/account/email-keyboard.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:32:42.013445+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "account-otp-empty",
+      "group": "account",
+      "title": "Sign-in \u2014 empty code entry",
+      "file": "screens/account/otp-empty.png",
+      "notes": "Disposable inbox; no verification code entered.",
+      "capturedAt": "2026-09-20T21:32:59.629115+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "account-signed-in-backup",
+      "group": "account",
+      "title": "Account \u2014 backup and restoration",
+      "file": "screens/account/signed-in-backup.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:33:10.763706+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "account-logout-confirmation",
+      "group": "account",
+      "title": "Account \u2014 log-out confirmation",
+      "file": "screens/account/logout-confirmation.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:33:22.431372+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "account-signed-in-bottom",
+      "group": "account",
+      "title": "Account \u2014 restoration and deletion",
+      "file": "screens/account/signed-in-bottom.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:33:31.783142+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "logbook-populated",
+      "group": "logbook",
+      "title": "Logbook \u2014 restored flights and local recording",
+      "file": "screens/logbook/populated.png",
+      "notes": "Two synthetic archives restored normally plus the temporary ground recording.",
+      "capturedAt": "2026-09-20T21:33:44.173968+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "logbook-populated-middle",
+      "group": "logbook",
+      "title": "Logbook \u2014 flight cards, part 2",
+      "file": "screens/logbook/populated-middle.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:33:52.415055+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "logbook-populated-bottom",
+      "group": "logbook",
+      "title": "Logbook \u2014 flight cards, part 3",
+      "file": "screens/logbook/populated-bottom.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:33:54.395759+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "flight-detail-archive-top",
+      "group": "flight-detail",
+      "title": "Restored flight \u2014 summary and route",
+      "file": "screens/flight-detail/archive-top.png",
+      "notes": "Synthetic 180-point archive restored through the normal account flow.",
+      "capturedAt": "2026-09-20T21:33:59.178078+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "flight-detail-archive-middle",
+      "group": "flight-detail",
+      "title": "Restored flight \u2014 sharing and statistics",
+      "file": "screens/flight-detail/archive-middle.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:34:04.868785+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "flight-detail-archive-bottom",
+      "group": "flight-detail",
+      "title": "Restored flight \u2014 notes and archive provenance",
+      "file": "screens/flight-detail/archive-bottom.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:34:10.125998+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "flight-edit-form",
+      "group": "flight-edit",
+      "title": "Edit flight \u2014 title, site and notes",
+      "file": "screens/flight-edit/form.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:34:21.758823+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "flight-edit-site-picker",
+      "group": "flight-edit",
+      "title": "Edit flight \u2014 site search with keyboard",
+      "file": "screens/flight-edit/site-picker.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:34:50.297043+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "flight-edit-discard-draft",
+      "group": "flight-edit",
+      "title": "Edit flight \u2014 discard unsaved details",
+      "file": "screens/flight-edit/discard-draft.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:34:54.720908+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "replay-archive-map",
+      "group": "replay",
+      "title": "Archived replay \u2014 route map",
+      "file": "screens/replay/archive-map.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:35:03.164921+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "replay-archive-controls",
+      "group": "replay",
+      "title": "Archived replay \u2014 chart, timeline and controls",
+      "file": "screens/replay/archive-controls.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:35:07.914768+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "replay-archive-playing",
+      "group": "replay",
+      "title": "Archived replay \u2014 playing at 60\u00d7",
+      "file": "screens/replay/archive-playing.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:35:16.174274+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "postcard-flying-square",
+      "group": "postcard",
+      "title": "Postcard \u2014 flying, square format",
+      "file": "screens/postcard/flying-square.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:35:24.275424+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "postcard-controls",
+      "group": "postcard",
+      "title": "Postcard \u2014 scene, format and caption controls",
+      "file": "screens/postcard/controls.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:35:31.814080+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "postcard-launch-square",
+      "group": "postcard",
+      "title": "Postcard \u2014 launch scene",
+      "file": "screens/postcard/launch-square.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:35:43.558190+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "postcard-landing-square",
+      "group": "postcard",
+      "title": "Postcard \u2014 landing scene",
+      "file": "screens/postcard/landing-square.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:35:48.090350+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "postcard-landing-story-top",
+      "group": "postcard",
+      "title": "Postcard \u2014 story format, part 1",
+      "file": "screens/postcard/landing-story-top.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:35:52.616574+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "postcard-landing-story-bottom",
+      "group": "postcard",
+      "title": "Postcard \u2014 story format, part 2",
+      "file": "screens/postcard/landing-story-bottom.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:35:57.421615+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "postcard-caption-keyboard",
+      "group": "postcard",
+      "title": "Postcard \u2014 caption entry",
+      "file": "screens/postcard/caption-keyboard.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:36:24.640517+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "postcard-discard-caption",
+      "group": "postcard",
+      "title": "Postcard \u2014 discard caption confirmation",
+      "file": "screens/postcard/discard-caption.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:36:29.111779+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "feed-populated-own",
+      "group": "feed",
+      "title": "Friends \u2014 shared-flight feed",
+      "file": "screens/feed/populated-own.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:36:39.218230+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "feed-populated-card",
+      "group": "feed",
+      "title": "Friends \u2014 flight card and kudos",
+      "file": "screens/feed/populated-card.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:36:43.965457+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "feed-automatic-consent",
+      "group": "feed",
+      "title": "Friends \u2014 automatic sharing consent",
+      "file": "screens/feed/automatic-consent.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:37:00.312510+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "manage-friends-profile-and-request",
+      "group": "manage-friends",
+      "title": "Manage friends \u2014 profile and pending request",
+      "file": "screens/manage-friends/profile-and-request.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:37:10.420275+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "manage-friends-connections",
+      "group": "manage-friends",
+      "title": "Manage friends \u2014 requests and accepted connections",
+      "file": "screens/manage-friends/connections.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:37:15.120287+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "manage-friends-accepted-list",
+      "group": "manage-friends",
+      "title": "Manage friends \u2014 accepted connections",
+      "file": "screens/manage-friends/accepted-list.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:37:34.845099+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "friends-profile-edit-visible",
+      "group": "friends-profile",
+      "title": "Friends profile \u2014 edit name, username and discovery",
+      "file": "screens/friends-profile/edit-visible.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:37:45.973394+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "friends-profile-edit-visible-bottom",
+      "group": "friends-profile",
+      "title": "Friends profile \u2014 consent and save controls",
+      "file": "screens/friends-profile/edit-visible-bottom.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:37:59.458420+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "shared-flight-own-top",
+      "group": "shared-flight",
+      "title": "Shared flight \u2014 author view, upper section",
+      "file": "screens/shared-flight/own-top.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:38:08.262140+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "shared-flight-own-bottom",
+      "group": "shared-flight",
+      "title": "Shared flight \u2014 statistics, kudos and provenance",
+      "file": "screens/shared-flight/own-bottom.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:38:13.671708+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "kudos-supporters",
+      "group": "kudos",
+      "title": "Kudos \u2014 supporters list",
+      "file": "screens/kudos/supporters.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:38:17.969829+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "shared-replay-map",
+      "group": "shared-replay",
+      "title": "Shared replay \u2014 route map",
+      "file": "screens/shared-replay/map.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:38:23.373350+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "shared-replay-controls",
+      "group": "shared-replay",
+      "title": "Shared replay \u2014 chart and playback controls",
+      "file": "screens/shared-replay/controls.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:38:28.566454+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "account-signed-in-top",
+      "group": "account",
+      "title": "Account \u2014 signed-in pilot page",
+      "file": "screens/account/signed-in-top.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:38:39.444467+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "account-delete-account-confirmation",
+      "group": "account",
+      "title": "Account \u2014 delete confirmation",
+      "file": "screens/account/delete-account-confirmation.png",
+      "notes": "Confirmation opened and cancelled; no deletion performed here.",
+      "capturedAt": "2026-09-20T21:38:46.994255+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "account-account-mismatch",
+      "group": "account",
+      "title": "Account \u2014 different journal owner",
+      "file": "screens/account/account-mismatch.png",
+      "notes": "B signed in while A\u2019s disposable local journal remains. No rebinding performed.",
+      "capturedAt": "2026-09-20T21:39:59.361836+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "feed-friend-feed",
+      "group": "feed",
+      "title": "Friends \u2014 viewing another pilot\u2019s flight",
+      "file": "screens/feed/friend-feed.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:40:03.766096+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "feed-friend-card",
+      "group": "feed",
+      "title": "Friends \u2014 kudos action on a friend\u2019s flight",
+      "file": "screens/feed/friend-card.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:40:09.539499+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "feed-kudos-given",
+      "group": "feed",
+      "title": "Friends \u2014 kudos given",
+      "file": "screens/feed/kudos-given.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:40:28.185443+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "friend-profile-populated",
+      "group": "friend-profile",
+      "title": "Accepted friend \u2014 profile and backed-up flight count",
+      "file": "screens/friend-profile/populated.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:40:32.161562+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "manage-friends-blocked-list",
+      "group": "manage-friends",
+      "title": "Manage friends \u2014 accepted and blocked lists",
+      "file": "screens/manage-friends/blocked-list.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:40:37.160578+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "offline-maps-empty",
+      "group": "offline-maps",
+      "title": "Offline maps \u2014 empty state and destination search",
+      "file": "screens/offline-maps/empty.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:40:41.192877+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "offline-maps-search-results",
+      "group": "offline-maps",
+      "title": "Offline maps \u2014 destination search results",
+      "file": "screens/offline-maps/search-results.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:40:55.833542+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "offline-maps-coverage-top",
+      "group": "offline-maps",
+      "title": "Offline maps \u2014 suggested coverage preview",
+      "file": "screens/offline-maps/coverage-top.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:41:06.372061+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "offline-maps-coverage-bottom",
+      "group": "offline-maps",
+      "title": "Offline maps \u2014 estimated download and actions",
+      "file": "screens/offline-maps/coverage-bottom.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:41:11.131175+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "offline-maps-downloading",
+      "group": "offline-maps",
+      "title": "Offline maps \u2014 download in progress",
+      "file": "screens/offline-maps/downloading.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:41:23.079192+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "offline-maps-update-preview",
+      "group": "offline-maps",
+      "title": "Offline maps \u2014 update preview",
+      "file": "screens/offline-maps/update-preview.png",
+      "notes": "Download finished before the pause tap; this is the update preview, not a paused transfer.",
+      "capturedAt": "2026-09-20T21:41:57.377915+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "offline-maps-qa-ready",
+      "group": "offline-maps",
+      "title": "Offline maps \u2014 downloaded area ready in QA",
+      "file": "screens/offline-maps/qa-ready.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:42:21.883615+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "offline-maps-delete-area-confirmation",
+      "group": "offline-maps",
+      "title": "Offline maps \u2014 delete area confirmation",
+      "file": "screens/offline-maps/delete-area-confirmation.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:42:29.190857+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "navigation-not-found",
+      "group": "navigation",
+      "title": "Unknown route \u2014 return to logbook",
+      "file": "screens/navigation/not-found.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:42:54.930157+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "recorder-ready",
+      "group": "recorder",
+      "title": "Pre-flight \u2014 permissions granted, battery warning",
+      "file": "screens/recorder/ready.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:43:00.281695+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "recorder-live-map-ready",
+      "group": "recorder",
+      "title": "Recording \u2014 live map with rendered basemap",
+      "file": "screens/recorder/live-map-ready.png",
+      "notes": "Short stationary QA recording with actual GPS; network online. This does not establish offline-region or in-flight reliability.",
+      "capturedAt": "2026-09-20T21:43:16.141704+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "logbook-interrupted",
+      "group": "logbook",
+      "title": "Logbook \u2014 recording resumed after restart",
+      "file": "screens/logbook/interrupted.png",
+      "notes": "Brief controlled QA force-stop resumed recording automatically. This image does not show the interrupted state.",
+      "capturedAt": "2026-09-20T21:43:26.932305+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "recorder-interrupted",
+      "group": "recorder",
+      "title": "Recorder \u2014 interrupted session recovery",
+      "file": "screens/recorder/interrupted.png",
+      "notes": "Controlled QA-only location permission revocation and declined permission prompt. Original app permissions unchanged.",
+      "capturedAt": "2026-09-20T21:46:36.169497+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "logbook-interrupted-card",
+      "group": "logbook",
+      "title": "Logbook \u2014 interrupted recording",
+      "file": "screens/logbook/interrupted-card.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:46:41.265644+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "recorder-partial-confirmation",
+      "group": "recorder",
+      "title": "Recovery \u2014 save partial flight confirmation",
+      "file": "screens/recorder/partial-confirmation.png",
+      "notes": "",
+      "capturedAt": "2026-09-20T21:46:44.066591+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "flight-detail-partial",
+      "group": "flight-detail",
+      "title": "Recovered recording \u2014 saved partial flight",
+      "file": "screens/flight-detail/partial.png",
+      "notes": "Saved through the normal recovery action after a controlled QA-only permission interruption.",
+      "capturedAt": "2026-09-20T21:49:01.022703+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    },
+    {
+      "id": "recorder-idle-final",
+      "group": "recorder",
+      "title": "Recorder \u2014 idle after recovery",
+      "file": "screens/recorder/idle-final.png",
+      "notes": "The interrupted QA session has been saved; no active recording remains. QA-only permissions are still denied pending removal of the disposable app.",
+      "capturedAt": "2026-09-20T21:49:03.498543+00:00",
+      "accountKind": "disposable QA",
+      "sourceBuild": "QA eb763eb1"
+    }
+  ]
+}

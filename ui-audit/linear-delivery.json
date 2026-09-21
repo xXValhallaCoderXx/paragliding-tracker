@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-09-20T21:53:42.318677+00:00",
+  "issue": "PAR-14",
+  "issueUrl": "https://linear.app/sentiment-hound/issue/PAR-14/build-pilot-search-and-friendship-requests",
+  "status": "In Progress",
+  "archive": "../android/app/build/outputs/internal/ui-audit-20260921/FlightLog-design-review-2026-09-21.zip",
+  "archiveSha256": "6ee1df592eb2eef0b27f798054ab5c9c05a60c54859bb2e41429f420a8c9fbcc",
+  "archiveBytes": 37280204,
+  "attachmentId": "7f012255-946b-457a-a937-0b4a13b70851",
+  "attachmentTitle": "Flight Log \u2014 complete design review (108 screenshots)",
+  "selectedPngAttachments": 4,
+  "note": "Final delivery receipt written after packaging; this receipt itself is not inside the attached archive."
+}

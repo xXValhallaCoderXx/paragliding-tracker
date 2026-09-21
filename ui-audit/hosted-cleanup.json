@@ -1,0 +1,19 @@
+{
+  "cleaned": true,
+  "preserved": {
+    "flights": {
+      "count": 15,
+      "fullRowFingerprintUnchanged": true
+    },
+    "profiles": {
+      "count": 1,
+      "fullRowFingerprintUnchanged": true
+    },
+    "social_profiles": {
+      "count": 0,
+      "fullRowFingerprintUnchanged": true
+    }
+  },
+  "completedAt": "2026-09-20T21:49:42.723384+00:00",
+  "scope": "Three disposable UI audit accounts deleted through authenticated delete-account; their Storage prefixes and public rows verified absent. Pre-existing private flights, profiles and social profiles fingerprinted unchanged; not a full-database snapshot."
+}

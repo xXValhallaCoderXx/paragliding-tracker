@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-09-20T21:51:15.330963+00:00",
+  "readOnlyNativeCheck": true,
+  "flightsStored15": true,
+  "airtimeRecorded3Hours": true,
+  "preciseAndBackgroundStillGranted": true,
+  "existingAreasVisible": {
+    "Around bukit jugra": true,
+    "Singapore": true,
+    "Terengganu": true
+  },
+  "readyCountTop": 2,
+  "readyCountBottom": 2,
+  "ownerStillSignedIn": true,
+  "leftForeground": "normal owner Logbook",
+  "noOwnerMutationsPerformed": true
+}
