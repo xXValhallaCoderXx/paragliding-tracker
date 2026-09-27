@@ -4,7 +4,7 @@ import { Avatar, Button, Notice } from '@/components/ui';
 import type { KudosPage } from '@/social/feed-types';
 import KudosScreen from '../kudos-screen';
 import { create, act } from '../../../../tests/support/renderer';
-import { feedContext, friendsContext } from './fixtures';
+import { feedContext, friendsContext, sharedFlight } from './fixtures';
 
 let mockFeed = feedContext();
 let mockFriends = friendsContext();
@@ -45,6 +45,8 @@ afterEach(async () => { if (rendered) await run(() => rendered!.unmount()); rend
 
 it('loads 25 safe names and initials, then appends one page without duplicate people or profile links', async () => {
   await render();
+  expect(mockFeed.getDetail).toHaveBeenCalledWith('activity-1');
+  expect(rendered!.root.findAllByType(Text).map((node: Node) => node.props.children)).toContain('Evening ridge');
   expect(mockFeed.getKudos).toHaveBeenCalledWith('activity-1', null);
   expect(names()).toHaveLength(25);
   expect(rendered!.root.findAllByType(Avatar)).toHaveLength(25);
@@ -57,6 +59,31 @@ it('loads 25 safe names and initials, then appends one page without duplicate pe
   expect(rendered!.root.findByType(FlatList).props.data.at(-1)).toEqual({ id: 'supporter-25', displayName: 'Supporter 25' });
   expect(control('Load more kudos')).toBeUndefined();
   expect(mockPush).not.toHaveBeenCalled();
+});
+
+it('does not reveal a title or request supporters after its initial detail loses access', async () => {
+  jest.mocked(mockFeed.getDetail).mockRejectedValueOnce(new Error('Access removed.'));
+  await render();
+  expect(mockFeed.getKudos).not.toHaveBeenCalled();
+  expect(names()).toEqual([]);
+  expect(rendered!.root.findAllByType(Text).map((node: Node) => node.props.children)).not.toContain('Evening ridge');
+});
+
+it('ignores late flight context after leaving the screen and does not start a roster request', async () => {
+  let complete!: (value: ReturnType<typeof sharedFlight>) => void;
+  jest.mocked(mockFeed.getDetail).mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }));
+  await render();
+  mockFocused = false; await render();
+  await run(() => complete(sharedFlight()));
+  expect(mockFeed.getKudos).not.toHaveBeenCalled();
+  expect(names()).toEqual([]);
+});
+
+it('keeps unsupported kudos unavailable rather than presenting a zero count or roster', async () => {
+  jest.mocked(mockFeed.getDetail).mockResolvedValueOnce(sharedFlight({ kudos: null }));
+  await render();
+  expect(mockFeed.getKudos).not.toHaveBeenCalled();
+  expect(rendered!.root.findByType(Notice).props.children).toBe('Kudos are unavailable for this flight.');
 });
 
 it('does not issue duplicate pagination requests before the pending render commits', async () => {

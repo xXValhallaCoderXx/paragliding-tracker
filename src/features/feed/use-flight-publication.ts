@@ -11,7 +11,7 @@ import { useFeed } from './feed-provider';
 
 type State = Pick<FlightPublicationView, 'state' | 'activityId' | 'error' | 'pendingHide'>;
 type Read = { scope: string; loading: boolean; value: State };
-const EMPTY: State = { state: 'private', activityId: null, error: null, pendingHide: false };
+const EMPTY: State = { state: 'unknown', activityId: null, error: null, pendingHide: false };
 
 export function useFlightPublication(flightId: string | null): FlightPublicationView {
   const [identityScope] = useState(captureFlightScope);
@@ -54,11 +54,11 @@ export function useFlightPublication(flightId: string | null): FlightPublication
           // A durable local hide/upload is still pending when its remote read fails.
         }
       } else if (!local.hasLocalOverride && local.state === 'private') {
-        value = { ...EMPTY, state: 'error', error: 'Connect to check this flight’s sharing status.' };
+        value = { ...EMPTY, error: 'Connect to check this flight’s sharing status.' };
       }
       if (current()) setRead({ scope, loading: false, value });
     } catch (error) {
-      if (current()) setRead({ scope, loading: false, value: { ...EMPTY, state: 'error', error: errorMessage(error) } });
+      if (current()) setRead({ scope, loading: false, value: { ...EMPTY, error: errorMessage(error) } });
     } finally { if (pending.current === abort) pending.current = null; }
   }, [assertOwner, flightId, getPublication, online, owner, scope]);
   useFocusEffect(useCallback(() => {

@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useReducedMotion } from '@/lib/use-reduced-motion';
 import { fonts, paper, radii, spacing } from '@/ui/theme';
+import { BusyRow } from '@/components/ui';
 
 /** A local confirmation, scoped to the screen that opened it. */
 export function SharingSheet({ title, busy, onClose, children }: {
@@ -28,6 +29,7 @@ export function SharingSheet({ title, busy, onClose, children }: {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View accessible={false} style={styles.handle} />
           <Text accessibilityRole="header" style={styles.title}>{title}</Text>
+          {busy ? <BusyRow label="Updating sharing. Please wait…" /> : null}
           {children}
         </ScrollView>
       </View>

@@ -3,7 +3,8 @@ import { AppState, Modal, Text, type AppStateStatus } from 'react-native';
 import { Button, LinkButton, Notice } from '@/components/ui';
 import { AutomaticSharingCard } from '../automatic-sharing-card';
 import { FlightSharingSection, type ShareFlightPreview } from '../flight-sharing-section';
-import { SharingConsent } from '../sharing-consent';
+import { SharingConsent, SHARED_FLIGHT_FIELDS, SHARED_FLIGHT_AUDIENCE } from '../sharing-consent';
+import { setFlightAuthIdentity } from '@/lib/flight-scope';
 import { create, act } from '../../../../tests/support/renderer';
 import { feedContext, friendsContext, publicationView } from './fixtures';
 
@@ -28,7 +29,7 @@ const preview: ShareFlightPreview = {
   title: 'A quiet ridge', site: 'Jugra', startedAt: 1000, timezoneOffsetMinutes: -480,
   durationMs: 60000, distanceMetres: 2100, routePreview: [],
 };
-jest.mock('@/components/ui', () => Object.fromEntries(['Button', 'Card', 'LinkButton', 'Notice', 'SectionLabel']
+jest.mock('@/components/ui', () => Object.fromEntries(['Button', 'BusyRow', 'Card', 'LinkButton', 'Notice', 'SectionLabel']
   .map(name => [name, ({ children }: { children?: React.ReactNode }) => children ?? null])));
 let rendered: ReturnType<typeof create>;
 type Node = { props: Record<string, any> };
@@ -230,4 +231,80 @@ it('rejects obsolete Share confirmation callbacks after dismissal', async () => 
   await run(() => control('Not now').props.onPress());
   await run(() => stale());
   expect(mockPublication.share).not.toHaveBeenCalled();
+});
+
+it.each(['cancel', 'back', 'background', 'account_return', 'offline', 'blur'] as const)('rejects obsolete automatic consent after %s', async reason => {
+  await mount(React.createElement(AutomaticSharingCard));
+  await run(() => control('Change').props.onPress());
+  const old = control('Turn on automatic sharing').props.onPress;
+  if (reason === 'cancel') await run(() => control('Not now').props.onPress());
+  if (reason === 'back') await run(() => rendered.root.findByType(Modal).props.onRequestClose());
+  if (reason === 'background') await run(() => { for (const listener of mockAppListeners) listener('background'); });
+  if (reason === 'account_return') await run(() => { setFlightAuthIdentity('another'); setFlightAuthIdentity('owner-a'); });
+  if (reason === 'offline') { mockFeed = { ...mockFeed, available: false }; await run(() => rendered.update(React.createElement(AutomaticSharingCard))); }
+  if (reason === 'blur') { mockFocused = false; await run(() => rendered.update(React.createElement(AutomaticSharingCard))); }
+  await run(() => old());
+  expect(mockFeed.setAutoShare).not.toHaveBeenCalled();
+  expect(rendered.root.findAllByType(SharingConsent)).toHaveLength(0);
+});
+
+it('keeps a new confirmation free from a dismissed request failure and blocks duplicate automatic writes', async () => {
+  let fail!: (error: Error) => void;
+  jest.mocked(mockFeed.setAutoShare).mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject; }));
+  await mount(React.createElement(AutomaticSharingCard));
+  await run(() => control('Change').props.onPress());
+  const submit = control('Turn on automatic sharing').props.onPress;
+  await run(() => { submit(); submit(); });
+  expect(mockFeed.setAutoShare).toHaveBeenCalledTimes(1);
+  await run(() => { for (const listener of mockAppListeners) listener('background'); });
+  await run(() => fail(new Error('Obsolete failure')));
+  await run(() => control('Change').props.onPress());
+  expect(rendered.root.findAllByType(Notice)).toHaveLength(0);
+});
+
+it('uses a native Hide sheet, protects pending submission, and cancels without changing publication', async () => {
+  mockPublication = publicationView({ state: 'shared' });
+  await mount(React.createElement(FlightSharingSection, { flightId: 'f', preview }));
+  await run(() => control('Hide from friends…').props.onPress());
+  const old = control('Hide this flight').props.onPress;
+  expect(rendered.root.findAllByType(Modal)).toHaveLength(1);
+  await run(() => rendered.root.findByType(Modal).props.onRequestClose());
+  await run(() => old());
+  expect(mockPublication.hide).not.toHaveBeenCalled();
+});
+
+it('keeps unknown visibility explicit and permits only a conservative Hide or status refresh', async () => {
+  mockPublication = publicationView({ state: 'unknown', online: false });
+  await mount(React.createElement(FlightSharingSection, { flightId: 'f', preview }));
+  expect(control('Share flight…')).toBeUndefined();
+  expect(control('Retry sharing')).toBeUndefined();
+  expect(control('Hide from friends…').props.disabled).toBe(false);
+  expect(rendered.root.findAllByType(Text).some((node: Node) => node.props.children === 'Sharing status unknown')).toBe(true);
+});
+
+it('discloses endpoint coordinates and published history without combining automatic and manual consent', async () => {
+  expect(SHARED_FLIGHT_FIELDS).toContain('start and end coordinates');
+  expect(SHARED_FLIGHT_AUDIENCE).toContain('published flight history, including friends you add later');
+  await mount(React.createElement(AutomaticSharingCard));
+  await run(() => control('Change').props.onPress());
+  const words = rendered.root.findAllByType(Text).map((node: Node) => String(node.props.children)).join(' ');
+  expect(words).toContain('recordings started after');
+  expect(words).toContain('future and pending automatic posts');
+  expect(words).not.toContain('exact launch point');
+});
+
+it('releases a completed request lock while blurred so returning to Friends remains usable', async () => {
+  let done!: () => void;
+  jest.mocked(mockFeed.setAutoShare).mockImplementationOnce(() => new Promise(resolve => { done = resolve; }));
+  await mount(React.createElement(AutomaticSharingCard));
+  await run(() => control('Change').props.onPress());
+  await run(() => control('Turn on automatic sharing').props.onPress());
+  mockFocused = false;
+  await run(() => rendered.update(React.createElement(AutomaticSharingCard)));
+  await run(() => done());
+  mockFocused = true;
+  await run(() => rendered.update(React.createElement(AutomaticSharingCard)));
+  expect(control('Change').props.disabled).toBe(false);
+  await run(() => control('Change').props.onPress());
+  expect(rendered.root.findAllByType(SharingConsent)).toHaveLength(1);
 });

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { Button, Notice } from '@/components/ui';
-import { FlightHero } from '@/features/flights/components/hero';
+import { SharedFlightHero } from '../shared-flight-presentation';
 import { FlightMapPreview } from '@/features/flights/components/flight-map-preview';
 import { ReplayPlayer } from '@/features/flights/replay/replay-player';
 import SharedDetailScreen from '../shared-detail-screen';
@@ -25,9 +25,8 @@ jest.mock('expo-router', () => ({
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]),
 }));
-jest.mock('@/components/ui', () => Object.fromEntries(['Avatar', 'BusyRow', 'Button', 'Notice', 'Screen', 'TopBar']
+jest.mock('@/components/ui', () => Object.fromEntries(['Avatar', 'BusyRow', 'Button', 'Chip', 'SectionLabel', 'Notice', 'Screen', 'TopBar']
   .map(name => [name, ({ children }: { children?: React.ReactNode }) => children ?? null])));
-jest.mock('@/features/flights/components/hero', () => ({ FlightHero: () => null }));
 jest.mock('@/features/flights/components/stat-grid', () => ({ StatGrid: () => null }));
 jest.mock('@/features/flights/components/flight-map-preview', () => ({ FlightMapPreview: () => null }));
 jest.mock('@/features/flights/replay/replay-player', () => ({ ReplayPlayer: () => null }));
@@ -45,7 +44,7 @@ afterEach(async () => { if (rendered) await run(() => rendered.unmount()); });
 it('opens a safe shared detail, disables map caching, and exposes no owner-only action', async () => {
   await mount(React.createElement(SharedDetailScreen));
   expect(mockFeed.getDetail).toHaveBeenCalledWith('activity-1');
-  expect(rendered.root.findByType(FlightHero).props).toMatchObject({ saved: null, insight: null, flight: { source: 'shared' } });
+  expect(rendered.root.findByType(SharedFlightHero).props.flight.activityId).toBe('activity-1');
   expect(rendered.root.findByType(FlightMapPreview).props.cachePolicy).toBe('none');
   expect(control('View Pilot B’s profile')).toBeDefined();
   expect(control('Give kudos')).toBeDefined();
@@ -89,10 +88,25 @@ it('keeps a no-track summary visible without attempting replay', async () => {
   jest.mocked(mockFeed.getDetail).mockResolvedValue(sharedFlight({ replayAvailable: false, routePreview: [],
     metrics: { ...sharedFlight().metrics, fixCount: 0, quality: 'no_track' } }));
   await mount(React.createElement(SharedDetailScreen));
-  expect(rendered.root.findAllByType(FlightHero)).toHaveLength(1);
+  expect(rendered.root.findAllByType(SharedFlightHero)).toHaveLength(1);
   expect(control('Replay shared flight')).toBeUndefined();
   expect(mockFeed.getReplay).not.toHaveBeenCalled();
   expect((rendered.root.findAllByType(Notice) as Node[]).some(node => node.props.title === 'No usable GPS track')).toBe(true);
+});
+
+it('expands supported recording details without exposing unexpected private fields', async () => {
+  const flight = { ...sharedFlight(), notes: 'SECRET NOTE', registrationId: 'SECRET REGISTRATION', aircraft: { model: 'SECRET MODEL' } };
+  jest.mocked(mockFeed.getDetail).mockResolvedValue(flight);
+  await mount(React.createElement(SharedDetailScreen));
+  const texts = () => (rendered.root.findAllByType(Text) as Node[]).map(node => String(node.props.children)).join(' ');
+  expect(texts()).toContain('Recorded time');
+  expect(texts()).not.toContain('Recording timezone');
+  await run(() => control('More stats').props.onPress());
+  expect(texts()).toContain('Recording timezone');
+  expect(texts()).toContain('Start-to-stop straight-line distance');
+  expect(texts()).not.toMatch(/SECRET|in the air|Airtime|Best climb|season/);
+  await run(() => control('Fewer stats').props.onPress());
+  expect(texts()).not.toContain('Recording timezone');
 });
 
 it('clears the detail when a kudos mutation discovers the flight is no longer authorized', async () => {
@@ -105,7 +119,7 @@ it('clears the detail when a kudos mutation discovers the flight is no longer au
   await run(() => control('Give kudos').props.onPress());
   await update(React.createElement(SharedDetailScreen));
   expect(mockFeed.revision).toBe(revision);
-  expect(rendered.root.findAllByType(FlightHero)).toHaveLength(0);
+  expect(rendered.root.findAllByType(SharedFlightHero)).toHaveLength(0);
   expect(rendered.root.findAllByType(FlightMapPreview)).toHaveLength(0);
   expect(control('Give kudos')).toBeUndefined();
   expect(control('Replay shared flight')).toBeUndefined();
@@ -116,7 +130,7 @@ it('keeps flight detail and replay available when this server does not support k
   mockFeed.kudosByActivity['activity-1'] = { summary: null, pending: false, error: null };
   jest.mocked(mockFeed.getDetail).mockResolvedValueOnce(sharedFlight({ kudos: null }));
   await mount(React.createElement(SharedDetailScreen));
-  expect(rendered.root.findAllByType(FlightHero)).toHaveLength(1);
+  expect(rendered.root.findAllByType(SharedFlightHero)).toHaveLength(1);
   expect(control('Replay shared flight')).toBeDefined();
   expect(control('Give kudos').props.disabled).toBe(true);
   expect(control('View kudos').props.disabled).toBe(true);
@@ -126,13 +140,13 @@ it('removes an already displayed detail immediately on offline, blur, and sign-o
   await mount(React.createElement(SharedDetailScreen));
   mockFeed.available = false;
   await update(React.createElement(SharedDetailScreen));
-  expect(rendered.root.findAllByType(FlightHero)).toHaveLength(0);
+  expect(rendered.root.findAllByType(SharedFlightHero)).toHaveLength(0);
   mockFeed.available = true; mockFocused = false;
   await update(React.createElement(SharedDetailScreen));
-  expect(rendered.root.findAllByType(FlightHero)).toHaveLength(0);
+  expect(rendered.root.findAllByType(SharedFlightHero)).toHaveLength(0);
   mockFocused = true; mockFriends.status = 'signed_out';
   await update(React.createElement(SharedDetailScreen));
-  expect(rendered.root.findAllByType(FlightHero)).toHaveLength(0);
+  expect(rendered.root.findAllByType(SharedFlightHero)).toHaveLength(0);
   expect(control('Open Pilot')).toBeDefined();
 });
 
@@ -144,7 +158,7 @@ it('ignores late detail responses after the permission revision changes', async 
   mockFeed.revision += 1;
   await update(React.createElement(SharedDetailScreen));
   await run(() => resolveOld(sharedFlight()));
-  expect(rendered.root.findAllByType(FlightHero)).toHaveLength(0);
+  expect(rendered.root.findAllByType(SharedFlightHero)).toHaveLength(0);
   expect(rendered.root.findByType(Notice).props.children).toBe('This shared flight is unavailable.');
 });
 

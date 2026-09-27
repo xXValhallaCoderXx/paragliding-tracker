@@ -69,11 +69,11 @@ it('keeps its first status busy until local and authorized remote reads finish',
   expect(mockDirectRemote).not.toHaveBeenCalled();
 });
 
-it.each(['offline', 'failed_remote'] as const)('shows an unknown status as an error, never a confirmed private flight: %s', async kind => {
+it.each(['offline', 'failed_remote'] as const)('keeps an unknown status distinct from a publication error or a confirmed private flight: %s', async kind => {
   if (kind === 'offline') mockFeed.available = false;
   else jest.mocked(mockFeed.getPublication).mockRejectedValue(new Error('Service unavailable'));
   await render();
-  expect(latest).toMatchObject({ state: 'error', busy: false });
+  expect(latest).toMatchObject({ state: 'unknown', busy: false });
   expect(latest.error).toBeTruthy();
   expect(snapshots.some(value => !value.busy && value.state === 'private')).toBe(false);
 });

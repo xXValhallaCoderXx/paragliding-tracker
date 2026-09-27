@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Notice } from '@/components/ui';
 import { paper } from '@/ui/theme';
 import type { KudosSummary } from '@/social/feed-types';
@@ -15,6 +15,11 @@ export function KudosControls({ activityId, summary: fallback, own }: {
   const feed = useFeed();
   const router = useRouter();
   const request = useRef<Promise<unknown> | null>(null);
+  const active = useRef(false);
+  useFocusEffect(useCallback(() => {
+    active.current = true;
+    return () => { active.current = false; };
+  }, []));
   const state = feed.kudosByActivity[activityId];
   const [observed, setObserved] = useState({ activityId, hadEntry: Boolean(state) });
   const hadEntry = observed.activityId === activityId && observed.hadEntry;
@@ -23,7 +28,7 @@ export function KudosControls({ activityId, summary: fallback, own }: {
   const pending = state?.pending === true;
   const disabled = !feed.available || !summary || pending || feed.recorderBusy;
   const change = () => {
-    if (disabled || own || request.current || !summary) return;
+    if (!active.current || disabled || own || request.current || !summary) return;
     const operation = feed.setKudos(activityId, !summary.givenByMe).catch(() => undefined)
       .finally(() => { if (request.current === operation) request.current = null; });
     request.current = operation;
@@ -40,7 +45,7 @@ export function KudosControls({ activityId, summary: fallback, own }: {
       </Pressable> : null}
       <Pressable accessibilityRole="button" accessibilityLabel={summary ? `View kudos (${summary.count.toLocaleString()})` : 'View kudos'}
         accessibilityState={{ disabled: !feed.available || !summary }} disabled={!feed.available || !summary} onPress={() => {
-          if (feed.available && summary) router.push({ pathname: '/shared-flights/[id]/kudos', params: { id: activityId } });
+          if (active.current && feed.available && summary) router.push({ pathname: '/shared-flights/[id]/kudos', params: { id: activityId } });
         }} style={({ pressed }) => [feedLayout.kudosList, (!feed.available || !summary) && feedLayout.disabled, pressed && styles.pressed]}>
         <Text style={feedLayout.actionText}>{summary ? `${summary.count.toLocaleString()} kudos` : 'View kudos'}</Text>
       </Pressable>

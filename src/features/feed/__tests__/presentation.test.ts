@@ -1,19 +1,47 @@
-import { sharedFeedRows, sharedHeroSummary, sharedReplay, sharedStats, sharedStatus } from '../presentation';
+import { sharedFeedRows, sharedMeasurements, sharedReplay, sharedStats, sharedStatus } from '../presentation';
 import { replayArtifact, sharedFlight } from './fixtures';
 
 it('projects only approved display fields even if a response contains unexpected private fields', () => {
   const flight = { ...sharedFlight(), notes: 'Private journal', recordingSessionId: 'secret-session',
     session: { startPower: { batteryLevel: 0.8 } }, registrationId: 'private-registration' };
-  const hero = sharedHeroSummary(flight);
-  expect(Object.keys(hero).sort()).toEqual(['endedAt', 'metrics', 'site', 'source', 'startedAt', 'timezoneOffsetMinutes', 'title']);
-  expect(JSON.stringify(hero)).not.toMatch(/Private journal|secret-session|batteryLevel|private-registration/);
-  expect(hero.source).toBe('shared');
+  const stats = sharedStats(flight, true);
+  expect(JSON.stringify(stats)).not.toMatch(/Private journal|secret-session|batteryLevel|private-registration/);
 });
 
 it('keeps partial quality and unavailable altitude/speed explicit', () => {
   const flight = sharedFlight({ metrics: { ...sharedFlight().metrics, quality: 'partial', minGpsAltitude: null, maxGpsAltitude: null, maxGroundSpeed: null } });
   expect(sharedStatus(flight)).toMatchObject({ label: 'Partial flight', tone: 'warning' });
-  expect(sharedStats(flight).filter(cell => ['Min altitude', 'Max altitude', 'Max ground speed'].includes(cell.label)).every(cell => cell.value === '—')).toBe(true);
+  expect(sharedStats(flight, true).filter(cell => ['Minimum GPS altitude', 'Maximum GPS altitude', 'Maximum ground speed'].includes(cell.label)).map(cell => cell.value)).toEqual(['—', '—', '—']);
+});
+
+it('keeps the four primary measured stats and the explicit Start/Stop expansion', () => {
+  const flight = sharedFlight();
+  expect(sharedStats(flight).map(cell => cell.label)).toEqual(['Recorded time', 'Track distance', 'Maximum GPS altitude', 'Maximum ground speed']);
+  const extra = sharedStats(flight, true).slice(4);
+  expect(extra.map(cell => cell.label)).toEqual(['Minimum GPS altitude', 'Start-to-stop straight-line distance', 'GPS fix count', 'Start', 'Stop', 'Recording timezone']);
+  expect(extra.at(-1)?.value).toBe('UTC+8');
+  expect(sharedStats(sharedFlight({ timezoneOffsetMinutes: null }), true).at(-1)?.value).toContain('Not captured');
+});
+
+it.each([0, 1])('does not invent distance from fewer than two fixes (%s)', fixCount => {
+  const flight = sharedFlight({ routePreview: [[2.8, 101.5]], metrics: { ...sharedFlight().metrics, fixCount } });
+  expect(sharedMeasurements(flight).distanceMetres).toBeNull();
+  expect(sharedStats(flight, true).find(cell => cell.label === 'Start-to-stop straight-line distance')?.value).toBe('—');
+  expect(sharedStatus(flight).label).toBe('No usable track');
+});
+
+it('preserves measured zero and negative GPS altitude without inferring archived point speed', () => {
+  const flight = sharedFlight({ provenance: 'igc', metrics: { ...sharedFlight().metrics, trackDistanceMetres: 0, durationMs: 0,
+    minGpsAltitude: -40, maxGpsAltitude: 0, maxGroundSpeed: null } });
+  expect(sharedMeasurements(flight)).toMatchObject({ distanceMetres: 0, time: '0:00:00', minimumAltitude: '−40\u00a0m', maximumAltitude: '0\u00a0m', maximumSpeed: '—' });
+  expect(sharedStats(flight, true).find(cell => cell.label === 'Track distance')?.value).not.toBe('—');
+});
+
+it('keeps no-track and corrupt measurements unavailable even if placeholder numbers exist', () => {
+  const base = sharedFlight();
+  expect(sharedMeasurements({ metrics: { ...base.metrics, quality: 'no_track' } })).toMatchObject({ distanceMetres: null, maximumAltitude: '—', maximumSpeed: '—' });
+  expect(sharedMeasurements({ metrics: { ...base.metrics, durationMs: NaN, trackDistanceMetres: -1, maxGpsAltitude: Infinity, maxGroundSpeed: NaN } }))
+    .toMatchObject({ time: '—', distanceMetres: null, maximumAltitude: '—', maximumSpeed: '—' });
 });
 
 it('adapts IGC replay without synthetic speed, session ownership or changed sample bounds', () => {

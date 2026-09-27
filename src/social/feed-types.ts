@@ -107,7 +107,7 @@ export interface FeedContextValue extends FeedSnapshot {
   getKudos(activityId: string, cursor: KudosCursor | null): Promise<KudosPage>;
 }
 export interface FlightPublicationView {
-  state: 'private' | 'pending' | 'shared' | 'hidden' | 'error';
+  state: 'unknown' | 'private' | 'pending' | 'shared' | 'hidden' | 'error';
   activityId: string | null;
   error: string | null;
   busy: boolean;

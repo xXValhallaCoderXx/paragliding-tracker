@@ -58,7 +58,7 @@ export default function FeedScreen() {
         </View>
         {!friends.profile?.username ? <Notice title="Complete your profile">Choose a unique @username in Manage friends before finding pilots. Your existing feed and friends stay available.</Notice> : null}
         {showFlights ? <AutomaticSharingCard key={feed.identityKey} /> : <Notice title="Connect to see shared flights">The feed and shared replays are available while you are online.</Notice>}
-        {feed.error ? <Notice tone="danger" title="Could not refresh shared flights">{feed.error}</Notice> : null}
+        {feed.error ? <Notice tone="danger" title={rows.length ? 'Could not load more flights' : 'Could not refresh shared flights'}>{feed.error}</Notice> : null}
         {friends.error ? <Notice tone="danger" title="Could not load Friends">{friends.error}</Notice> : null}
         {!rows.length ? refreshControl : null}
       </View>}
@@ -69,8 +69,12 @@ export default function FeedScreen() {
           <View style={feedLayout.emptyCopy}>
             <Text style={styles.heading}>{hasFriends ? 'No shared flights yet.' : 'Nobody here yet.'}</Text>
             <Text style={styles.body}>{hasFriends
-              ? 'When you or your friends share a flight, it will appear here. Your logbook stays private until you choose to share.'
-              : 'Add the pilots you fly with and their flights land here. Your logbook stays private until you choose to share.'}</Text>
+              ? 'When you or your friends publish a flight, it will appear here.'
+              : 'Add the pilots you fly with and their shared flights land here.'}</Text>
+            <Text style={styles.body}>{feed.preferences?.enabled
+              ? 'Automatic sharing is on for eligible recordings started after opt-in. Existing private flights stay private until you share them.'
+              : feed.preferences ? 'Your logbook stays private until you share a flight or turn on automatic sharing.'
+                : 'Check your sharing preference before starting a new recording.'}</Text>
           </View>
           <View style={feedLayout.emptyActions}>
             <Button label={hasFriends ? 'Open logbook' : 'Find pilots'} variant="primary"

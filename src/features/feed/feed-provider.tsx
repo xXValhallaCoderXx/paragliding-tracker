@@ -10,6 +10,7 @@ import { feedService } from '@/social/feed-api';
 import { EMPTY_FEED, FeedController } from '@/social/feed-controller';
 import type { FeedContextValue } from '@/social/feed-types';
 import { publicationService } from '@/cloud/publication-service';
+import { assertFlightScope, captureFlightScope, flightScopeRevision, subscribeFlightScope } from '@/lib/flight-scope';
 
 const FeedContext = createContext<FeedContextValue | null>(null);
 export function FeedProvider({ children }: { children: ReactNode }) {
@@ -20,16 +21,22 @@ export function FeedProvider({ children }: { children: ReactNode }) {
     (owner, preferences) => publicationService.setPreferences(owner, preferences)));
   const snapshot = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
   const identityKey = auth.status === 'signed_in' ? auth.userId : null;
-  const actions = useMemo(() => ({
-    refresh: async () => { controller.assertOwner(identityKey); await controller.refresh(); },
-    loadMore: async () => { controller.assertOwner(identityKey); await controller.loadMore(); },
-    setAutoShare: async (enabled: boolean) => { controller.assertOwner(identityKey); await controller.setAutoShare(enabled); },
-    getDetail: async (id: string) => { controller.assertOwner(identityKey); return controller.getDetail(id); },
-    getReplay: async (...args: Parameters<FeedController['getReplay']>) => { controller.assertOwner(identityKey); return controller.getReplay(...args); },
-    getPublication: async (id: string) => { controller.assertOwner(identityKey); return controller.getPublication(id); },
-    setKudos: async (...args: Parameters<FeedController['setKudos']>) => { controller.assertOwner(identityKey); return controller.setKudos(...args); },
-    getKudos: async (...args: Parameters<FeedController['getKudos']>) => { controller.assertOwner(identityKey); return controller.getKudos(...args); },
-  }), [controller, identityKey]);
+  const scopeRevision = useSyncExternalStore(subscribeFlightScope, flightScopeRevision, flightScopeRevision);
+  const actions = useMemo(() => {
+    const scope = captureFlightScope();
+    const assertOwner = () => { assertFlightScope(scope); controller.assertOwner(identityKey); };
+    return {
+      refresh: async () => { assertOwner(); await controller.refresh(); },
+      loadMore: async () => { assertOwner(); await controller.loadMore(); },
+      setAutoShare: async (enabled: boolean) => { assertOwner(); await controller.setAutoShare(enabled); },
+      getDetail: async (id: string) => { assertOwner(); return controller.getDetail(id); },
+      getReplay: async (...args: Parameters<FeedController['getReplay']>) => { assertOwner(); return controller.getReplay(...args); },
+      getPublication: async (id: string) => { assertOwner(); return controller.getPublication(id); },
+      setKudos: async (...args: Parameters<FeedController['setKudos']>) => { assertOwner(); return controller.setKudos(...args); },
+      getKudos: async (...args: Parameters<FeedController['getKudos']>) => { assertOwner(); return controller.getKudos(...args); },
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Capture each synchronous authentication/journal generation, including A→B→A.
+  }, [controller, identityKey, scopeRevision]);
   useEffect(() => cloudAuthService.subscribe(() => { controller.syncIdentity(); void publicationService.authChanged().catch(() => undefined); }), [controller]);
   useEffect(() => { controller.syncIdentity(); void publicationService.authChanged().catch(() => undefined); }, [controller, auth.status, auth.userId]);
   useEffect(() => { controller.connectionsChanged(); }, [controller, friends.revision]);

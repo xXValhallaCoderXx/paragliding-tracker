@@ -2,9 +2,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { Avatar, BusyRow, Button, Notice, Screen, TopBar } from '@/components/ui';
-import { FlightHero } from '@/features/flights/components/hero';
 import { FlightMapPreview } from '@/features/flights/components/flight-map-preview';
-import { StatGrid } from '@/features/flights/components/stat-grid';
 import { siteAttribution } from '@/features/flights/site-picker';
 import { friendInitials } from '@/features/friends/presentation';
 import { useFriends } from '@/features/friends/friends-provider';
@@ -13,7 +11,7 @@ import type { SharedFlightDetail } from '@/social/feed-types';
 import { fonts, paper, radii } from '@/ui/theme';
 import { useFeed } from './feed-provider';
 import { KudosControls } from './kudos-controls';
-import { sharedHeroSummary, sharedStats, sharedStatus } from './presentation';
+import { SharedFlightHero, SharedFlightStats } from './shared-flight-presentation';
 import { feedStyles as styles } from './styles';
 
 export default function SharedDetailScreen() {
@@ -72,16 +70,16 @@ function SharedDetailContent({ activityId }: { activityId: string }) {
         <Text accessible={false} style={detailStyles.chevron}>›</Text>
       </Pressable>
     </View>
-    <FlightHero flight={sharedHeroSummary(flight)} status={sharedStatus(flight)} saved={null} insight={null} />
+    <SharedFlightHero flight={flight} />
     <View style={styles.detailSection}>
       <FlightMapPreview segments={flight.routePreview} variant="hero" cachePolicy="none"
         state={flight.routePreview.length ? 'ready' : 'no_track'} takeoffLabel="Start" landingLabel="Stop"
         describe={() => 'Shared flight route. Circle marks the first fix and square marks the last. Recording gaps stay open.'} />
       {flight.status === 'partial' || flight.metrics.quality === 'partial' ? <Notice tone="warning" title="Partial flight">Statistics and replay cover only the saved portion of this flight.</Notice> : null}
       {flight.metrics.quality === 'gaps' ? <Notice tone="warning" title="Track has timing gaps">Distance and maximum values may be incomplete. Recording gaps stay open in the replay.</Notice> : null}
-      {flight.metrics.quality === 'no_track' ? <Notice title="No usable GPS track">No usable route was recorded for this flight.</Notice> : null}
+      {flight.metrics.quality === 'no_track' || flight.metrics.fixCount < 2 ? <Notice title="No usable GPS track">At least two usable GPS fixes are needed to measure track distance. Available saved measurements remain below.</Notice> : null}
     </View>
-    <StatGrid cells={sharedStats(flight)} />
+    <SharedFlightStats flight={flight} />
     <View style={styles.detailSection}>
       {flight.replayAvailable ? <Button label="Replay shared flight" variant="primary" size="xl" disabled={feed.recorderBusy}
         onPress={() => router.push({ pathname: '/shared-flights/[id]/replay', params: { id: activityId } })} />

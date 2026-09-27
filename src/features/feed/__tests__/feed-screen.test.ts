@@ -144,3 +144,10 @@ it('keeps explicit refresh and pull-to-refresh guarded during loading or unavail
   expect(refreshControls()).toHaveLength(1);
   expect(control('Refresh shared flights').props.disabled).toBe(false);
 });
+
+it('does not promise future flights stay private while automatic sharing is enabled', async () => {
+  mockFeed.items = []; mockFeed.preferences = { enabled: true, generation: 'enabled' };
+  await run(() => { rendered = create(React.createElement(FeedScreen)); });
+  expect(text().join(' ')).toContain('Automatic sharing is on for eligible recordings started after opt-in');
+  expect(text().join(' ')).not.toContain('Your logbook stays private until');
+});

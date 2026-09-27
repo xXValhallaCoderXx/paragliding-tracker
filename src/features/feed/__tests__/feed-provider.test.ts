@@ -6,6 +6,7 @@ import type { FeedContextValue, KudosResult } from '@/social/feed-types';
 import { FeedProvider, useFeed } from '../feed-provider';
 import { create, act } from '../../../../tests/support/renderer';
 import { replayArtifact, sharedFlight } from './fixtures';
+import { setFlightAuthIdentity } from '@/lib/flight-scope';
 
 const A = '11111111-1111-4111-8111-111111111111';
 const B = '22222222-2222-4222-8222-222222222222';
@@ -182,6 +183,18 @@ it('keeps callbacks stable through refreshes but rejects an old-account action',
   await expect(previous.getKudos('activity-1', null)).rejects.toMatchObject({ code: 'stale' });
   expect(mockSetAutoShare).not.toHaveBeenCalled();
   expect(mockSetKudos).not.toHaveBeenCalled(); expect(mockGetKudos).not.toHaveBeenCalled();
+});
+
+it('rejects old callbacks after an account changes away and back before React renders', async () => {
+  await render();
+  const old = latest;
+  await run(() => { setFlightAuthIdentity(B); setFlightAuthIdentity(A); });
+  await expect(old.setAutoShare(true)).rejects.toThrow('account changed');
+  await expect(old.setKudos('activity-1', true)).rejects.toThrow('account changed');
+  await expect(old.getKudos('activity-1', null)).rejects.toThrow('account changed');
+  expect(mockSetAutoShare).not.toHaveBeenCalled();
+  expect(mockSetKudos).not.toHaveBeenCalled();
+  expect(mockGetKudos).not.toHaveBeenCalled();
 });
 
 it('exposes immediate pending state and confirmed counts without changing replay identity or callbacks', async () => {

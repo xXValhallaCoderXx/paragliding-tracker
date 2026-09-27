@@ -10,7 +10,10 @@ import { feedContext, sharedFlight } from './fixtures';
 let mockFeed = feedContext();
 const mockPush = jest.fn();
 jest.mock('../feed-provider', () => ({ useFeed: () => mockFeed }));
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }),
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]),
+}));
 jest.mock('@/features/flights/components/track-plate', () => ({ TrackPlate: () => null }));
 jest.mock('@/components/ui', () => Object.fromEntries(['Avatar', 'Button', 'Card', 'Chip', 'Notice']
   .map(name => [name, ({ children }: { children?: React.ReactNode }) => children ?? null])));
@@ -87,6 +90,26 @@ it('shows the owner a supporter list without offering self-kudos', async () => {
   await run(() => control('View kudos (3)').props.onPress());
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/shared-flights/[id]/kudos', params: { id: 'activity-1' } });
   expect(mockFeed.setKudos).not.toHaveBeenCalled();
+});
+
+it('ignores reaction and navigation callbacks after their screen unmounts', async () => {
+  await render();
+  const give = control('Give kudos').props.onPress;
+  const list = control('View kudos (3)').props.onPress;
+  await run(() => rendered!.unmount()); rendered = undefined;
+  await run(() => { give(); list(); });
+  expect(mockFeed.setKudos).not.toHaveBeenCalled();
+  expect(mockPush).not.toHaveBeenCalled();
+});
+
+it('labels card measurements and does not show a one-fix placeholder distance', async () => {
+  const flight = sharedFlight({ metrics: { ...sharedFlight().metrics, fixCount: 1, trackDistanceMetres: 9000 }, routePreview: [[2.8, 101.5]] });
+  await render(React.createElement(SharedFlightCard, { flight, own: false, onOpen: jest.fn(), onAuthor: jest.fn() }));
+  const words = rendered!.root.findAllByType(Text).map((node: Node) => String(node.props.children));
+  expect(words).toContain('Recorded time');
+  expect(words).toContain('Track distance');
+  expect(words).toContain('—');
+  expect(words.join(' ')).not.toContain('9.0');
 });
 
 it('explains recorder priority while leaving the lightweight supporter list available', async () => {

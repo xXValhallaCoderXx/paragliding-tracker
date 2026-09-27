@@ -1,0 +1,25 @@
+# Stage 6 — Friends and sharing
+
+PAR-54/56/57/60 use the 27 September design pages 47–51, 54 and 56 (B2-21/22/23/24/25/28/30). This reconciles the existing social pass with the current Bricolage/IBM Plex Mono theme. Existing URLs, authorization, RPCs, replay artifacts, database schema and dependencies stay compatible.
+
+## Delivered behavior
+
+- Friends retains publication chronology, linked authors, actual route cards, separate reaction/count controls, refresh/paging and distinct no-friends/no-posts/loading/error/offline states. Cards label Recorded time, Track distance and Maximum GPS altitude. Empty-state copy respects automatic-sharing on/off/unknown status. No offline social cache or supporter avatar previews.
+- Shared detail has its own presentation: linked author, title/date/site, track-distance headline, actual route, primary statistics, Replay, kudos and provenance/privacy. Recorded time, Track distance, Maximum GPS altitude and Maximum ground speed match Stage 5. More stats expands minimum GPS altitude, start-to-stop straight-line distance, fix count, Start/Stop timestamps and recorded timezone (explicit device-timezone fallback). Missing and one-fix distances stay unavailable; measured zero and negative GPS altitude remain measurements. Partial/gapped/archived provenance remains explicit. No inferred airborne time, climb, equipment or season totals. Private notes/identifiers/files and diagnostics are never rendered.
+- Manual share, Hide and automatic-sharing decisions use separate native sheets. They preserve the Stage 5 saved-summary draft handoff and single publication controller across inline/overflow entry points. Checking, unknown visibility, pending publication, server-confirmed shared/hidden, pending Hide and errors are distinct. Unknown status permits a conservative Hide or status refresh, never an implicit Share. Ambiguous failures never claim that nothing was published.
+- Consent states that the full route includes start/end coordinates, exact times and supported statistics. All current accepted friends, including later-added friends, see published history. Automatic sharing remains off by default and applies to eligible recordings started after opt-in, after saving/backup. Auto-off stops future/pending automatic work, not published history. No selective audience or endpoint trimming is implied.
+- Kudos has an authorized flight-context header, confirmed count and paged supporter names/initials. Context is fetched through the existing shared-detail read before requesting names; route parameters are not trusted as flight context. A failed/revoked context or roster clears the title/names. Unsupported kudos is unavailable, not zero. Non-mutual supporters remain visible to authorized flight viewers, subject to existing block filtering; no handles, photos, profile links or friendship actions.
+
+## Lifecycle and action safety
+
+Feed actions capture the synchronous auth/journal generation, rejecting old actions even after A→B→A. Confirmation visits, focus lifetimes and immediate request locks reject stale/dismissed/double submissions. Navigation, backgrounding, eligibility loss and account changes dismiss sheets; in-flight completion cannot update a replacement confirmation. Explicit dismissal is disabled with progress while submitting. Failed preference changes say not confirmed rather than unchanged; fresh preference reads clear that uncertainty.
+
+Existing controllers retain cancellation, recorder priority, access clearing, revision guards and server-confirmed reaction counts. Hide remains pending until server acknowledgement; sign-out does not hide publications. There is no new realtime revocation channel. Original archived IGC bytes, sharing projection and personal journal behavior are unchanged.
+
+## Verification and acceptance
+
+Focused tests cover expanded/missing/one-fix/zero metrics; private-field exclusion; own/no-track/IGC detail; feed states; native consent and Hide; stale callbacks, account return and duplicate requests; kudos context, unsupported endpoints, paging/Retry and clearing. Full Node 24 tests, Android export and release verification are required. Evidence belongs in `ui-audit/stage6/`; transient APKs/maps and fixture tools belong in ignored `.artifacts/stage6/`.
+
+`FLIGHT_LOG_QA=stage6` selects **Flight Log Stage 6 QA**, `com.xxvalhallacoderxx.xcmvp.stage6qa`, scheme `xcmvp-stage6qa`. Retain INTERNET and disabled Android backup. Use dedicated synthetic identities/flights, with normal app and earlier QA packages preserved. Start Samsung checks only after Sheetless QA releases the device. Never change the user's Android display settings. Label any application-only large-text/size variant separately; spoken accessibility and broad PAR-6 acceptance stay separate.
+
+Record source commit, APK hash, device, screenshots and results before closing the four tickets. PAR-43 records these existing-field decisions; its remaining public equipment/aggregate/history scope stays open. PAR-44 receives only the delivered common-UI slice. PAR-55/58/59, replay/postcard/recorder redesign and all earlier outstanding acceptance remain separate.

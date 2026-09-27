@@ -2,9 +2,9 @@ import { Pressable, Text, View } from 'react-native';
 import { Avatar, Card, Chip } from '@/components/ui';
 import { TrackPlate } from '@/features/flights/components/track-plate';
 import { friendInitials } from '@/features/friends/presentation';
-import { formatAirtimeShort, formatDistance, formatLongDate, formatMetres } from '@/lib/format/flight-format';
+import { formatDistance, formatLongDate } from '@/lib/format/flight-format';
 import type { SharedFlightSummary } from '@/social/feed-types';
-import { sharedHeadline, sharedStatus } from './presentation';
+import { sharedHeadline, sharedMeasurements, sharedStatus } from './presentation';
 import { KudosControls } from './kudos-controls';
 import { feedLayout } from './feed-layout';
 import { feedStyles as styles } from './styles';
@@ -13,6 +13,7 @@ export function SharedFlightCard({ flight, own, onOpen, onAuthor }: {
   flight: SharedFlightSummary; own: boolean; onOpen(): void; onAuthor(): void;
 }) {
   const status = sharedStatus(flight);
+  const values = sharedMeasurements(flight);
   return <Card><View style={feedLayout.card}>
     <Pressable accessibilityRole="button" accessibilityLabel={`View ${own ? 'your Friends profile' : flight.author.displayName + '’s profile'}`}
       onPress={onAuthor} style={({ pressed }) => [feedLayout.identity, pressed && styles.pressed]}>
@@ -26,7 +27,10 @@ export function SharedFlightCard({ flight, own, onOpen, onAuthor }: {
       <View style={feedLayout.summary}>
         <Text style={styles.heading}>{sharedHeadline(flight)}</Text>
         <Text style={styles.date}>Flight on {formatLongDate(flight.startedAt, flight.timezoneOffsetMinutes)}</Text>
-        <Text style={styles.metrics}>{formatAirtimeShort(flight.metrics.durationMs)} · {flight.metrics.quality === 'no_track' ? '—' : formatDistance(flight.metrics.trackDistanceMetres)} · {formatMetres(flight.metrics.maxGpsAltitude)}</Text>
+        <View style={feedLayout.cardMetrics}>
+          {[['Recorded time', values.time], ['Track distance', formatDistance(values.distanceMetres)], ['Max GPS altitude', values.maximumAltitude]].map(([label, value]) =>
+            <View key={label} style={feedLayout.cardMetric}><Text style={styles.helper}>{label}</Text><Text style={styles.metrics}>{value}</Text></View>)}
+        </View>
         {status.tone === 'warning' ? <Chip label={status.label} tone={status.tone} /> : null}
       </View>
     </Pressable>
