@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, SectionList, StyleSheet, Text, View, type SectionListProps } from 'react-native';
+import { useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View, type SectionListProps } from 'react-native';
 import { useFocusEffect, useIsFocused, useRouter } from 'expo-router';
 
 import {
@@ -14,7 +14,8 @@ import { SetupChecklistCard } from '@/features/logbook/components/setup-checklis
 import { FlightCard } from '@/features/logbook/components/flight-card';
 import { OpenFlightCard } from '@/features/logbook/components/open-flight-card';
 import { RecordFab } from '@/features/logbook/components/record-fab';
-import { SeasonCard } from '@/features/logbook/components/season-card';
+import { JournalSummaryCard } from '@/features/logbook/components/journal-summary-card';
+import { JournalFilterSheet } from '@/features/logbook/components/journal-filter-sheet';
 import { useCloudSync } from '@/features/account/cloud-sync-provider';
 import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import { recorderService } from '@/recorder/recorder-service';
@@ -30,7 +31,13 @@ import { aircraftName, currentAircraft } from '@/features/equipment/presentation
 import { errorMessage } from '@/lib/format/error-message';
 import type { TrackSegments } from '@/lib/track/types';
 import { setupChecklist, type ChecklistKey } from '@/features/logbook/setup-checklist';
-import { buildLogbookLayout, seasonSummary } from '@/features/logbook/logbook';
+import {
+  activeFilterCount, defaultJournalCriteria, journalFilterChips, removeJournalFilter,
+  selectJournal, JOURNAL_SORT_OPTIONS, type JournalCriteria,
+} from '@/features/logbook/journal-query';
+import { applyJournalCriteria } from '@/store/journal-view';
+import { useAppDispatch, useAppSelector, useAppStore } from '@/store/hooks';
+import { OfflineCoverageContext } from '@/offline-maps/coverage-context';
 import { fonts, paper } from '@/ui/theme';
 
 /** Stable identity: a fresh `[]` default would break every memo that depends on it. */
@@ -46,6 +53,13 @@ export default function LogbookScreen() {
   const focused = useIsFocused();
   const recorderLifecycle = useRecorderLifecycle();
   const sync = useCloudSync();
+  const coverage = useContext(OfflineCoverageContext);
+  const dispatch = useAppDispatch();
+  const viewStore = useAppStore();
+  const { criteria, revision } = useAppSelector((state) => state.journalView);
+  const [sheetRevision, setSheetRevision] = useState<number | null>(null);
+  const [currentYear] = useState(() => new Date().getFullYear());
+  const listRef = useRef<SectionList<FlightSummary>>(null);
   const [visibleFlightIds, setVisibleFlightIds] = useState<ReadonlySet<string>>(() => new Set());
   const onViewableItemsChanged = useCallback<NonNullable<SectionListProps<FlightSummary>['onViewableItemsChanged']>>(
     ({ viewableItems }) => {
@@ -124,12 +138,21 @@ export default function LogbookScreen() {
     }, [refetch, refetchTracks, requestSync, skip]),
   );
 
-  const layout = useMemo(() => buildLogbookLayout(flights), [flights]);
+  const layout = useMemo(() => selectJournal(flights, criteria, currentYear), [flights, criteria, currentYear]);
   const sections = useMemo(() => layout.sections.map((section) => ({
     key: section.key, title: section.title, data: section.flights,
   })), [layout.sections]);
   const listExtraData = useMemo(() => ({ tracks, focused, visibleFlightIds }), [tracks, focused, visibleFlightIds]);
-  const season = useMemo(() => seasonSummary(flights), [flights]);
+  const filterCount = activeFilterCount(criteria);
+  const chips = journalFilterChips(criteria, layout.facets);
+  const sortLabel = JOURNAL_SORT_OPTIONS.find((option) => option.value === criteria.sort)!.label;
+  const applyCriteria = (next: JournalCriteria, expectedRevision = revision) => {
+    // Check current identity before any UI effect, including closing a newer sheet.
+    if (viewStore.getState().journalView.revision !== expectedRevision) return;
+    dispatch(applyJournalCriteria({ criteria: next, revision: expectedRevision }));
+    setSheetRevision(null);
+    if (expectedRevision === revision) listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
+  };
   const checklist = useMemo(
     () =>
       profile && capabilities && equipment
@@ -148,13 +171,15 @@ export default function LogbookScreen() {
   const openRecorder = () => router.push('/record');
   const openWithIntent = (intent: 'resume' | 'finalize') =>
     router.push({ pathname: '/record', params: { intent } });
-  const isEmpty = !loading && !error && flights.length === 0;
+  const isEmpty = !skip && !loading && !error && flights.length === 0 && filterCount === 0;
+  const noMatches = !skip && !loading && !error && layout.matchedCount === 0 && filterCount > 0;
   const pilotFirstName = profile?.pilotName?.trim().split(/\s+/)[0];
   const showRecordFab = !loading && !isEmpty && openFlight?.sessionStatus !== 'interrupted';
 
   return (
     <Screen edges={['top', 'left', 'right']}>
       <SectionList
+        ref={listRef}
         sections={sections}
         keyExtractor={(flight) => flight.id}
         extraData={listExtraData}
@@ -166,7 +191,7 @@ export default function LogbookScreen() {
         onViewableItemsChanged={onViewableItemsChanged}
         renderSectionHeader={({ section }) => <View style={styles.section}>
           <SectionLabel className="px-[18px] pt-[10px] pb-[8px]">
-            {section.key === sections[0]?.key && openFlight ? `Earlier · ${section.title}` : section.title}
+            {section.key === sections[0]?.key && openFlight && (criteria.sort === 'newest' || criteria.sort === 'oldest') ? `Earlier · ${section.title}` : section.title}
           </SectionLabel>
         </View>}
         renderItem={({ item: flight }) => <View style={styles.card}>
@@ -201,6 +226,38 @@ export default function LogbookScreen() {
             </Text>
           </View>
         </View>
+
+        <View style={[styles.block, styles.gap]}>
+          <View style={styles.toolbar}>
+            <Button
+              label={filterCount ? `Filters (${filterCount})` : 'Filters'}
+              variant="secondary"
+              disabled={skip || loading || Boolean(error && flights.length === 0)}
+              onPress={() => setSheetRevision(revision)}
+            />
+            <Button label={sortLabel} variant="ghost" disabled={skip || loading || Boolean(error && flights.length === 0)} onPress={() => setSheetRevision(revision)} />
+          </View>
+          {chips.length ? <View style={styles.chips}>
+            {chips.map((chip) => <Pressable
+              key={`${chip.category}:${chip.value}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${chip.label} filter`}
+              style={styles.filterChip}
+              onPress={() => applyCriteria(removeJournalFilter(criteria, chip))}>
+              <Text style={styles.filterChipText}>{chip.label} ×</Text>
+            </Pressable>)}
+          </View> : null}
+          {(filterCount > 0 || criteria.sort !== 'newest') ? (
+            <Button label="Clear all" variant="ghost" onPress={() => applyCriteria(defaultJournalCriteria())} />
+          ) : null}
+        </View>
+
+        {coverage?.network === 'offline' ? <View style={styles.block}>
+          <Notice title="You’re offline">
+            Saved flights and filters still work. Map imagery may be unavailable.
+          </Notice>
+          <Button label="Backup status in Pilot" variant="ghost" onPress={() => router.push('/account')} />
+        </View> : null}
 
         {recorderLifecycle.recovering ? (
           <View style={styles.block}>
@@ -249,9 +306,15 @@ export default function LogbookScreen() {
           </View>
         ) : null}
 
-        {season ? (
+        {!skip && !loading && !error && (layout.totalCount > 0 || filterCount > 0) ? (
           <View style={styles.block}>
-            <SeasonCard summary={season} />
+            <JournalSummaryCard
+              summary={layout.summary}
+              scopeLabel={`${filterCount ? 'Filtered flights' : 'All time'}${criteria.year === null ? '' : ` · ${criteria.year}`} · On this phone`}
+            />
+            {filterCount > 0 ? <Text style={styles.resultCount} accessibilityLiveRegion="polite">
+              {layout.matchedCount} of {layout.totalCount} saved flights
+            </Text> : null}
           </View>
         ) : null}
 
@@ -282,8 +345,23 @@ export default function LogbookScreen() {
             disabled={recorderBusy}
             busyLabel={recorderLifecycle.recovering ? 'Checking recorder…' : null}
           />
+        ) : noMatches ? (
+          <View style={[styles.emptyResults, styles.gap]}>
+            <Text style={styles.emptyTitle}>No flights match these filters</Text>
+            <Text style={styles.emptyBody}>Try another selection or clear the filters to see your saved flights.</Text>
+            <Button label="Edit filters" variant="primary" onPress={() => setSheetRevision(revision)} />
+            <Button label="Clear filters" onPress={() => applyCriteria(defaultJournalCriteria())} />
+          </View>
         ) : null}
       />
+
+      {sheetRevision === revision ? <JournalFilterSheet
+        key={revision}
+        flights={flights}
+        criteria={criteria}
+        onClose={() => setSheetRevision(null)}
+        onApply={(next) => applyCriteria(next, sheetRevision)}
+      /> : null}
 
       {showRecordFab ? (
         <RecordFab
@@ -318,11 +396,19 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
   },
   heading: { flex: 1, gap: 7 },
-  eyebrow: { fontFamily: fonts.monoMedium, fontSize: 10, letterSpacing: 1.4, color: paper.muted },
+  eyebrow: { fontFamily: fonts.monoMedium, fontSize: 12, letterSpacing: 1.4, color: paper.muted },
   title: { fontFamily: fonts.sansBold, fontSize: 30, letterSpacing: -0.8, color: paper.ink },
   block: { paddingHorizontal: 16, paddingTop: 10 },
   gap: { gap: 10 },
   section: { paddingTop: 10 },
   card: { paddingHorizontal: 16 },
   cardSeparator: { height: 10 },
+  toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  filterChip: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 10, backgroundColor: paper.thermalSoft, borderRadius: 22, maxWidth: '100%' },
+  filterChipText: { color: paper.thermalInk, fontFamily: fonts.sansSemi, fontSize: 14 },
+  resultCount: { color: paper.muted, fontFamily: fonts.monoMedium, fontSize: 12, marginTop: 12 },
+  emptyResults: { padding: 24 },
+  emptyTitle: { color: paper.ink, fontFamily: fonts.sansBold, fontSize: 23 },
+  emptyBody: { color: paper.text, fontFamily: fonts.sans, fontSize: 15, lineHeight: 24 },
 });

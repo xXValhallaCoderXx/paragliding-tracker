@@ -1,3 +1,6 @@
+/** @jest-environment node
+ * @jest-environment-options {"customExportConditions":["node","node-addons"]}
+ */
 import React from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { NetworkStateType, type NetworkState } from 'expo-network';

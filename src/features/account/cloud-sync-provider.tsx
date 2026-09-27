@@ -17,6 +17,7 @@ import { subscribeJournal } from '@/journal/context';
 import { subscribeEquipment } from '@/equipment/events';
 import { store } from '@/store';
 import { api } from '@/store/api';
+import { journalAuthChanged, journalOwnerChanged } from '@/store/journal-view';
 
 import { cloudConfigured } from '@/cloud/config';
 import { cloudSyncEngine } from '@/cloud/sync-engine';
@@ -80,6 +81,7 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => subscribeJournal((change) => {
     if (change.kind === 'owner') {
+      store.dispatch(journalOwnerChanged());
       // Reset also discards in-flight responses; the recorder's own service is independent.
       store.dispatch(api.util.resetApiState());
       return;
@@ -96,6 +98,11 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
   useEffect(() => subscribeEquipment(() => {
     store.dispatch(api.util.invalidateTags(['Equipment']));
   }), []);
+
+  useEffect(() => {
+    // Sign-out retains the archive owner, so identity is a separate reset boundary.
+    store.dispatch(journalAuthChanged(auth.userId));
+  }, [auth.userId]);
 
   useEffect(() => {
     void cloudSyncEngine.authChanged().catch(() => undefined);

@@ -31,10 +31,10 @@ export function EmptyLogbook({
       ? `Nothing here yet, ${pilotName.split(' ')[0]}.`
       : 'Your logbook starts with one flight.';
   const body = !hasSetup
-    ? 'You can record right now — the rest can be filled in when you land.'
+    ? 'Start a recording when you are ready. Preflight will check the permissions it needs.'
     : hasSetup && pilotName
       ? 'Tap record before launch and stop after landing. Add a launch name and a few memories when you save.'
-      : 'Tap record before you launch and stop after you land. The track and its stats stay on this phone — no account, no signal needed.';
+      : 'Tap record before you launch and stop after you land. No account or internet connection is needed.';
   return (
     <View style={styles.wrap}>
       <JournalArt scene="launch" height={210} />

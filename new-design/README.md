@@ -4,6 +4,8 @@
 
 Continue with the agreed [Stage 2 optional backup and sign-in](stage-2.md) and [Stage 3 Pilot and aircraft](stage-3.md) contracts. Stage 3 adds PAR-69/70 for local equipment and private backup; its [implementation and acceptance evidence](../ui-audit/stage3/README.md) distinguishes completed checks from the remaining physical-device gates.
 
+[Stage 4 Home and journal filters](stage-4.md) implements the personal-journal choice for PAR-42/50/51 using pages 19–25. Home remains separate from Friends; mixed-source queries and publication badges are deferred in [PAR-71](https://linear.app/sentiment-hound/issue/PAR-71). See [Stage 4 verification](../ui-audit/stage4/README.md) for automated/build evidence and the separate Android acceptance gate.
+
 Reviewed 22 September 2026. Planning only; application code was not changed for this ticket-creation task.
 
 [PAR-40 — Finalize Flight Log UI/UX](https://linear.app/sentiment-hound/issue/PAR-40/finalize-flight-log-uiux-screen-designs-flows-and-implementation) contains the original HTML attachment, **25 screen/flow subtasks** and **3 product/data prerequisites**. All 28 children were read back from Linear with the expected parent, Design label, Backlog status and blocking relations. No cycle, assignee or deadline was set.

@@ -95,5 +95,5 @@ const styles = StyleSheet.create({
     position: 'absolute', width: 54, marginLeft: -27, alignItems: 'center', paddingVertical: 2,
     borderRadius: 6, backgroundColor: paper.card, borderWidth: 1, borderColor: paper.border,
   },
-  endpointText: { fontFamily: fonts.sansSemi, fontSize: 11, lineHeight: 15, color: paper.ink },
+  endpointText: { fontFamily: fonts.sansSemi, fontSize: 12, lineHeight: 18, color: paper.ink },
 });

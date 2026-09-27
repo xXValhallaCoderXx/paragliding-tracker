@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 
 import { api } from './api';
+import { journalViewReducer } from '@/store/journal-view';
 
 /**
  * The app store.
@@ -14,6 +15,7 @@ import { api } from './api';
 export const store = configureStore({
   reducer: {
     [api.reducerPath]: api.reducer,
+    journalView: journalViewReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -39,4 +41,5 @@ export const store = configureStore({
 });
 
 export type RootState = ReturnType<typeof store.getState>;
+export type AppStore = typeof store;
 export type AppDispatch = typeof store.dispatch;
