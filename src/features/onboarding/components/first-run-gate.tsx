@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet, Modal } from 'react-native';
+import { Keyboard, View, StyleSheet, Modal } from 'react-native';
 
 import { LoadingScreen } from '@/components/ui';
 
@@ -42,7 +42,14 @@ export function FirstRunGate({ children }: { children: ReactNode }) {
       <Modal visible={covered} transparent animationType="none" statusBarTranslucent navigationBarTranslucent
         // Native-stack styles the Activity. Apply again once Android registers the Modal's own Window.
         onShow={() => StatusBar.setStyle('dark')}
-        onRequestClose={() => { if (firstRun.showWizard) void firstRun.navigate('back'); }}>
+        onRequestClose={() => {
+          // The Modal owns Android Back, including while one of its inputs has focus.
+          if (Keyboard.isVisible()) {
+            Keyboard.dismiss();
+            return;
+          }
+          if (firstRun.showWizard) void firstRun.navigate('back');
+        }}>
         <StatusBar style="dark" />
         {firstRun.showWizard ? <OnboardingOverlay /> : <LoadingScreen label="Opening Home…" />}
       </Modal>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View } from 'react-native';
+import { Keyboard, Modal, View } from 'react-native';
 import type { AuthSnapshot } from '@/cloud/types';
 import type { SetupDestination } from '../onboarding-flow';
 import { Button, Input, LinkButton } from '@/components/ui';
@@ -66,7 +66,7 @@ beforeEach(() => {
   mockSaveName.mockImplementation(() => ({ unwrap: () => Promise.resolve(mockProfile) }));
   mockSaveSettings.mockImplementation(() => ({ unwrap: () => Promise.resolve() }));
 });
-afterEach(async () => { await run(() => rendered?.unmount()); jest.useRealTimers(); });
+afterEach(async () => { await run(() => rendered?.unmount()); jest.restoreAllMocks(); jest.useRealTimers(); });
 
 it('enforces both real Welcome exits and only opens Home after acknowledgement and completion save', async () => {
   await mount();
@@ -238,6 +238,22 @@ it('starts a fresh email form when returning to Backup after Android Back', asyn
   await run(() => rendered.root.findByType(Input).props.onChangeText('qa@example.test')); await press('Email me a code');
   await run(() => rendered.root.findByType(Modal).props.onRequestClose()); await run(() => session.navigate('continue'));
   expect(rendered.root.findByType(Input).props).toMatchObject({ label: 'Email', value: '' });
+});
+
+it('dismisses the keyboard before leaving Backup, retaining the draft until the next Android Back', async () => {
+  mockAuth.status = 'signed_out'; await mount(); await backupStep();
+  await run(() => rendered.root.findByType(Input).props.onChangeText('qa@example.test'));
+  const visible = jest.spyOn(Keyboard, 'isVisible').mockReturnValue(true);
+  const dismiss = jest.spyOn(Keyboard, 'dismiss').mockImplementation(() => {});
+  await run(() => rendered.root.findByType(Modal).props.onRequestClose());
+  expect(dismiss).toHaveBeenCalledTimes(1); expect(session.wizard.step).toBe('backup');
+  expect(rendered.root.findByType(Input).props.value).toBe('qa@example.test');
+  expect(mockRequestOtp).not.toHaveBeenCalled(); expect(mockSaveSettings).not.toHaveBeenCalled();
+  visible.mockReturnValue(false);
+  await run(() => rendered.root.findByType(Modal).props.onRequestClose());
+  expect(session.wizard.step).toBe('location');
+  await run(() => session.navigate('continue'));
+  expect(rendered.root.findByType(Input).props.value).toBe('');
 });
 
 it.each(['restoring', 'unconfigured'] as const)('offers local completion while %s without requesting authentication', async (status) => {
