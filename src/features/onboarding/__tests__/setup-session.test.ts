@@ -268,5 +268,5 @@ it('already-signed-in setup waits for an explicit action, never for backup, and 
   await mount(); await run(() => session.restartSetup()); await press('Start setup'); await press('Skip for now'); await run(() => session.navigate('continue'));
   expect(control('Open Home')).toBeDefined(); expect(control('Set up Friends')).toBeDefined();
   expect(mockSaveSettings).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
-  await press('Close review'); expect(session.showWizard).toBe(false); expect(mockRouter.replace).not.toHaveBeenCalled();
+  await press('Finish review'); expect(session.showWizard).toBe(false); expect(mockRouter.replace).not.toHaveBeenCalled();
 });

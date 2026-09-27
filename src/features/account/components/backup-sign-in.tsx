@@ -30,7 +30,7 @@ export function BackupSignIn({ setup = false, reviewing = false, disabled = fals
     {auth.status !== 'signed_in' ? <LinkButton
       label={setup ? 'Skip — keep it on this phone' : 'Not now'} disabled={disabled}
       onPress={() => { if (!disabled) onComplete(reviewing ? 'return' : setup ? 'home' : 'pilot'); }} /> : null}
-    {reviewing ? <LinkButton label="Return to review caller" disabled={disabled}
+    {reviewing ? <LinkButton label="Finish review" disabled={disabled}
       onPress={() => { if (!disabled) onComplete('return'); }} /> : null}
   </View>;
 }
