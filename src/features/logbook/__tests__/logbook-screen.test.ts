@@ -178,6 +178,7 @@ it('distinguishes no matches from a first flight and retains applied state throu
   await act(async () => rendered.root.findByType(JournalFilterSheet).props.onApply({ ...defaultJournalCriteria(), year: 1999 }));
   expect(list().sections).toHaveLength(0);
   expect(rendered.root.findAllByType(EmptyLogbook)).toHaveLength(0);
+  expect(rendered.root.findAllByType(JournalSummaryCard)).toHaveLength(0);
   expect(button('Edit filters')).toBeDefined();
   await act(async () => rendered.unmount());
   await act(async () => { rendered = create(screen()); });

@@ -308,10 +308,10 @@ export default function LogbookScreen() {
 
         {!skip && !loading && !error && (layout.totalCount > 0 || filterCount > 0) ? (
           <View style={styles.block}>
-            <JournalSummaryCard
+            {layout.matchedCount > 0 ? <JournalSummaryCard
               summary={layout.summary}
               scopeLabel={`${filterCount ? 'Filtered flights' : 'All time'}${criteria.year === null ? '' : ` · ${criteria.year}`} · On this phone`}
-            />
+            /> : null}
             {filterCount > 0 ? <Text style={styles.resultCount} accessibilityLiveRegion="polite">
               {layout.matchedCount} of {layout.totalCount} saved flights
             </Text> : null}
