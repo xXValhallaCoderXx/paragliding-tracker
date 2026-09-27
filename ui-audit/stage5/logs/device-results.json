@@ -1,0 +1,172 @@
+{
+  "recordedAt": "2026-09-27T19:38:36.950011+00:00",
+  "status": "partial; phone interaction paused on user instruction",
+  "sourceCommit": "0ed69d74244f17d6a7dca3a57e22d95d5bcb8645",
+  "installedPackage": "com.xxvalhallacoderxx.xcmvp.stage5qa",
+  "installedApkSha256": "266f04eb87cf5e3e00f96dece158633f82fafce6abb5cda26eec3f4e3140e402",
+  "installedApkIndependentlyVerified": true,
+  "device": {
+    "fontScale": "0.8",
+    "displaySize": "Physical size: 1440x3120",
+    "displayDensity": "Physical density: 600\nOverride density: 560",
+    "accessibilityEnabled": "1",
+    "accessibilityServices": "com.wispr.flowapp/com.wispr.flowapp.service.FlowAccessibilityService",
+    "wifiEnabled": "1",
+    "airplaneMode": "0",
+    "model": "SM-S938B",
+    "android": "16"
+  },
+  "settingsWrites": false,
+  "finalSettingsComparison": "pending after resumption",
+  "seedReceipt": {
+    "path": ".artifacts/stage5/fixture-seed.txt",
+    "bytes": 208,
+    "sha256": "00b58126fc50767a83d1f6e0d88d2e873726334f52df7ba63825fe72195cc0de"
+  },
+  "fixtureScope": {
+    "localFlights": 8,
+    "restoredFlights": 2,
+    "cloudBound": false,
+    "realFlightData": false,
+    "schema": 11,
+    "normalAppAndEarlierQaPackages": "not reset or replaced"
+  },
+  "observations": [
+    {
+      "check": "Home to durable own detail",
+      "result": "pass",
+      "evidence": [
+        "01-populated-home.png",
+        "02-own-detail-route.png"
+      ]
+    },
+    {
+      "check": "Expand and scroll supported stats",
+      "result": "pass",
+      "evidence": [
+        "03-expanded-stats.png"
+      ]
+    },
+    {
+      "check": "Read-only captured aircraft and private notes section",
+      "result": "pass",
+      "evidence": [
+        "04-captured-aircraft-and-notes.png"
+      ]
+    },
+    {
+      "check": "Overflow action reachability",
+      "result": "pass",
+      "evidence": [
+        "05-overflow-actions.png"
+      ]
+    },
+    {
+      "check": "Editor title draft, keyboard-first Back, dirty guard, Keep editing",
+      "result": "pass",
+      "evidence": [
+        "06-editor-keyboard.png",
+        "07-dirty-editor-back.png"
+      ]
+    },
+    {
+      "check": "Stored-coordinate nearby lookup, no results/manual actions, nested Cancel retention",
+      "result": "pass",
+      "evidence": [
+        "08-nearby-site-provider.png",
+        "09-site-keyboard-actions.png"
+      ]
+    },
+    {
+      "check": "Delete Cancel retains title/site drafts; Save closes editor",
+      "result": "pass",
+      "limitation": "Restart readback and delete success not yet exercised.",
+      "evidence": [
+        "10-delete-explanation.png"
+      ]
+    },
+    {
+      "check": "Unsigned IGC export",
+      "result": "incomplete",
+      "observation": "First action returned a NativeStatement shared-object release error; retry reached Android Sharesheet. Recipient selection was not completed; the carousel search process was terminated on user pause.",
+      "evidence": [
+        "11-export-retryable-error.png"
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "ui-audit/stage5/screens/01-populated-home.png",
+      "bytes": 1198555,
+      "sha256": "b0c551e536c934f64bc177b7e6b0a96af025b75e3272657036b0ae8af3f76b2a"
+    },
+    {
+      "path": "ui-audit/stage5/screens/02-own-detail-route.png",
+      "bytes": 1379468,
+      "sha256": "8d0c38c5fefcc3e0130ffc5b83c16b07f07599b4d8ee566f7dd7dab31ac2a964"
+    },
+    {
+      "path": "ui-audit/stage5/screens/03-expanded-stats.png",
+      "bytes": 321174,
+      "sha256": "b07d46f10ba49e6f4f4bf0283723ce49f6aa095ec0a43e5c36e9c2aab4088635"
+    },
+    {
+      "path": "ui-audit/stage5/screens/04-captured-aircraft-and-notes.png",
+      "bytes": 355323,
+      "sha256": "ce449ba1d17ed01f05acfc64ff27d4d19e991aa3e13ed5fab051602821ab3eba"
+    },
+    {
+      "path": "ui-audit/stage5/screens/05-overflow-actions.png",
+      "bytes": 254218,
+      "sha256": "cf35275fea932bff04f13d2618b2f0ebc04573256654f7e8de4ae98f624f74b2"
+    },
+    {
+      "path": "ui-audit/stage5/screens/06-editor-keyboard.png",
+      "bytes": 278281,
+      "sha256": "9e36df7689a1a2d1c532d54a73ae2884efb33d58ebfa2a3a1ce7a0876bbf82c9"
+    },
+    {
+      "path": "ui-audit/stage5/screens/07-dirty-editor-back.png",
+      "bytes": 202118,
+      "sha256": "043dc9a7adcaf384cbdfcfe3a5f02d595721aa56844fb6756c2ec03e77957416"
+    },
+    {
+      "path": "ui-audit/stage5/screens/08-nearby-site-provider.png",
+      "bytes": 234995,
+      "sha256": "8fbfd532187569d6ce896058dc65a8c16d343d95a6ae61d890b66eddb38b7369"
+    },
+    {
+      "path": "ui-audit/stage5/screens/09-site-keyboard-actions.png",
+      "bytes": 259137,
+      "sha256": "35a34839b296791fb214d46974d167c261a74cb32473d3cce81fc621fefee446"
+    },
+    {
+      "path": "ui-audit/stage5/screens/10-delete-explanation.png",
+      "bytes": 237944,
+      "sha256": "06baac33b0a1ea54607cb6927ed1be337cb6bb2256ae8e6af008126f5b4c4536"
+    },
+    {
+      "path": "ui-audit/stage5/screens/11-export-retryable-error.png",
+      "bytes": 1444391,
+      "sha256": "51bb4cfe31148f7f57e54993aea35e7fee235859a00584bbebbc43d3d4702df5"
+    }
+  ],
+  "largeVariant": {
+    "status": "built only; not installed",
+    "apkSha256": "9b44b3b525cfdf686bd55dd0447040ced20893edf0f2c171614e4cd31f38691a",
+    "intendedAppResourceFontScale": 1.5,
+    "intendedAppResourceDensityDpi": 720,
+    "systemDisplaySettingsChanged": false
+  },
+  "receivingApp": {
+    "kind": "isolated synthetic test receiver, no network permission",
+    "installed": true,
+    "handoffCompleted": false
+  },
+  "cleanup": {
+    "fixtureCompanion": "still installed; cleanup pending after resumption",
+    "qaData": "synthetic rows retained for resumption",
+    "generatedAndroidProject": "restored ordinary package/scheme; package.json and lockfile unchanged"
+  },
+  "pendingChecksDocument": "ui-audit/stage5/README.md"
+}

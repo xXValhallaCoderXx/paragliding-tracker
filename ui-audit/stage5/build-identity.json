@@ -1,0 +1,140 @@
+{
+  "recordedAt": "2026-09-27T19:26:23.554500+00:00",
+  "branch": "feature/ui-revamp-beta",
+  "baseCommit": "6f94bc016eb2f765e481bfaf27c12b65a79ce0b3",
+  "implementationCommit": "0ed69d74244f17d6a7dca3a57e22d95d5bcb8645",
+  "sourceCommits": [
+    "f867ab8a34620411de76bcd26fb89aa312e9a4f8",
+    "0ed69d74244f17d6a7dca3a57e22d95d5bcb8645"
+  ],
+  "build": {
+    "name": "Flight Log Stage 5 QA",
+    "package": "com.xxvalhallacoderxx.xcmvp.stage5qa",
+    "scheme": "xcmvp-stage5qa",
+    "version": "1.0.0-stage5-qa",
+    "target": "Android release arm64-v8a",
+    "internetPermission": true,
+    "allowBackup": false,
+    "apk": {
+      "path": ".artifacts/stage5/build-a/flight-log-stage5-20260928.apk",
+      "bytes": 80226434,
+      "sha256": "266f04eb87cf5e3e00f96dece158633f82fafce6abb5cda26eec3f4e3140e402"
+    },
+    "bundle": {
+      "path": ".artifacts/stage5/build-a/index.android.bundle",
+      "bytes": 5896268,
+      "sha256": "934caa3b11a4cc7e3bc31378c3b8991fa39525be79cd3c00abe8da0d82cdf814"
+    },
+    "apkMatchesGeneratedOutput": true,
+    "apkBundleMatchesGeneratedOutput": true,
+    "sourceMaps": [
+      {
+        "path": ".artifacts/stage5/build-a/index.android.bundle.map",
+        "bytes": 15710385,
+        "sha256": "e75c138e984fa778ee4d33ba901ed022c3a5860b6ec365667637a9f2af35639c",
+        "mappedRuntimeSourcesMatchingCommit": 276,
+        "changedRuntimeSourcesMatchingCommit": 28,
+        "changedFilesNotInRuntimeMap": [],
+        "changedRuntimeSources": {
+          "src/app/flights/[id].tsx": "21f3c9415f255fa1247f29fd3efd315b60bffdcba2e52066f29f8e2c91640299",
+          "src/archives/repository-core.ts": "434deaaf5927e9db5f550e1b6574eeda765dad0e3b5264b42b995b1205ac392a",
+          "src/cloud/auth-service.native.ts": "7f9c835ccb5a96aa6cec6690c736758a5882070b631d7dc7d19ac84f7ef63768",
+          "src/features/feed/flight-sharing-section.tsx": "acc88aac2b6554e35abd13d4b56b2d77f62923a193e8501ea06b369641fdabe9",
+          "src/features/feed/use-flight-publication.ts": "2c266e633da1bb323a3518747e77d1ad99ebc56079639a57584826b493f77c0c",
+          "src/features/flights/components/captured-aircraft.tsx": "eaea2c85385bf7a1730fed9f33c870661a867b994bf97ba48e23f8d5d84e377b",
+          "src/features/flights/components/flight-actions-sheet.tsx": "87437c8f2a61f6e7c3887e2aeaf98ff2e8cd78e6de1932e17a31998b8015410c",
+          "src/features/flights/components/metadata-conflict.tsx": "6174d714e043ca4e224b81cbd57022753f5cc6e4a2321406021cb3044b70aa27",
+          "src/features/flights/components/metadata-form.tsx": "9ea59209605ef6e314a05c756d04f5894ece1c89df2deab8c73ac9e86fc0207d",
+          "src/features/flights/components/metadata-sheet.tsx": "d3e2d21327f7c6c72c56236bcc8617704f3c0b81559d9cb19079910042293678",
+          "src/features/flights/components/own-flight-hero.tsx": "1ec4c9cce5c8fb5d8812df266600de5e4c0b85f6bf243f1fd2b1b449d6d9de5b",
+          "src/features/flights/components/own-flight-stats.tsx": "9f5660ef1513d0123927e84edda3252108e045930d3808f0dcaf209a41283175",
+          "src/features/flights/components/site-picker-sheet.tsx": "916548a755825d460c76f2b1a2b00e5c38e5ebb98056b808b5e5ded1c9a39a7c",
+          "src/features/flights/current-position.ts": "a1b01b2f408ac4fd739b0bb6a4a00ab1365919734de915a016127a2a2e1a14bc",
+          "src/features/flights/metadata-editor.ts": "bc46eae2838d08090e4b009e0d6bc208ee21f2e2de24a844e15a04521f2a38f3",
+          "src/features/flights/own-flight-presentation.ts": "e0024b667d935e829c55683b77166d33b46c8f4851b79235cda3c35b2e0b2717",
+          "src/features/flights/use-flight-draft.ts": "b51171c054f85f31d2a3e437ffffc6a0972c91ca9fce463f7fd485e32f41abb3",
+          "src/journal/artifacts.native.ts": "4f527af305609e9b1417258166c02e02f74b53f74bca160763fd96fe77c2b956",
+          "src/journal/context.ts": "c0faced50bed3b2f0923748f19bcd578c311f38849901d042ab8d8528c5e7f5f",
+          "src/journal/repository.native.ts": "9be56e15cf2c5731a68436fa6e983818c24095241263e13f0f87d0658cfcb8e1",
+          "src/lib/flight-mutations.ts": "d61db213f3590d9b0914e21183dbd6479f0f5f102bf2a8e3be2908b2497d961e",
+          "src/lib/flight-scope.ts": "331f0a87ff724f169024bb5b60040c282cc6859ef3883eca507aebaf56942a4c",
+          "src/recorder/database.native.ts": "8f708290452f8863a8d93f88bdc59c730db686b437af5a94d989127a83e8c30e",
+          "src/recorder/flight-repository.native.ts": "9b2bd6c2d204c6d49b3284e561155e219e10f5807b471e4c811a38bf76853905",
+          "src/recorder/types.ts": "003c8757f52b931d690807a33d37b166a9fc3b107a8fd615ed8c46607040319d",
+          "src/sites/http.ts": "43fb55b901ecdcb5852dea04cdc46c87f38986197893b394fbd48da8a91ce830",
+          "src/store/endpoints.ts": "fbef05c71a7d3df3fe457985d21c13fa0c27b099ab25169044cdb0968b0bc860",
+          "src/store/query-fn.ts": "d5d516419e5dd9a167cf66dc8e4df2f1b4267d36028405a089dace42150cb2dc"
+        }
+      },
+      {
+        "path": ".artifacts/stage5/build-a/index.android.bundle.packager.map",
+        "bytes": 20676173,
+        "sha256": "c25a90c66648b750513cb6dda9c52693174feb54dc81884f0ee8ef33481d77b4",
+        "mappedRuntimeSourcesMatchingCommit": 276,
+        "changedRuntimeSourcesMatchingCommit": 28,
+        "changedFilesNotInRuntimeMap": [],
+        "changedRuntimeSources": {
+          "src/app/flights/[id].tsx": "21f3c9415f255fa1247f29fd3efd315b60bffdcba2e52066f29f8e2c91640299",
+          "src/archives/repository-core.ts": "434deaaf5927e9db5f550e1b6574eeda765dad0e3b5264b42b995b1205ac392a",
+          "src/cloud/auth-service.native.ts": "7f9c835ccb5a96aa6cec6690c736758a5882070b631d7dc7d19ac84f7ef63768",
+          "src/features/feed/flight-sharing-section.tsx": "acc88aac2b6554e35abd13d4b56b2d77f62923a193e8501ea06b369641fdabe9",
+          "src/features/feed/use-flight-publication.ts": "2c266e633da1bb323a3518747e77d1ad99ebc56079639a57584826b493f77c0c",
+          "src/features/flights/components/captured-aircraft.tsx": "eaea2c85385bf7a1730fed9f33c870661a867b994bf97ba48e23f8d5d84e377b",
+          "src/features/flights/components/flight-actions-sheet.tsx": "87437c8f2a61f6e7c3887e2aeaf98ff2e8cd78e6de1932e17a31998b8015410c",
+          "src/features/flights/components/metadata-conflict.tsx": "6174d714e043ca4e224b81cbd57022753f5cc6e4a2321406021cb3044b70aa27",
+          "src/features/flights/components/metadata-form.tsx": "9ea59209605ef6e314a05c756d04f5894ece1c89df2deab8c73ac9e86fc0207d",
+          "src/features/flights/components/metadata-sheet.tsx": "d3e2d21327f7c6c72c56236bcc8617704f3c0b81559d9cb19079910042293678",
+          "src/features/flights/components/own-flight-hero.tsx": "1ec4c9cce5c8fb5d8812df266600de5e4c0b85f6bf243f1fd2b1b449d6d9de5b",
+          "src/features/flights/components/own-flight-stats.tsx": "9f5660ef1513d0123927e84edda3252108e045930d3808f0dcaf209a41283175",
+          "src/features/flights/components/site-picker-sheet.tsx": "916548a755825d460c76f2b1a2b00e5c38e5ebb98056b808b5e5ded1c9a39a7c",
+          "src/features/flights/current-position.ts": "a1b01b2f408ac4fd739b0bb6a4a00ab1365919734de915a016127a2a2e1a14bc",
+          "src/features/flights/metadata-editor.ts": "bc46eae2838d08090e4b009e0d6bc208ee21f2e2de24a844e15a04521f2a38f3",
+          "src/features/flights/own-flight-presentation.ts": "e0024b667d935e829c55683b77166d33b46c8f4851b79235cda3c35b2e0b2717",
+          "src/features/flights/use-flight-draft.ts": "b51171c054f85f31d2a3e437ffffc6a0972c91ca9fce463f7fd485e32f41abb3",
+          "src/journal/artifacts.native.ts": "4f527af305609e9b1417258166c02e02f74b53f74bca160763fd96fe77c2b956",
+          "src/journal/context.ts": "c0faced50bed3b2f0923748f19bcd578c311f38849901d042ab8d8528c5e7f5f",
+          "src/journal/repository.native.ts": "9be56e15cf2c5731a68436fa6e983818c24095241263e13f0f87d0658cfcb8e1",
+          "src/lib/flight-mutations.ts": "d61db213f3590d9b0914e21183dbd6479f0f5f102bf2a8e3be2908b2497d961e",
+          "src/lib/flight-scope.ts": "331f0a87ff724f169024bb5b60040c282cc6859ef3883eca507aebaf56942a4c",
+          "src/recorder/database.native.ts": "8f708290452f8863a8d93f88bdc59c730db686b437af5a94d989127a83e8c30e",
+          "src/recorder/flight-repository.native.ts": "9b2bd6c2d204c6d49b3284e561155e219e10f5807b471e4c811a38bf76853905",
+          "src/recorder/types.ts": "003c8757f52b931d690807a33d37b166a9fc3b107a8fd615ed8c46607040319d",
+          "src/sites/http.ts": "43fb55b901ecdcb5852dea04cdc46c87f38986197893b394fbd48da8a91ce830",
+          "src/store/endpoints.ts": "fbef05c71a7d3df3fe457985d21c13fa0c27b099ab25169044cdb0968b0bc860",
+          "src/store/query-fn.ts": "d5d516419e5dd9a167cf66dc8e4df2f1b4267d36028405a089dace42150cb2dc"
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "path": "app.config.ts",
+        "bytes": 1018,
+        "sha256": "ca5b586e1d6ae3a39906b79a54bb9850069c2c2580c930d0626e5ffb8bb4a7a2"
+      },
+      {
+        "path": "app.json",
+        "bytes": 2015,
+        "sha256": "703df1cc76a8770626ed8346b1956059489167503e2d90472556caf42f5f1804"
+      },
+      {
+        "path": "package.json",
+        "bytes": 3709,
+        "sha256": "287e8d425e86e6d58f165bebaef13ca4299a78fd59e28990ff66c5ca5dcb963a"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "bytes": 469669,
+        "sha256": "4fc15aae44da8dd5ecf27ab2bce9e1b0bb4102ad804186196fa8ce878dd11cd0"
+      },
+      {
+        "path": "metro.config.js",
+        "bytes": 883,
+        "sha256": "899b27a316df197f68dddc3c34f5a1688aa2e9bed245499e65a23b7e9c3354d4"
+      }
+    ]
+  },
+  "deviceAcceptance": {
+    "status": "partial",
+    "reason": "Normal-size checks partly completed; user requested waiting for Sheetless QA to finish before further phone interaction."
+  }
+}

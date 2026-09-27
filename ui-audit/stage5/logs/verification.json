@@ -1,0 +1,51 @@
+{
+  "recordedAt": "2026-09-27T19:27:16.854818+00:00",
+  "implementationCommit": "0ed69d74244f17d6a7dca3a57e22d95d5bcb8645",
+  "checks": [
+    {
+      "command": "Node 24 pnpm test",
+      "result": "pass",
+      "logPath": ".artifacts/stage5/full-test-final.log",
+      "logSha256": "d3826c78b25c1631c4c41c5aa8d28aa958f65b052d431d85171c1db4472f49ea",
+      "node": "v24.16.0",
+      "types": true,
+      "lint": true,
+      "architectureTests": 3,
+      "jestSuites": 149,
+      "jestTests": 1486,
+      "denoTests": 71,
+      "sqlSuites": 15,
+      "sqlAssertions": 522,
+      "generatedDatabaseTypes": "match",
+      "seconds": 146.6
+    },
+    {
+      "command": "FLIGHT_LOG_QA=stage5 CI=1 pnpm exec expo export --platform android --max-workers 2 --output-dir .artifacts/stage5/export-final",
+      "result": "pass",
+      "logPath": ".artifacts/stage5/android-export-final.log",
+      "logSha256": "79e1f9ddbc18958eeb0f5ba1517a19c8dc354138aefb3978054e3b4fce02a8d1"
+    },
+    {
+      "command": "FLIGHT_LOG_QA=stage5 ./android/gradlew -p android :app:assembleRelease -PreactNativeArchitectures=arm64-v8a",
+      "result": "pass",
+      "logPath": ".artifacts/stage5/android-release-final.log",
+      "logSha256": "8bd09b98db93358cd347c8f1ac077d28512f929ae6f1a65dc6e17e6189c41b15",
+      "seconds": 65
+    },
+    {
+      "command": "pnpm validate:deps",
+      "result": "exit 1",
+      "logPath": ".artifacts/stage5/dependencies.log",
+      "logSha256": "af344ff05f5931dc53d7599d5efe3ab8adc39589a4945d7378eb09bed8d1d4f6",
+      "reason": "27 pre-existing Expo/React Native patch-version recommendations; no dependency changes"
+    },
+    {
+      "command": "FLIGHT_LOG_QA=stage5 ./android/gradlew -p android :app:assembleRelease -PreactNativeArchitectures=arm64-v8a (generated-native app-only large variant)",
+      "result": "pass",
+      "seconds": 25,
+      "logPath": ".artifacts/stage5/android-release-large.log",
+      "logSha256": "ed009171f582d9c98a444024b53b7ee7c6146146c15286ea51961b27ce5f0d25"
+    }
+  ],
+  "acceptanceBoundary": "Host and build evidence only. Physical results and larger-text app variant are recorded separately. No dependency, database schema or backend changes."
+}
