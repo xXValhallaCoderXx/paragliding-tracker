@@ -1,0 +1,20 @@
+{
+  "recordedAt": "2026-09-27T16:28:13.614084+00:00",
+  "node": "24.16.0",
+  "command": "pnpm test",
+  "exitCode": 0,
+  "durationSeconds": 91.8,
+  "jestSuites": 140,
+  "jestTests": 1391,
+  "denoTests": 71,
+  "sqlSuites": 15,
+  "sqlAssertions": 522,
+  "types": "passed",
+  "lint": "passed without warnings",
+  "generatedDatabaseTypes": "match",
+  "logPath": ".artifacts/stage3/final-full-test.log",
+  "logSha256": "1e6227e516c4b4e36b805fe9b31bf1eaec22a51c975a93b5d8944dd983be4e07",
+  "runtimeImplementationCommit": "7728c4845d60a173998a98beac795a7217a7f2e9",
+  "androidRuntimeChangesAfterBuild": false,
+  "separateDependencyAdvisory": "Existing patch recommendations, no upgrade performed"
+}

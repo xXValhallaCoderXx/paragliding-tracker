@@ -2,6 +2,8 @@
 
 **Current implementation direction:** [Stage 1 shared foundation and setup](stage-1.md) uses pages 1–8 of the 27 September PAR-40 pack. Its agreed Bricolage/palette and Home/Friends/Pilot labels supersede the original font/navigation guidance below. The rest of this document preserves the earlier coverage inventory.
 
+Continue with the agreed [Stage 2 optional backup and sign-in](stage-2.md) and [Stage 3 Pilot and aircraft](stage-3.md) contracts. Stage 3 adds PAR-69/70 for local equipment and private backup; its [implementation and acceptance evidence](../ui-audit/stage3/README.md) distinguishes completed checks from the remaining physical-device gates.
+
 Reviewed 22 September 2026. Planning only; application code was not changed for this ticket-creation task.
 
 [PAR-40 — Finalize Flight Log UI/UX](https://linear.app/sentiment-hound/issue/PAR-40/finalize-flight-log-uiux-screen-designs-flows-and-implementation) contains the original HTML attachment, **25 screen/flow subtasks** and **3 product/data prerequisites**. All 28 children were read back from Linear with the expected parent, Design label, Backlog status and blocking relations. No cycle, assignee or deadline was set.
@@ -90,4 +92,3 @@ For each batch, design the main screen and meaningful empty/loading/error/offlin
 Do not silently remove the mandatory welcome acknowledgement, merge private pilot identity into Friends identity, expose private equipment/identifiers, fabricate season totals from a partial page, or promise immediate remote hiding while offline. Equipment preview must retain the real HFGTY/HFGID mapping; restored original IGC files remain unchanged.
 
 Public links/web viewer, friend push notifications, live-flight viewing, 3D and iOS are outside this final Android UI pass unless separately brought into scope. Existing recorder, map, hosted and exact-build acceptance tickets retain their own evidence boundaries.
-

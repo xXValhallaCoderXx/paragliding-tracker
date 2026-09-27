@@ -1,0 +1,240 @@
+{
+  "recordedAt": "2026-09-27T16:12:15.703023+00:00",
+  "branch": "feature/ui-revamp-beta",
+  "baseCommit": "37cdf30ca504a2c3719a49bb510eac969288e3df",
+  "implementationCommit": "7728c4845d60a173998a98beac795a7217a7f2e9",
+  "sourceCommits": [
+    "7728c4845d60a173998a98beac795a7217a7f2e9"
+  ],
+  "build": {
+    "name": "Flight Log Stage 3 QA",
+    "package": "com.xxvalhallacoderxx.xcmvp.stage3qa",
+    "scheme": "xcmvp-stage3qa",
+    "version": "1.0.0-stage3-qa",
+    "target": "Android release arm64-v8a",
+    "internetPermission": true,
+    "allowBackup": false,
+    "apk": {
+      "path": ".artifacts/stage3/build-a/flight-log-stage3-20260928.apk",
+      "bytes": 80157634,
+      "sha256": "edb413cd0fe8b3c16317b87cbb36152b8858d71e74157aaf6e901848948a06e5"
+    },
+    "bundle": {
+      "path": ".artifacts/stage3/build-a/index.android.bundle",
+      "bytes": 5827468,
+      "sha256": "b3ed63d4777b66f8817d483db3bbe7ea6adc8a1b87f4d69dd893306529de0b28"
+    },
+    "apkMatchesGeneratedOutput": true,
+    "apkBundleMatchesGeneratedOutput": true,
+    "sourceMaps": [
+      {
+        "path": ".artifacts/stage3/build-a/index.android.bundle.map",
+        "bytes": 15582362,
+        "sha256": "437534d88c26035c3901f09f18cbdc09173395a99da7bb7626445f9e6455f854",
+        "mappedRuntimeSourcesMatchingCommit": 263,
+        "changedRuntimeSourcesMatchingCommit": 43,
+        "changedFilesNotInRuntimeMap": [
+          "src/cloud/database.types.ts",
+          "src/equipment/repository.ts",
+          "src/equipment/repository.web.ts"
+        ],
+        "changedRuntimeSources": {
+          "src/app/(tabs)/account.tsx": "7593d5815508cd12fc77ada61a27fb5293c04193927764f355eec38651b94430",
+          "src/app/(tabs)/index.tsx": "5e96bd207129b66f760f5257af616f70d293a1de6be08a3edfff41dbcf02dc85",
+          "src/app/record.tsx": "ea3fda3fdc44f1f350b315da50ee371fbcb680e17c32ef44fe8380061b76cc63",
+          "src/archives/repository-core.ts": "adae238322d89aae2738e6a02146c0b5bdf0c94d19db82aaa40b238e652c2bdb",
+          "src/archives/types.ts": "7c196643f0e2440b1d8f6c406d5be5ce8494053fa8b35ce88e215426ea22b351",
+          "src/cloud/equipment-sync.ts": "89225834af3f54a2168ca5b3fa2f194deda2163d64aa862340b714d089ed0e24",
+          "src/cloud/igc-manifest.ts": "72c520b1abbb3df9c4fe7cc77f7146e7d51ecfda976971020fb478836d2fee6d",
+          "src/cloud/igc-upload.native.ts": "bab6ca5fa40dd615ed3aa6667b597b132e70ff4f746a9859ce581a66536a55e2",
+          "src/cloud/payloads.ts": "230df2fc78c2155be83757db0ac3682e1f0d443fa592a8756fcb8ffc51b4b8d7",
+          "src/cloud/sync-engine.native.ts": "9549aa6260fe07a5597427407ae7d989c072522f0722e4c9bd70696cba7b94f9",
+          "src/cloud/types.ts": "a28de06e3fed055aad9fba665fbdf640b5ad07aa6befdd67dad2ef267aaa194c",
+          "src/equipment/events.ts": "b6e5c7209f33c3a2d4288520ee5333c8a182e0a8fc28d89f486b7b5d05654d58",
+          "src/equipment/repository-core.ts": "73c181915cec2c0dede56ce3512ed9c0057cef393dc6b78eb5f5c53a3f0e91b3",
+          "src/equipment/repository.native.ts": "1d2452f3b7bc40f248b09536dd0e7ae62a01595c5bc0dafab7acc8d1717dfba2",
+          "src/equipment/types.ts": "f474dd9fd4b5c767a077de6230795557503cdf4dfa8f1010580c29a64e04067d",
+          "src/equipment/validation.ts": "d174025b2da17b159c6d3396d92f3c0ad485f81a711cce312372319eb7d61bb5",
+          "src/features/account/account-presentation.ts": "888d56ecf82946b64314f023858b17175a4caf5440e150bdb313a75454cce590",
+          "src/features/account/cloud-sync-provider.tsx": "84be8e6bb62f854d887a6d26a91d6188bdc0faa28e6fb23a13b7ee543c02f97f",
+          "src/features/account/components/identity-card.tsx": "953a780e4e0729b90f4e95aaccb7e1c3077c7f8edf3c5ef17e94258fbf27b7ad",
+          "src/features/account/components/pilot-details-sheet.tsx": "492eba081d591a8a1894f272e9b13e56bfab0486b429a7283f5928444cf37012",
+          "src/features/account/components/sign-in-card.tsx": "485feffb63ace2a8df7c6c04461dfce0a313bce6e4744a2a50a9a9677b67577e",
+          "src/features/equipment/aircraft-form.tsx": "ca285f77cc32c8d61840a045df10076016d4a5395671c24c2a51dd4c2a654efd",
+          "src/features/equipment/equipment-section.tsx": "f29fe432b9a62d5603ce53e92656e17182207da9ff6941b67f93d0bf0062ab57",
+          "src/features/equipment/form-sheet.tsx": "04e596308bdcba026e1186e684b843d8673abea40f2bb9d61f027f17adefb12f",
+          "src/features/equipment/preflight-aircraft.tsx": "b3441fef9c1c4bbe0728bf6c8f8c1125b2bf583f7cc6b0e7976f32a5fd2e3e80",
+          "src/features/equipment/presentation.ts": "8a7b02ea18d5e45bec76bce5554b07bd749dab505a84bf155e2d9b1d7bb688bd",
+          "src/features/logbook/setup-checklist.ts": "f87183a98c41eef799ee83a866d6abcc767a23a26ca1abbae7b7388dde91cb63",
+          "src/features/record/components/preflight.tsx": "e625e79244776335e533d368199f6eeb9a161b29ac24751ff37ba90158bb9956",
+          "src/lib/equipment-events.ts": "d4fa74da15fbab3b17417378e8ae88269b6813fab923ad32024277f9adf10601",
+          "src/lib/equipment-types.ts": "75eb2891d7d86851b39d318d08cd1fa88276e05b9d76c2cc4bf20bec78657dae",
+          "src/recorder/config.ts": "dbec52a1274e3d7c7cfffa5552c3ee8433ae0c88d9cf60881b1507c971263ccd",
+          "src/recorder/database.native.ts": "6518928adc208b7e05acad8eb307bb0ba8f78acdcaff0b4321d5caef9b0bba8f",
+          "src/recorder/equipment-export.ts": "662649157ba4f8f143383183b226652210194001bef4b4022260fd8ff9186dee",
+          "src/recorder/equipment-repository-core.ts": "bb97a30db552241addb9ee7c1c9d55b75f8053dd4990d3c5870fb48b7ac8e00a",
+          "src/recorder/equipment-schema.ts": "8bf62a680812f53cf5d4908cef7e2b38aae727edb5c766fc67ee399ccc89ab7e",
+          "src/recorder/equipment-validation.ts": "ef15338118c3e0b5d633b464898f665f875387233af3f9e3e644557f8ab9544c",
+          "src/recorder/exports-repository.native.ts": "467a543cfd472ba8533f2c433320f397baa24d0954ef3db28fe4e8b83823522d",
+          "src/recorder/flight-repository-core.ts": "b467c38ccc9464a2ab618e4b9d88fc9510cb65e7d6667988fac416ec59551b42",
+          "src/recorder/recorder-service.native.ts": "73304a0d1d3416f21ebfc23978054cbf4129f16824b135edda530f262c3a26b4",
+          "src/recorder/sync-repository-core.ts": "581e797b663c965d3bbeacf60b5a27807f910750e9bcd4f38a79aa280f38dfd9",
+          "src/recorder/types.ts": "3cdb081cc0f016a66b9b885a080d4908fd6a7d3ac576b888736687822f8a7397",
+          "src/store/api.ts": "6351d0bb30fcb1d602f3bbed9c7f9beca218cf84186b01fb4a465ecb14b01217",
+          "src/store/endpoints.ts": "c57b98dca91acfd481c2801e68acec95bf55302a1f0e58360295879d1a998970"
+        }
+      },
+      {
+        "path": ".artifacts/stage3/build-a/index.android.bundle.packager.map",
+        "bytes": 20473722,
+        "sha256": "7341d0b5ff2b95503eba6ed2aea707f6df71b0d6602b774ae40bda5e4d7b1811",
+        "mappedRuntimeSourcesMatchingCommit": 263,
+        "changedRuntimeSourcesMatchingCommit": 43,
+        "changedFilesNotInRuntimeMap": [
+          "src/cloud/database.types.ts",
+          "src/equipment/repository.ts",
+          "src/equipment/repository.web.ts"
+        ],
+        "changedRuntimeSources": {
+          "src/app/(tabs)/account.tsx": "7593d5815508cd12fc77ada61a27fb5293c04193927764f355eec38651b94430",
+          "src/app/(tabs)/index.tsx": "5e96bd207129b66f760f5257af616f70d293a1de6be08a3edfff41dbcf02dc85",
+          "src/app/record.tsx": "ea3fda3fdc44f1f350b315da50ee371fbcb680e17c32ef44fe8380061b76cc63",
+          "src/archives/repository-core.ts": "adae238322d89aae2738e6a02146c0b5bdf0c94d19db82aaa40b238e652c2bdb",
+          "src/archives/types.ts": "7c196643f0e2440b1d8f6c406d5be5ce8494053fa8b35ce88e215426ea22b351",
+          "src/cloud/equipment-sync.ts": "89225834af3f54a2168ca5b3fa2f194deda2163d64aa862340b714d089ed0e24",
+          "src/cloud/igc-manifest.ts": "72c520b1abbb3df9c4fe7cc77f7146e7d51ecfda976971020fb478836d2fee6d",
+          "src/cloud/igc-upload.native.ts": "bab6ca5fa40dd615ed3aa6667b597b132e70ff4f746a9859ce581a66536a55e2",
+          "src/cloud/payloads.ts": "230df2fc78c2155be83757db0ac3682e1f0d443fa592a8756fcb8ffc51b4b8d7",
+          "src/cloud/sync-engine.native.ts": "9549aa6260fe07a5597427407ae7d989c072522f0722e4c9bd70696cba7b94f9",
+          "src/cloud/types.ts": "a28de06e3fed055aad9fba665fbdf640b5ad07aa6befdd67dad2ef267aaa194c",
+          "src/equipment/events.ts": "b6e5c7209f33c3a2d4288520ee5333c8a182e0a8fc28d89f486b7b5d05654d58",
+          "src/equipment/repository-core.ts": "73c181915cec2c0dede56ce3512ed9c0057cef393dc6b78eb5f5c53a3f0e91b3",
+          "src/equipment/repository.native.ts": "1d2452f3b7bc40f248b09536dd0e7ae62a01595c5bc0dafab7acc8d1717dfba2",
+          "src/equipment/types.ts": "f474dd9fd4b5c767a077de6230795557503cdf4dfa8f1010580c29a64e04067d",
+          "src/equipment/validation.ts": "d174025b2da17b159c6d3396d92f3c0ad485f81a711cce312372319eb7d61bb5",
+          "src/features/account/account-presentation.ts": "888d56ecf82946b64314f023858b17175a4caf5440e150bdb313a75454cce590",
+          "src/features/account/cloud-sync-provider.tsx": "84be8e6bb62f854d887a6d26a91d6188bdc0faa28e6fb23a13b7ee543c02f97f",
+          "src/features/account/components/identity-card.tsx": "953a780e4e0729b90f4e95aaccb7e1c3077c7f8edf3c5ef17e94258fbf27b7ad",
+          "src/features/account/components/pilot-details-sheet.tsx": "492eba081d591a8a1894f272e9b13e56bfab0486b429a7283f5928444cf37012",
+          "src/features/account/components/sign-in-card.tsx": "485feffb63ace2a8df7c6c04461dfce0a313bce6e4744a2a50a9a9677b67577e",
+          "src/features/equipment/aircraft-form.tsx": "ca285f77cc32c8d61840a045df10076016d4a5395671c24c2a51dd4c2a654efd",
+          "src/features/equipment/equipment-section.tsx": "f29fe432b9a62d5603ce53e92656e17182207da9ff6941b67f93d0bf0062ab57",
+          "src/features/equipment/form-sheet.tsx": "04e596308bdcba026e1186e684b843d8673abea40f2bb9d61f027f17adefb12f",
+          "src/features/equipment/preflight-aircraft.tsx": "b3441fef9c1c4bbe0728bf6c8f8c1125b2bf583f7cc6b0e7976f32a5fd2e3e80",
+          "src/features/equipment/presentation.ts": "8a7b02ea18d5e45bec76bce5554b07bd749dab505a84bf155e2d9b1d7bb688bd",
+          "src/features/logbook/setup-checklist.ts": "f87183a98c41eef799ee83a866d6abcc767a23a26ca1abbae7b7388dde91cb63",
+          "src/features/record/components/preflight.tsx": "e625e79244776335e533d368199f6eeb9a161b29ac24751ff37ba90158bb9956",
+          "src/lib/equipment-events.ts": "d4fa74da15fbab3b17417378e8ae88269b6813fab923ad32024277f9adf10601",
+          "src/lib/equipment-types.ts": "75eb2891d7d86851b39d318d08cd1fa88276e05b9d76c2cc4bf20bec78657dae",
+          "src/recorder/config.ts": "dbec52a1274e3d7c7cfffa5552c3ee8433ae0c88d9cf60881b1507c971263ccd",
+          "src/recorder/database.native.ts": "6518928adc208b7e05acad8eb307bb0ba8f78acdcaff0b4321d5caef9b0bba8f",
+          "src/recorder/equipment-export.ts": "662649157ba4f8f143383183b226652210194001bef4b4022260fd8ff9186dee",
+          "src/recorder/equipment-repository-core.ts": "bb97a30db552241addb9ee7c1c9d55b75f8053dd4990d3c5870fb48b7ac8e00a",
+          "src/recorder/equipment-schema.ts": "8bf62a680812f53cf5d4908cef7e2b38aae727edb5c766fc67ee399ccc89ab7e",
+          "src/recorder/equipment-validation.ts": "ef15338118c3e0b5d633b464898f665f875387233af3f9e3e644557f8ab9544c",
+          "src/recorder/exports-repository.native.ts": "467a543cfd472ba8533f2c433320f397baa24d0954ef3db28fe4e8b83823522d",
+          "src/recorder/flight-repository-core.ts": "b467c38ccc9464a2ab618e4b9d88fc9510cb65e7d6667988fac416ec59551b42",
+          "src/recorder/recorder-service.native.ts": "73304a0d1d3416f21ebfc23978054cbf4129f16824b135edda530f262c3a26b4",
+          "src/recorder/sync-repository-core.ts": "581e797b663c965d3bbeacf60b5a27807f910750e9bcd4f38a79aa280f38dfd9",
+          "src/recorder/types.ts": "3cdb081cc0f016a66b9b885a080d4908fd6a7d3ac576b888736687822f8a7397",
+          "src/store/api.ts": "6351d0bb30fcb1d602f3bbed9c7f9beca218cf84186b01fb4a465ecb14b01217",
+          "src/store/endpoints.ts": "c57b98dca91acfd481c2801e68acec95bf55302a1f0e58360295879d1a998970"
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "path": "app.config.ts",
+        "bytes": 976,
+        "sha256": "43a2f0a3b9a106c36dfa44ecea6a60a7d85e8b05c438e13227c6d6bf6403c5c1"
+      },
+      {
+        "path": "app.json",
+        "bytes": 2015,
+        "sha256": "703df1cc76a8770626ed8346b1956059489167503e2d90472556caf42f5f1804"
+      },
+      {
+        "path": "package.json",
+        "bytes": 3709,
+        "sha256": "287e8d425e86e6d58f165bebaef13ca4299a78fd59e28990ff66c5ca5dcb963a"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "bytes": 469669,
+        "sha256": "4fc15aae44da8dd5ecf27ab2bce9e1b0bb4102ad804186196fa8ce878dd11cd0"
+      },
+      {
+        "path": "metro.config.js",
+        "bytes": 883,
+        "sha256": "899b27a316df197f68dddc3c34f5a1688aa2e9bed245499e65a23b7e9c3354d4"
+      }
+    ],
+    "unbundledChangedFilesExplanation": "database.types.ts is type-only; equipment/repository.ts and repository.web.ts are non-native entrypoints. All 43 changed Android runtime sources and all 263 mapped app sources match implementation commit."
+  },
+  "deviceAcceptance": {
+    "status": "partial",
+    "device": "Samsung SM-S938B",
+    "android": "16",
+    "fontScale": 1.3,
+    "viewportsPx": [
+      "840x1600 (320dp width)",
+      "1080x2340"
+    ],
+    "passed": [
+      "fresh local-only setup",
+      "private pilot save/reopen",
+      "keyboard-first Back and dirty confirmation",
+      "three sports and independent identifiers",
+      "current selection across sports",
+      "archive clears current; restore leaves none",
+      "preflight override and explicit none preserve default",
+      "mounted draft survives app switch; discarded form reopens fresh",
+      "scrolling and enlarged text"
+    ],
+    "pending": [
+      "TalkBack spoken-label acceptance (Samsung service setup prompt)",
+      "signed-in physical equipment backup/restoration",
+      "physical offline and conflict/recovery acceptance"
+    ],
+    "normalAppDataUntouched": true,
+    "baselineAccessibilityAndDisplayRestored": true
+  },
+  "screenshots": [
+    {
+      "path": "ui-audit/stage3/screens/01-pilot-empty-small-large-text.png",
+      "sha256": "10fc3c077b1ab4a7bf9a5446519192bb6e33a083fe2040b6bb72751835ad31e2"
+    },
+    {
+      "path": "ui-audit/stage3/screens/02-private-pilot-igc.png",
+      "sha256": "9e1308111ede915aa6ac884785ac46f0f619af2bc1cd440d6f83f24feafbd9d0"
+    },
+    {
+      "path": "ui-audit/stage3/screens/03-aircraft-igc-large-text.png",
+      "sha256": "6304db44f39b21e8ab44809c3e94be4a2f702a2532a17aa1e81e25b57dc19d6e"
+    },
+    {
+      "path": "ui-audit/stage3/screens/04-aircraft-header-preview.png",
+      "sha256": "c9ce621d0a963cad98f4a52719cf6b4776c99fbf92ef5571214cc554b6158a51"
+    },
+    {
+      "path": "ui-audit/stage3/screens/05-three-sports.png",
+      "sha256": "3cf281f35ed8b1edfe13ca01b432c2fdad9055a0ffe421ddd3a0457975b9a61d"
+    },
+    {
+      "path": "ui-audit/stage3/screens/06-preflight-choices.png",
+      "sha256": "f70dd6fb507da179f429dfc166a3e62be4b06cca3eadf94f72235dca9b89f2c8"
+    },
+    {
+      "path": "ui-audit/stage3/screens/07-preflight-none.png",
+      "sha256": "20bd70fd8b9709b844068fcf51676feef8cfee069a351904b7658c1ab8e2fd2a"
+    },
+    {
+      "path": "ui-audit/stage3/screens/08-default-preserved-after-preflight.png",
+      "sha256": "92cf3a338f47336dbff613074416d132cfaa08946d518f8d37631a677d5e50cd"
+    },
+    {
+      "path": "ui-audit/stage3/screens/09-archived-aircraft.png",
+      "sha256": "c5514acc993a3909c684376900dd34fdda62d3ece7ca528bef70940ae6035fd9"
+    }
+  ]
+}
