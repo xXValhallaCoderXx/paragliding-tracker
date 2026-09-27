@@ -221,3 +221,13 @@ it.each(['account', 'flight'])('discards a pending share result after the %s cha
   expect(rendered.root.findAllByType(Notice)).toHaveLength(0);
   expect(mockPublication.share).not.toHaveBeenCalled();
 });
+
+it('rejects obsolete Share confirmation callbacks after dismissal', async () => {
+  mockPublication = publicationView({ state: 'private' });
+  await mount(React.createElement(FlightSharingSection, { flightId: 'f', preview }));
+  await run(() => control('Share flight…').props.onPress());
+  const stale = control('Share this flight with friends').props.onPress;
+  await run(() => control('Not now').props.onPress());
+  await run(() => stale());
+  expect(mockPublication.share).not.toHaveBeenCalled();
+});

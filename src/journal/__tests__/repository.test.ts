@@ -93,12 +93,12 @@ it('routes mutations to their actual source and notifies archive changes', async
   try {
     captures.getFlight.mockResolvedValue(local); captures.updateFlight.mockResolvedValue(local);
     await journalRepository.updateFlight('f1', { title: 'Captured' }); await journalRepository.deleteFlight('f1');
-    expect(captures.updateFlight).toHaveBeenCalledWith('f1', { title: 'Captured' }); expect(captures.deleteFlight).toHaveBeenCalledWith('f1');
+    expect(captures.updateFlight).toHaveBeenCalledWith('f1', { title: 'Captured' }, expect.objectContaining({ target: expect.objectContaining({ source: 'recorded' }) })); expect(captures.deleteFlight).toHaveBeenCalledWith('f1', expect.objectContaining({ target: expect.objectContaining({ source: 'recorded' }) }));
     expect(archives.updateMetadata).not.toHaveBeenCalled(); expect(archives.deleteLocal).not.toHaveBeenCalled();
-    captures.getFlight.mockResolvedValue(null); archives.updateMetadata.mockResolvedValue(saved);
+    captures.getFlight.mockResolvedValue(null); archives.updateMetadata.mockResolvedValue(saved); archives.get.mockResolvedValue(saved);
     await journalRepository.updateFlight('archive-1', { notes: 'Offline edit' }); await journalRepository.deleteFlight('archive-1');
-    expect(archives.updateMetadata).toHaveBeenCalledWith('owner-a', 'archive-1', { notes: 'Offline edit' });
-    expect(archives.deleteLocal).toHaveBeenCalledWith('owner-a', 'archive-1');
+    expect(archives.updateMetadata).toHaveBeenCalledWith('owner-a', 'archive-1', { notes: 'Offline edit' }, expect.objectContaining({ target: expect.objectContaining({ source: 'archive' }) }));
+    expect(archives.deleteLocal).toHaveBeenCalledWith('owner-a', 'archive-1', expect.objectContaining({ target: expect.objectContaining({ source: 'archive' }) }));
     expect(changed).toHaveBeenCalledWith({ kind: 'metadata', flightId: 'archive-1' });
     expect(changed).toHaveBeenCalledWith({ kind: 'delete', flightId: 'archive-1' });
   } finally { unsubscribe(); }

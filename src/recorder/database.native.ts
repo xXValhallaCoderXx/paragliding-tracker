@@ -1,4 +1,6 @@
 import { readFlightReplay } from './replay-repository-core';
+import { assertFlightMetadata, assertFlightTarget, type FlightEditGuard, type FlightMutationGuard } from '../lib/flight-mutations';
+import { assertFlightScope } from '../lib/flight-scope';
 import { readLiveMapPage } from './live-map-repository-core';
 import type { LiveMapRead } from '../lib/live/types';
 import * as SQLite from 'expo-sqlite';
@@ -1235,7 +1237,10 @@ export async function listFlights(): Promise<FlightSummary[]> {
 }
 
 export async function getFlightDetail(flightId: string): Promise<FlightDetail | null> {
-  const database = await openDatabase();
+  return readFlightDetail(await openDatabase(), flightId);
+}
+
+async function readFlightDetail(database: SQLite.SQLiteDatabase, flightId: string): Promise<FlightDetail | null> {
   const flightRow = await database.getFirstAsync<FlightRow>(
     'SELECT * FROM flights WHERE id = ?',
     flightId,
@@ -1267,38 +1272,53 @@ export async function updateFlightMetadata(
   flightId: string,
   patch: FlightMetadataPatch,
   updatedAt = Date.now(),
-): Promise<FlightRecord> {
+  guard?: FlightEditGuard,
+): Promise<FlightDetail> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
     const normalized = normalizeFlightMetadataPatch(patch);
-    const assignments: string[] = [];
-    const params: (string | number | null)[] = [];
-    for (const field of ['title', 'site', 'notes'] as const) {
-      if (!Object.prototype.hasOwnProperty.call(normalized, field)) continue;
-      assignments.push(`${field} = ?`);
-      params.push(normalized[field] ?? null);
-    }
-    // Provenance rides with the name, never on its own. Clearing the site clears it too:
-    // a flight with no name has nothing to have a source for, and leaving a stale
-    // 'picked' behind would later be read as "this name came from a site database".
-    if (Object.prototype.hasOwnProperty.call(normalized, 'site')) {
-      assignments.push('site_source = ?');
-      params.push(normalized.site === null ? null : (normalized.siteSource ?? 'manual'));
-    }
+    let saved!: FlightDetail;
+    await database.withExclusiveTransactionAsync(async transaction => {
+      const current = await readFlightDetail(transaction, flightId);
+      if (!current) throw new Error('Flight not found.');
+      if (guard) {
+        assertFlightTarget(current, guard);
+        if (await transaction.getFirstAsync('SELECT 1 FROM flight_deletions WHERE flight_id = ?', flightId)) throw new Error('This flight was deleted.');
+        assertFlightMetadata(current, normalized, guard.original);
+        assertFlightScope(guard.scope);
+      }
+      const assignments: string[] = [];
+      const params: (string | number | null)[] = [];
+      for (const field of ['title', 'site', 'notes'] as const) {
+        if (!Object.prototype.hasOwnProperty.call(normalized, field)) continue;
+        assignments.push(`${field} = ?`);
+        params.push(normalized[field] ?? null);
+      }
+      // Provenance rides with the name, never on its own. Clearing the site clears it too:
+      // a flight with no name has nothing to have a source for, and leaving a stale
+      // 'picked' behind would later be read as "this name came from a site database".
+      if (Object.prototype.hasOwnProperty.call(normalized, 'site')) {
+        assignments.push('site_source = ?');
+        params.push(normalized.site === null ? null : (normalized.siteSource ?? 'manual'));
+      }
 
-    if (assignments.length > 0) {
-      const result = await database.runAsync(
-        `UPDATE flights SET ${assignments.join(', ')}, updated_at = MAX(?, updated_at + 1) WHERE id = ?`,
-        ...params,
-        updatedAt,
-        flightId,
-      );
-      if (result.changes !== 1) throw new Error(`Flight ${flightId} was not found.`);
-    }
+      if (assignments.length > 0) {
+        const result = await transaction.runAsync(
+          `UPDATE flights SET ${assignments.join(', ')}, updated_at = MAX(?, updated_at + 1) WHERE id = ?`,
+          ...params,
+          updatedAt,
+          flightId,
+        );
+        if (result.changes !== 1) throw new Error(`Flight ${flightId} was not found.`);
+      }
 
-    const row = await database.getFirstAsync<FlightRow>('SELECT * FROM flights WHERE id = ?', flightId);
-    if (!row) throw new Error(`Flight ${flightId} was not found.`);
-    return mapFlight(row);
+      const row = await transaction.getFirstAsync<FlightRow>('SELECT * FROM flights WHERE id = ?', flightId);
+      if (!row) throw new Error(`Flight ${flightId} was not found.`);
+      saved = { ...current, ...mapFlight(row) };
+      if (guard) assertFlightScope(guard.scope);
+    });
+    // No fallible read or cleanup after the authoritative commit.
+    return saved;
   });
 }
 
@@ -1411,11 +1431,19 @@ export async function deleteCompletedFlight(
   flightId: string,
   deletedAt = Date.now(),
   options?: { remoteOwnerUserId: string; recordingSessionId?: string },
+  guard?: FlightMutationGuard,
 ): Promise<'deleted' | 'absent' | 'deferred'> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
     let outcome: 'deleted' | 'absent' | 'deferred' = 'absent';
     await database.withExclusiveTransactionAsync(async (transaction) => {
+      if (guard) {
+        const current = await readFlightDetail(transaction, flightId);
+        if (!current) throw new Error('Flight not found.');
+        assertFlightTarget(current, guard);
+        if (await transaction.getFirstAsync('SELECT 1 FROM flight_deletions WHERE flight_id = ?', flightId)) throw new Error('This flight was deleted.');
+        assertFlightScope(guard.scope);
+      }
       const row = await transaction.getFirstAsync<{
         recording_session_id: string;
         flight_status: FlightStatus;
@@ -1493,6 +1521,7 @@ export async function deleteCompletedFlight(
       await transaction.runAsync('DELETE FROM flight_sync_state WHERE flight_id = ?', flightId);
       await transaction.runAsync('DELETE FROM flights WHERE id = ?', flightId);
       await transaction.runAsync('DELETE FROM sessions WHERE id = ?', row.recording_session_id);
+      if (guard) assertFlightScope(guard.scope);
       outcome = 'deleted';
     });
     return outcome;

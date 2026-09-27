@@ -1,3 +1,4 @@
+import { setFlightJournalOwner } from '../lib/flight-scope';
 /** Synchronous visibility boundary; no service subscriptions during module construction. */
 let owner: string | null = null;
 let epoch = 0;
@@ -8,6 +9,7 @@ export const journalEpoch = () => epoch;
 export function setJournalOwner(next: string | null): void {
   if (owner === next) return;
   owner = next;
+  setFlightJournalOwner(next);
   epoch += 1;
   notifyJournal({ kind: 'owner' });
 }

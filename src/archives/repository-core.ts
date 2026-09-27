@@ -1,4 +1,6 @@
 import { normalizeFlightMetadataPatch } from '../recorder/flight-repository-core';
+import { assertFlightMetadata, assertFlightTarget, type FlightEditGuard, type FlightMutationGuard } from '../lib/flight-mutations';
+import { assertFlightScope } from '../lib/flight-scope';
 import { parseEquipmentSnapshot } from '../equipment/validation';
 import type { ArchivedFlightDetail, ArchivedFlightSummary, ArchiveTrackState, FlightMetadataPatch } from '../recorder/types';
 import { decodeTrackSegments, encodeTrackSegments } from '../lib/track/encoding';
@@ -129,12 +131,18 @@ export class ArchiveRepositoryCore {
       return true;
     });
   }
-  updateMetadata(owner: string, id: string, patch: FlightMetadataPatch): Promise<ArchivedFlightDetail> {
+  updateMetadata(owner: string, id: string, patch: FlightMetadataPatch, guard?: FlightEditGuard): Promise<ArchivedFlightDetail> {
     const normalized = normalizeFlightMetadataPatch(patch);
     return this.database.write(async db => {
       const row = await db.getFirstAsync<ArchiveRow>(ROW, owner, id);
       if (!row || await receipt(db, owner, id)) throw new Error('Flight not found.');
       const flight = summary(row);
+      if (guard) {
+        assertFlightTarget(flight, guard);
+        if (await db.getFirstAsync('SELECT 1 FROM flights WHERE id = ? OR recording_session_id = ?', id, flight.recordingSessionId)) throw new Error('The flight source changed. Reopen this flight.');
+        assertFlightMetadata(flight, normalized, guard.original);
+        assertFlightScope(guard.scope);
+      }
       if (['title', 'site', 'notes'].some(field => Object.hasOwn(normalized, field))) {
         for (const field of ['title', 'site', 'notes'] as const) if (Object.hasOwn(normalized, field)) flight[field] = normalized[field] ?? null;
         if (Object.hasOwn(normalized, 'site')) flight.siteSource = flight.site === null ? null : normalized.siteSource ?? 'manual';
@@ -142,17 +150,26 @@ export class ArchiveRepositoryCore {
         await db.runAsync(`UPDATE archive_flights SET summary_json = ?, client_updated_at = ?, dirty_updated_at = ?, metadata_attempt_count = 0,
           metadata_next_attempt_at = 0, metadata_error = NULL WHERE owner_user_id = ? AND flight_id = ?`, JSON.stringify(flight), flight.updatedAt, flight.updatedAt, owner, id);
       }
+      if (guard) assertFlightScope(guard.scope);
       return { ...flight, session: null };
     });
   }
-  deleteLocal(owner: string, id: string): Promise<void> {
+  deleteLocal(owner: string, id: string, guard?: FlightMutationGuard): Promise<void> {
     return this.database.write(async db => {
       const row = await db.getFirstAsync<ArchiveRow>(ROW, owner, id);
-      if (!row) { if (await receipt(db, owner, id)) return; throw new Error('Flight not found.'); }
+      if (!row) { if (!guard && await receipt(db, owner, id)) return; throw new Error('Flight not found.'); }
+      if (guard) {
+        const flight = summary(row);
+        assertFlightTarget(flight, guard);
+        if (await receipt(db, owner, id)) throw new Error('This flight was deleted.');
+        if (await db.getFirstAsync('SELECT 1 FROM flights WHERE id = ? OR recording_session_id = ?', id, flight.recordingSessionId)) throw new Error('The flight source changed. Reopen this flight.');
+        assertFlightScope(guard.scope);
+      }
       await db.runAsync(`INSERT OR IGNORE INTO archive_deletions (owner_user_id, flight_id, recording_session_id, deleted_at) VALUES (?, ?, ?, ?)`, owner, id, row.recording_session_id, this.now());
       // Expo's exclusive connection does not inherit foreign_keys; do not rely on its cascade.
       await db.runAsync('DELETE FROM archive_artifacts WHERE owner_user_id = ? AND flight_id = ?', owner, id);
       await db.runAsync('DELETE FROM archive_flights WHERE owner_user_id = ? AND flight_id = ?', owner, id);
+      if (guard) assertFlightScope(guard.scope);
     });
   }
   applyRemoteDeletion(owner: string, id: string, recordingSessionId: string | null, deletedAt: number): Promise<void> {

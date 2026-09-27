@@ -47,3 +47,4 @@ example
 supabase/.temp/
 .artifacts/stage3/
 .artifacts/stage4/
+.artifacts/stage5/

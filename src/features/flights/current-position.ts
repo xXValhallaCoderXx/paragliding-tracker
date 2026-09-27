@@ -22,8 +22,10 @@ const DEFAULT_TIMEOUT_MS = 8_000;
 const CACHED_MAX_AGE_MS = 5 * 60_000;
 const CACHED_REQUIRED_ACCURACY_M = 2_000;
 
-export async function readCoarsePosition(timeoutMs = DEFAULT_TIMEOUT_MS): Promise<Coordinate | null> {
+export async function readCoarsePosition(timeoutMs = DEFAULT_TIMEOUT_MS, signal?: AbortSignal): Promise<Coordinate | null> {
+  if (signal?.aborted) return null;
   if (!(await Location.hasServicesEnabledAsync().catch(() => false))) return null;
+  if (signal?.aborted) return null;
 
   // Deliberately not `recorderService.getCapabilities()`: that reports 'denied' unless
   // permission is *precise*, because that is what recording a track needs. Naming a
@@ -31,16 +33,18 @@ export async function readCoarsePosition(timeoutMs = DEFAULT_TIMEOUT_MS): Promis
   // location would be gating on the wrong requirement.
   const permission = await Location.getForegroundPermissionsAsync().catch(() => null);
   if (permission?.status !== 'granted') return null;
+  if (signal?.aborted) return null;
 
   const cached = await Location.getLastKnownPositionAsync({
     maxAge: CACHED_MAX_AGE_MS,
     requiredAccuracy: CACHED_REQUIRED_ACCURACY_M,
   }).catch(() => null);
+  if (signal?.aborted) return null;
   if (cached) {
     return { latitude: cached.coords.latitude, longitude: cached.coords.longitude };
   }
 
-  return watchOnce(timeoutMs);
+  return watchOnce(timeoutMs, signal);
 }
 
 /**
@@ -52,7 +56,7 @@ export async function readCoarsePosition(timeoutMs = DEFAULT_TIMEOUT_MS): Promis
  * system dialog after we have already given up. `watchPositionAsync` is the only
  * cancellable primitive this SDK offers.
  */
-function watchOnce(timeoutMs: number): Promise<Coordinate | null> {
+function watchOnce(timeoutMs: number, signal?: AbortSignal): Promise<Coordinate | null> {
   return new Promise<Coordinate | null>((resolve) => {
     let subscription: Location.LocationSubscription | null = null;
     let settled = false;
@@ -61,11 +65,15 @@ function watchOnce(timeoutMs: number): Promise<Coordinate | null> {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      signal?.removeEventListener('abort', abort);
       subscription?.remove();
       resolve(value);
     };
 
     const timer = setTimeout(() => finish(null), timeoutMs);
+    const abort = () => finish(null);
+    signal?.addEventListener('abort', abort);
+    if (signal?.aborted) { finish(null); return; }
 
     void Location.watchPositionAsync(
       {

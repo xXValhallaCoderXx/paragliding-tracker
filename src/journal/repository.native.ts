@@ -4,6 +4,13 @@ import { flightRepository as recorded } from '@/recorder/flight-repository';
 import type { ArchivedFlightDetail, FlightRepository, FlightSummary } from '@/recorder/types';
 import type { FlightReplay } from '@/lib/replay/model';
 import { notifyJournal, visibleJournalRead } from './context';
+import { assertFlightScope } from '../lib/flight-scope';
+import { flightMutationGuard, storedFlightMetadata } from '../lib/flight-mutations';
+
+function notifyCommitted(kind: 'metadata' | 'delete', flightId: string) {
+  // Subscriber/cache errors cannot undo persistence.
+  try { notifyJournal({ kind, flightId }); } catch { /* The next ordinary read repairs the cache. */ }
+}
 
 async function archiveReplay(owner: string, flightId: string): Promise<FlightReplay> {
   const flight = await archiveRepository.get(owner, flightId);
@@ -30,19 +37,32 @@ export const journalRepository: FlightRepository = {
   }),
   getFlight: (id) => visibleJournalRead(async (owner) =>
     await recorded.getFlight(id) ?? (owner ? archiveRepository.get(owner, id) : null)),
-  updateFlight: (id, patch) => visibleJournalRead(async (owner) => {
-    if (await recorded.getFlight(id)) return recorded.updateFlight(id, patch);
-    if (!owner) throw new Error('Flight not found.');
-    const flight = await archiveRepository.updateMetadata(owner, id, patch);
-    notifyJournal({ kind: 'metadata', flightId: id });
+  updateFlight: async (id, patch, guard) => {
+    if (!guard) {
+      const original = await journalRepository.getFlight(id);
+      if (!original) throw new Error('Flight not found.');
+      guard = { ...flightMutationGuard(original), original: storedFlightMetadata(original) };
+    }
+    assertFlightScope(guard.scope);
+    if (id !== guard.target.flightId) throw new Error('The flight target changed.');
+    const flight = guard.target.source === 'recorded'
+      ? await recorded.updateFlight(id, patch, guard)
+      : await archiveRepository.updateMetadata(guard.target.ownerUserId!, id, patch, guard);
+    notifyCommitted('metadata', id);
     return flight as ArchivedFlightDetail;
-  }),
-  deleteFlight: (id) => visibleJournalRead(async (owner) => {
-    if (await recorded.getFlight(id)) await recorded.deleteFlight(id);
-    else if (owner) await archiveRepository.deleteLocal(owner, id);
-    else throw new Error('Flight not found.');
-    notifyJournal({ kind: 'delete', flightId: id });
-  }),
+  },
+  deleteFlight: async (id, guard) => {
+    if (!guard) {
+      const original = await journalRepository.getFlight(id);
+      if (!original) throw new Error('Flight not found.');
+      guard = flightMutationGuard(original);
+    }
+    assertFlightScope(guard.scope);
+    if (id !== guard.target.flightId) throw new Error('The flight target changed.');
+    if (guard.target.source === 'recorded') await recorded.deleteFlight(id, guard);
+    else await archiveRepository.deleteLocal(guard.target.ownerUserId!, id, guard);
+    notifyCommitted('delete', id);
+  },
   listTracks: () => visibleJournalRead(async (owner) => {
     const tracks = await recorded.listTracks();
     if (!owner) return tracks;

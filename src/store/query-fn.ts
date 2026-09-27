@@ -1,3 +1,4 @@
+import { metadataConflict, type StoredFlightMetadata, type MetadataConflictField } from '../lib/flight-mutations';
 /**
  * The contract every RTK Query `queryFn` in this app follows.
  *
@@ -16,14 +17,18 @@ export interface SerializedQueryError {
   message: string;
   /** Present when the thrown value carried one — `RecorderError` and `CloudError` do. */
   code?: string;
+  saved?: StoredFlightMetadata;
+  fields?: MetadataConflictField[];
 }
 
 export function serializeQueryError(error: unknown): SerializedQueryError {
   if (error instanceof Error) {
     const code = (error as Error & { code?: unknown }).code;
+    const conflict = metadataConflict(error);
     return {
       message: error.message,
       ...(typeof code === 'string' ? { code } : {}),
+      ...(conflict ? { saved: conflict.saved, fields: conflict.fields } : {}),
     };
   }
   return { message: String(error) };

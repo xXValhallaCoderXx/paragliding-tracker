@@ -3,6 +3,8 @@
  */
 import { configureStore } from '@reduxjs/toolkit';
 import { journalRepository as flightRepository } from '@/journal/repository';
+import { flightMutationGuard, storedFlightMetadata } from '@/lib/flight-mutations';
+import { flight } from '../../../tests/support/fixtures';
 import { dataApi } from '../endpoints';
 
 jest.mock('@/journal/repository', () => ({
@@ -41,7 +43,7 @@ it('loads on subscription, shares it, and releases the cache after the last subs
 it('metadata mutations do not reload GPS samples', async () => {
   const store = createStore();
   const replay = store.dispatch(dataApi.endpoints.getFlightReplay.initiate('f')); await replay;
-  await store.dispatch(dataApi.endpoints.updateFlight.initiate({ flightId: 'f', patch: { title: 'New title' } }));
+  await store.dispatch(dataApi.endpoints.updateFlight.initiate({ ...flightMutationGuard({ ...flight(), id: 'f' }), original: storedFlightMetadata(flight()), patch: { title: 'New title' } }));
   await tick(); expect(flightRepository.getReplay).toHaveBeenCalledTimes(1);
   replay.unsubscribe(); store.dispatch(dataApi.util.resetApiState());
 });
@@ -51,7 +53,7 @@ it('deletion invalidates the selected flight, without refetching another flight'
   const other = store.dispatch(dataApi.endpoints.getFlightReplay.initiate('other'));
   await replay; await other;
   (flightRepository.getReplay as jest.Mock).mockResolvedValue({ kind: 'unavailable', reason: 'not_found' });
-  await store.dispatch(dataApi.endpoints.deleteFlight.initiate('f')); await tick();
+  await store.dispatch(dataApi.endpoints.deleteFlight.initiate(flightMutationGuard({ ...flight(), id: 'f' }))); await tick();
   expect(flightRepository.getReplay).toHaveBeenCalledTimes(3);
   expect(dataApi.endpoints.getFlightReplay.select('f')(store.getState()).data).toMatchObject({ reason: 'not_found' });
   expect(dataApi.endpoints.getFlightReplay.select('other')(store.getState()).data).toMatchObject({ reason: 'insufficient_fixes' });
@@ -71,7 +73,7 @@ it('a failed deletion keeps replay available without a GPS reload', async () => 
   const store = createStore();
   const replay = store.dispatch(dataApi.endpoints.getFlightReplay.initiate('f')); await replay;
   (flightRepository.deleteFlight as jest.Mock).mockRejectedValue(new Error('Flight is open'));
-  await store.dispatch(dataApi.endpoints.deleteFlight.initiate('f')); await tick();
+  await store.dispatch(dataApi.endpoints.deleteFlight.initiate(flightMutationGuard({ ...flight(), id: 'f' }))); await tick();
   expect(flightRepository.getReplay).toHaveBeenCalledTimes(1);
   expect(dataApi.endpoints.getFlightReplay.select('f')(store.getState()).data).toBeDefined();
   replay.unsubscribe(); store.dispatch(dataApi.util.resetApiState());

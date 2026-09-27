@@ -69,6 +69,7 @@ export async function fetchJson<T>(url: string, options: RequestOptions = {}): P
   // request too, so an abandoned search stops rather than running to completion.
   const abortFromCaller = () => controller.abort();
   options.signal?.addEventListener('abort', abortFromCaller);
+  if (options.signal?.aborted) controller.abort();
 
   try {
     const response = await transport(url, { signal: controller.signal });

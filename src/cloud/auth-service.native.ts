@@ -1,4 +1,5 @@
 import type { AuthError, Session } from '@supabase/supabase-js';
+import { setFlightAuthIdentity } from '../lib/flight-scope';
 
 import { cloudConfigured } from './config';
 import { normalizeEmail, normalizeOtpCode, otpErrorMessage } from './otp-policy';
@@ -106,6 +107,7 @@ class SupabaseAuthService implements CloudAuthService {
 
   private update(patch: Partial<AuthSnapshot>): void {
     this.snapshot = { ...this.snapshot, ...patch };
+    setFlightAuthIdentity(this.snapshot.status === 'signed_in' ? this.snapshot.userId : null);
     for (const listener of this.listeners) listener(this.snapshot);
   }
 

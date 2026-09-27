@@ -1,4 +1,5 @@
 import { File } from 'expo-file-system';
+import type { FlightEditGuard, FlightMutationGuard } from '../lib/flight-mutations';
 
 import { decodeTrackSegments, encodeTrackSegments } from '../lib/track/encoding';
 import { orderedUsableFixes } from '../lib/track/fixes';
@@ -230,16 +231,15 @@ async function getFlight(flightId: string): Promise<FlightDetail | null> {
 async function updateFlight(
   flightId: string,
   patch: FlightMetadataPatch,
+  guard?: FlightEditGuard,
 ): Promise<FlightDetail> {
-  await updateFlightMetadata(flightId, patch);
-  const detail = await getFlight(flightId);
-  if (!detail) throw new Error(`Flight ${flightId} was not found after updating it.`);
-  return detail;
+  return updateFlightMetadata(flightId, patch, Date.now(), guard);
 }
 
-async function deleteFlight(flightId: string): Promise<void> {
-  await deleteCompletedFlight(flightId);
-  await removePendingArtifacts();
+async function deleteFlight(flightId: string, guard?: FlightMutationGuard): Promise<void> {
+  await deleteCompletedFlight(flightId, Date.now(), undefined, guard);
+  // A cleanup error must never turn an already committed deletion into a failed delete.
+  await removePendingArtifacts().catch(() => undefined);
 }
 
 export const flightRepository: FlightRepository = {

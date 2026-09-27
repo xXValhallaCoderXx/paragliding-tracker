@@ -11,11 +11,11 @@ import type {
   AppSettings,
   AppSettingsPatch,
   FlightDetail,
-  FlightMetadataPatch,
   FlightSummary,
   PilotProfile,
   PilotProfilePatch,
 } from '@/recorder/types';
+import type { FlightUpdateRequest, FlightMutationGuard } from '@/lib/flight-mutations';
 
 import { fetchNearbySites, searchSitesByName } from '@/sites/site-service';
 import type { Coordinate, SiteLookupError, SiteSuggestion } from '@/sites/types';
@@ -155,25 +155,25 @@ export const dataApi = api.injectEndpoints({
       providesTags: ['AppSettings'],
     }),
 
-    updateFlight: build.mutation<FlightDetail, { flightId: string; patch: FlightMetadataPatch }>({
-      queryFn: ({ flightId, patch }) => read(() => flightRepository.updateFlight(flightId, patch)),
-      invalidatesTags: (_result, _error, { flightId }) => [
-        { type: 'Flight', id: flightId },
+    updateFlight: build.mutation<FlightDetail, FlightUpdateRequest>({
+      queryFn: (request) => read(() => flightRepository.updateFlight(request.target.flightId, request.patch, request)),
+      invalidatesTags: (_result, _error, { target }) => [
+        { type: 'Flight', id: target.flightId },
         { type: 'Flight', id: 'LIST' },
       ],
     }),
 
-    deleteFlight: build.mutation<null, string>({
-      queryFn: (flightId) =>
+    deleteFlight: build.mutation<null, FlightMutationGuard>({
+      queryFn: (request) =>
         read(async () => {
-          await flightRepository.deleteFlight(flightId);
+          await flightRepository.deleteFlight(request.target.flightId, request);
           return null;
         }),
-      invalidatesTags: (_result, error, flightId) => error ? [] : [
-        { type: 'Flight', id: flightId },
+      invalidatesTags: (_result, error, { target }) => error ? [] : [
+        { type: 'Flight', id: target.flightId },
         { type: 'Flight', id: 'LIST' },
-        { type: 'FlightTrack', id: flightId },
-        { type: 'FlightReplay', id: flightId },
+        { type: 'FlightTrack', id: target.flightId },
+        { type: 'FlightReplay', id: target.flightId },
         { type: 'FlightTrack', id: 'LIST' },
       ],
     }),

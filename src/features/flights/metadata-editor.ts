@@ -1,7 +1,8 @@
-import type { FlightMetadataPatch, FlightRecord } from '@/recorder/types';
+import type { FlightMetadataPatch } from '@/recorder/types';
+import type { StoredFlightMetadata } from '@/lib/flight-mutations';
 import type { MetadataFormValues } from './components/metadata-form';
 
-export function flightDraft(flight: FlightRecord): MetadataFormValues {
+export function flightDraft(flight: StoredFlightMetadata): MetadataFormValues {
   return { title: flight.title ?? '', site: flight.site ?? '', notes: flight.notes ?? '', siteSource: flight.siteSource };
 }
 

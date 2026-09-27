@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Button, Card, LinkButton, Notice, SectionLabel } from '@/components/ui';
@@ -23,36 +23,54 @@ export interface ShareFlightPreview {
   routePreview: TrackSegments;
 }
 
-export function FlightSharingSection({ flightId, preview }: { flightId: string; preview: ShareFlightPreview }) {
+export interface FlightSharingEntry { label: string; reason: string | null; onPress: () => void }
+interface SharingEntries {
+  extraActions?: (entry: FlightSharingEntry) => ReactNode;
+  beforeOpen?: (proceed: () => void) => void;
+  blocked?: boolean;
+  runExclusive?: (action: () => Promise<void>) => Promise<void>;
+}
+export function FlightSharingSection({ flightId, preview, ...entries }: { flightId: string; preview: ShareFlightPreview } & SharingEntries) {
   const friends = useFriends();
   const router = useRouter();
+  const open = (proceed: () => void) => { if (!entries.blocked) { if (entries.beforeOpen) entries.beforeOpen(proceed); else proceed(); } };
   return <View style={styles.detailSection}><SectionLabel>Share with friends</SectionLabel>
     {friends.status !== 'ready' ? <>
       <Text style={styles.body}>Sign in to share this flight with accepted friends. Your private notes and original files stay private.</Text>
-      <Button label="Open Pilot to share" onPress={() => router.push('/account')} />
+      <Button label="Open Pilot to share" disabled={entries.blocked} onPress={() => open(() => router.push('/account'))} />
+      {entries.extraActions?.({ label: 'Share with friends', reason: entries.blocked ? 'Another action is finishing.' : null, onPress: () => open(() => router.push('/account')) })}
     </> : friends.available && !friends.profile ? <>
         <Text style={styles.body}>Choose the name friends see before sharing a flight.</Text>
-        <Button label="Set up your Friends profile" onPress={() => router.push('/friends/manage')} />
-      </> : <PublicationControls key={`${friends.identityKey}:${flightId}`} flightId={flightId} preview={preview} />}
+        <Button label="Set up your Friends profile" disabled={entries.blocked} onPress={() => open(() => router.push('/friends/manage'))} />
+        {entries.extraActions?.({ label: 'Share with friends', reason: entries.blocked ? 'Another action is finishing.' : null, onPress: () => open(() => router.push('/friends/manage')) })}
+      </> : <PublicationControls key={`${friends.identityKey}:${flightId}`} flightId={flightId} preview={preview} {...entries} />}
   </View>;
 }
 
-function PublicationControls({ flightId, preview }: { flightId: string; preview: ShareFlightPreview }) {
+function PublicationControls({ flightId, preview, extraActions, beforeOpen, blocked, runExclusive }: { flightId: string; preview: ShareFlightPreview } & SharingEntries) {
   const publication = useFlightPublication(flightId);
   const router = useRouter();
-  const [confirming, setConfirming] = useState<'share' | 'hide' | null>(null);
+  const [confirmation, setConfirmation] = useState<{ kind: 'share' | 'hide'; visit: number } | null>(null);
+  const confirming = confirmation?.kind ?? null;
+  const visit = useRef(0);
   const action = useSharingAction();
-  const close = useCallback(() => setConfirming(null), []);
+  const close = useCallback(() => { visit.current += 1; setConfirmation(null); }, []);
   useFocusEffect(useCallback(() => () => close(), [close]));
-  const disabled = publication.busy || !publication.available || action.pending;
+  const disabled = publication.busy || !publication.available || action.pending || Boolean(blocked);
   const onlineDisabled = disabled || !publication.online;
-  const run = async (operation: () => Promise<void>) => {
-    if (disabled) return;
-    await action.run(operation, close);
+  const run = async (operation: () => Promise<void>, needsConfirmation = false) => {
+    if (disabled || (needsConfirmation && (!confirmation || confirmation.visit !== visit.current))) return;
+    await action.run(() => runExclusive ? runExclusive(operation) : operation(), close);
   };
+  const open = (kind: 'share' | 'hide') => {
+    if (disabled) return;
+    const proceed = () => { action.clearError(); visit.current += 1; setConfirmation({ kind, visit: visit.current }); };
+    if (beforeOpen) beforeOpen(proceed); else proceed();
+  };
+  const hideAction = publication.pendingHide || ['shared', 'pending', 'error'].includes(publication.state);
   const canConfirmShare = publication.available && publication.online && !publication.pendingHide
     && (action.pending || publication.state === 'private' || publication.state === 'hidden' || publication.state === 'error');
-  return <Card><View style={styles.card}>
+  return <><Card><View style={styles.card}>
     <Text style={styles.name}>{publication.busy ? 'Updating sharing…' : publication.pendingHide ? 'Waiting to hide from friends' : {
       private: 'Private flight', pending: 'Waiting to share', shared: 'Shared with friends', hidden: 'Hidden from friends', error: 'Sharing needs attention',
     }[publication.state]}</Text>
@@ -64,19 +82,19 @@ function PublicationControls({ flightId, preview }: { flightId: string; preview:
     {publication.state === 'shared' && !publication.pendingHide ? <Text style={styles.helper}>Current accepted friends can view the full route and replay. Title and site changes appear after backup sync.</Text> : null}
     {confirming === 'hide' ? <>
       <Text style={styles.body}>Remove this flight from the feed and stop pending publication. Your private flight stays in your logbook. It remains hidden until you explicitly share it again.</Text>
-      <Button label="Hide this flight" variant="danger" disabled={disabled} onPress={() => void run(publication.hide)} />
+      <Button label="Hide this flight" variant="danger" disabled={disabled} onPress={() => void run(publication.hide, true)} />
       <LinkButton label="Keep sharing status" disabled={disabled} onPress={close} />
     </> : publication.pendingHide ? <>
       <Button label="Retry hide" disabled={onlineDisabled} onPress={() => void run(publication.retry)} />
       <LinkButton label="Refresh sharing status" disabled={onlineDisabled} onPress={() => void run(publication.refresh)} />
     </> : <>
       {publication.state === 'private' || publication.state === 'hidden' ? <Button label={publication.state === 'hidden' ? 'Share again…' : 'Share flight…'}
-        disabled={onlineDisabled} onPress={() => { action.clearError(); setConfirming('share'); }} /> : null}
+        disabled={onlineDisabled} onPress={() => open('share')} /> : null}
       {publication.state === 'error' ? <Button label="Retry sharing" disabled={onlineDisabled} onPress={() => void run(publication.retry)} /> : null}
       {publication.state === 'shared' && publication.activityId ? <Button label="Preview shared flight" disabled={onlineDisabled}
         onPress={() => router.push({ pathname: '/shared-flights/[id]', params: { id: publication.activityId! } })} /> : null}
       {publication.state === 'pending' || publication.state === 'shared' || publication.state === 'error' ? <LinkButton label="Hide from friends…"
-        disabled={disabled} onPress={() => { action.clearError(); setConfirming('hide'); }} /> : null}
+        disabled={disabled} onPress={() => open('hide')} /> : null}
       <LinkButton label="Refresh sharing status" disabled={onlineDisabled} onPress={() => void run(publication.refresh)} />
     </>}
     {confirming === 'share' && canConfirmShare ? <SharingSheet title="Share this flight"
@@ -92,10 +110,15 @@ function PublicationControls({ flightId, preview }: { flightId: string; preview:
       <SharingConsent />
       {action.error || publication.error ? <Notice tone="danger" title="Could not update sharing">{action.error ?? publication.error}</Notice> : null}
       <Button label="Share this flight with friends" variant="primary" size="lg" busy={action.pending} disabled={onlineDisabled}
-        onPress={() => { if (canConfirmShare) void run(publication.share); }} />
+        onPress={() => { if (canConfirmShare) void run(publication.share, true); }} />
       <LinkButton label="Not now" disabled={disabled} onPress={close} className="items-center" />
     </SharingSheet> : null}
-  </View></Card>;
+  </View></Card>{extraActions?.({
+    label: publication.pendingHide ? 'Hide awaiting confirmation' : hideAction ? 'Hide from friends…' : 'Share with friends…',
+    reason: disabled ? 'Checking or updating sharing. Please wait.' : publication.pendingHide ? 'Friends may still see this flight until the server confirms Hide.'
+      : !hideAction && !publication.online ? 'Connect to check sharing and share this flight.' : null,
+    onPress: () => open(hideAction ? 'hide' : 'share'),
+  })}</>;
 }
 
 const local = StyleSheet.create({

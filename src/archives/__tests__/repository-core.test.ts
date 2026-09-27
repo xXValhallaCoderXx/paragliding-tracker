@@ -1,3 +1,5 @@
+import { flightMutationGuard, storedFlightMetadata } from '../../lib/flight-mutations';
+import { setFlightAuthIdentity, setFlightJournalOwner } from '../../lib/flight-scope';
 import { createHash } from 'node:crypto';
 import { TestDatabase, schemaAt, seedSession } from '../../../tests/support/sqlite';
 import { BACKFILL_FLIGHTS_SQL } from '../../recorder/flight-repository-core';
@@ -215,4 +217,27 @@ it('rolls back the artifact if marking it ready fails, and enforces the storage 
   repository = makeRepository({ checkStorage: () => { throw new Error('reserve'); } });
   await expect(repository.storeVerifiedIgc('owner-a', 'flight-1', sha(bytes), bytes)).rejects.toThrow('reserve');
   expect(await db.getAllAsync('SELECT * FROM archive_artifacts')).toEqual([]);
+});
+
+it('guards archived metadata conflicts, preserves newer untouched fields and keeps original bytes', async () => {
+  setFlightJournalOwner('owner-a'); setFlightAuthIdentity(null);
+  await repository.upsertRemote('owner-a', remote()); await repository.storeVerifiedIgc('owner-a', 'flight-1', sha(bytes), bytes);
+  const initial = (await repository.get('owner-a', 'flight-1'))!;
+  const guard = { ...flightMutationGuard(initial), original: storedFlightMetadata(initial) };
+  await repository.updateMetadata('owner-a', 'flight-1', { notes: 'Newer note' });
+  expect(await repository.updateMetadata('owner-a', 'flight-1', { title: 'Mine' }, guard)).toMatchObject({ title: 'Mine', notes: 'Newer note' });
+  await expect(repository.updateMetadata('owner-a', 'flight-1', { title: 'Conflict' }, guard)).rejects.toMatchObject({ code: 'flight_metadata_conflict', fields: ['title'] });
+  expect(await repository.readIgc('owner-a', 'flight-1')).toEqual(bytes);
+});
+it('rejects archived edits/deletions after owner transitions and when a captured source shadows the archive', async () => {
+  setFlightJournalOwner('owner-a'); setFlightAuthIdentity(null);
+  await repository.upsertRemote('owner-a', remote()); const initial = (await repository.get('owner-a', 'flight-1'))!;
+  const guard = { ...flightMutationGuard(initial), original: storedFlightMetadata(initial) };
+  setFlightJournalOwner('owner-b'); setFlightJournalOwner('owner-a');
+  await expect(repository.updateMetadata('owner-a', 'flight-1', { title: 'Wrong' }, guard)).rejects.toThrow('account changed');
+  await expect(repository.deleteLocal('owner-a', 'flight-1', guard)).rejects.toThrow('account changed');
+  const current = { ...flightMutationGuard(initial), original: storedFlightMetadata(initial) };
+  await seedSession(db, 'session-remote', 'completed'); await db.execAsync(BACKFILL_FLIGHTS_SQL);
+  await expect(repository.updateMetadata('owner-a', 'flight-1', { title: 'Wrong' }, current)).rejects.toThrow('source changed');
+  await expect(repository.deleteLocal('owner-a', 'flight-1', current)).rejects.toThrow('source changed');
 });

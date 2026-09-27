@@ -6,6 +6,7 @@ import { useCloudAuth } from '@/features/account/auth-provider';
 import type { FlightPublicationView } from '@/social/feed-types';
 import { errorMessage } from '@/lib/format/error-message';
 import { SocialError } from '@/social/types';
+import { assertFlightScope, captureFlightScope } from '@/lib/flight-scope';
 import { useFeed } from './feed-provider';
 
 type State = Pick<FlightPublicationView, 'state' | 'activityId' | 'error' | 'pendingHide'>;
@@ -13,6 +14,7 @@ type Read = { scope: string; loading: boolean; value: State };
 const EMPTY: State = { state: 'private', activityId: null, error: null, pendingHide: false };
 
 export function useFlightPublication(flightId: string | null): FlightPublicationView {
+  const [identityScope] = useState(captureFlightScope);
   const auth = useCloudAuth();
   const feed = useFeed();
   const owner = auth.status === 'signed_in' ? auth.userId : null;
@@ -27,9 +29,10 @@ export function useFlightPublication(flightId: string | null): FlightPublication
   const focusGeneration = useRef(0);
   const { getPublication } = feed;
   const assertOwner = useCallback(() => {
+    assertFlightScope(identityScope);
     const current = cloudAuthService.getSnapshot();
     if (!owner || !flightId || current.status !== 'signed_in' || current.userId !== owner) throw new SocialError('stale', 'Your account changed. Reopen this flight.');
-  }, [flightId, owner]);
+  }, [flightId, identityScope, owner]);
   const refresh = useCallback(async () => {
     assertOwner();
     if (!focused.current) return;
@@ -67,6 +70,7 @@ export function useFlightPublication(flightId: string | null): FlightPublication
   useEffect(() => () => { sequence.current += 1; pending.current?.abort(); }, []);
   const mutate = useCallback(async (action: 'share' | 'hide' | 'retry') => {
     assertOwner();
+    if (!focused.current) throw new SocialError('stale', 'Reopen this flight before changing sharing.');
     if (actionScope.current === scope) throw new SocialError('busy', 'Wait for this sharing change to finish.');
     if (action === 'share' && !online) throw new SocialError('unavailable', 'Connect to share this flight.');
     const generation = focusGeneration.current;

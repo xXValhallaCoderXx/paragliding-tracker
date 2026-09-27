@@ -2,6 +2,7 @@ import type { FlightReplay } from '../lib/replay/model';
 import type { LiveMapPage, LiveMapRead } from '../lib/live/types';
 import type { TrackSegments } from '../lib/track/types';
 import type { EquipmentCaptureIntent, EquipmentSnapshot } from '../equipment/types';
+import type { FlightEditGuard, FlightMutationGuard } from '../lib/flight-mutations';
 
 export type RecorderState =
   | 'idle'
@@ -295,8 +296,8 @@ export interface FlightMetadataPatch {
 export interface FlightRepository {
   listFlights(): Promise<FlightSummary[]>;
   getFlight(flightId: string): Promise<FlightDetail | null>;
-  updateFlight(flightId: string, patch: FlightMetadataPatch): Promise<FlightDetail>;
-  deleteFlight(flightId: string): Promise<void>;
+  updateFlight(flightId: string, patch: FlightMetadataPatch, guard?: FlightEditGuard): Promise<FlightDetail>;
+  deleteFlight(flightId: string, guard?: FlightMutationGuard): Promise<void>;
   /**
    * Every stored track, keyed by flight. Reads only — the logbook never derives, because
    * doing so would mean re-reading the fixes of every un-backfilled flight before the list
