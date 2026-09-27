@@ -1,0 +1,73 @@
+$ node scripts/test.mjs unit --runTestsByPath src/features/account/__tests__/sign-in-card.test.ts src/features/account/__tests__/sign-in-screen.test.ts src/features/account/__tests__/account-screen.test.ts src/cloud/__tests__/auth-service.test.ts src/cloud/__tests__/otp-policy.test.ts src/features/onboarding/__tests__/setup-session.test.ts src/features/onboarding/__tests__/setup-permissions.test.ts src/features/onboarding/__tests__/onboarding-flow.test.ts
+PASS src/features/onboarding/__tests__/setup-session.test.ts
+PASS src/features/onboarding/__tests__/setup-permissions.test.ts
+PASS src/features/account/__tests__/account-screen.test.ts
+PASS src/features/account/__tests__/sign-in-screen.test.ts
+PASS src/cloud/__tests__/auth-service.test.ts
+  ● Console
+
+    console.warn
+      [auth] verifyOtp type 'email' was rejected; retrying as 'signup'
+
+      226 |             // new-user path and the fallback is load-bearing. If you never see it,
+      227 |             // the fallback is dead code and can be deleted.
+    > 228 |             console.warn("[auth] verifyOtp type 'email' was rejected; retrying as 'signup'");
+          |                     ^
+      229 |           }
+      230 |           return this.verifyOtpAs(normalizedEmail, token, 'signup').catch(() => {
+      231 |             // Report the original failure: for the overwhelmingly common case of a
+
+      at warn (src/cloud/auth-service.native.ts:228:21)
+      at asyncGeneratorStep (node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/cloud/auth-service.native.ts:235:10)
+
+    console.warn
+      [auth] verifyOtp type 'email' was rejected; retrying as 'signup'
+
+      226 |             // new-user path and the fallback is load-bearing. If you never see it,
+      227 |             // the fallback is dead code and can be deleted.
+    > 228 |             console.warn("[auth] verifyOtp type 'email' was rejected; retrying as 'signup'");
+          |                     ^
+      229 |           }
+      230 |           return this.verifyOtpAs(normalizedEmail, token, 'signup').catch(() => {
+      231 |             // Report the original failure: for the overwhelmingly common case of a
+
+      at warn (src/cloud/auth-service.native.ts:228:21)
+      at asyncGeneratorStep (node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/cloud/auth-service.native.ts:235:10)
+
+    console.warn
+      [auth] verifyOtp type 'email' was rejected; retrying as 'signup'
+
+      226 |             // new-user path and the fallback is load-bearing. If you never see it,
+      227 |             // the fallback is dead code and can be deleted.
+    > 228 |             console.warn("[auth] verifyOtp type 'email' was rejected; retrying as 'signup'");
+          |                     ^
+      229 |           }
+      230 |           return this.verifyOtpAs(normalizedEmail, token, 'signup').catch(() => {
+      231 |             // Report the original failure: for the overwhelmingly common case of a
+
+      at warn (src/cloud/auth-service.native.ts:228:21)
+      at asyncGeneratorStep (node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12
+      at apply (src/cloud/auth-service.native.ts:235:10)
+
+PASS src/features/account/__tests__/sign-in-card.test.ts
+PASS src/features/onboarding/__tests__/onboarding-flow.test.ts
+PASS src/cloud/__tests__/otp-policy.test.ts
+
+Test Suites: 8 passed, 8 total
+Tests:       113 passed, 113 total
+Snapshots:   0 total
+Time:        1.956 s, estimated 2 s
+Ran all test suites within paths "src/features/account/__tests__/sign-in-card.test.ts", "src/features/account/__tests__/sign-in-screen.test.ts", "src/features/account/__tests__/account-screen.test.ts", "src/cloud/__tests__/auth-service.test.ts", "src/cloud/__tests__/otp-policy.test.ts", "src/features/onboarding/__tests__/setup-session.test.ts", "src/features/onboarding/__tests__/setup-permissions.test.ts", "src/features/onboarding/__tests__/onboarding-flow.test.ts".
+test:unit: 2.8s
+Total verification: 2.8s

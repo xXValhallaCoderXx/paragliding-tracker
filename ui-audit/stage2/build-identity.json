@@ -1,0 +1,115 @@
+{
+  "recordedAt": "2026-09-27T13:04:15.815979+00:00",
+  "branch": "feature/ui-revamp-beta",
+  "baseCommit": "39d9e717f7421e87db76e87697cad5b750a459e6",
+  "implementationCommit": "9933e723ce745d7ae1c9bbd475a820f0903c79f7",
+  "sourceCommits": [
+    "6450e7e397ebbf51026f57c6f03bbfb6d535a2ba",
+    "9933e723ce745d7ae1c9bbd475a820f0903c79f7"
+  ],
+  "build": {
+    "name": "Flight Log Stage 2 QA",
+    "package": "com.xxvalhallacoderxx.xcmvp.stage2qa",
+    "scheme": "xcmvp-stage2qa",
+    "version": "1.0.0-stage2-qa",
+    "target": "Android release arm64-v8a",
+    "internetPermission": true,
+    "allowBackup": false,
+    "apk": {
+      "path": ".artifacts/stage2/flight-log-stage2-20260927.apk",
+      "bytes": 80060914,
+      "sha256": "c83b30373824e2b5139e4fb941857e60f3845d1452315fd8d7b98a1e72a19bbd"
+    },
+    "bundle": {
+      "path": ".artifacts/stage2/index.android.bundle",
+      "bytes": 5730748,
+      "sha256": "70f36831099114afe9688a178629f9df28a8c2bb10774b68ef140fd7b5144f1c"
+    },
+    "apkMatchesGeneratedOutput": true,
+    "apkBundleMatchesGeneratedOutput": true,
+    "sourceMaps": [
+      {
+        "path": ".artifacts/stage2/index.android.bundle.map",
+        "bytes": 15413870,
+        "sha256": "7aaad75eb771186be8b4330602b900bd754b79928b19445296a3e2a371efe745",
+        "mappedRuntimeSourcesMatchingCommit": 242,
+        "changedRuntimeSourcesMatchingCommit": 12,
+        "changedRuntimeSources": {
+          "src/app/(tabs)/account.tsx": "3ac36bd10dff0b9f0e7189edb4c44f562dcf74138ec581c7c09305068ea01ef7",
+          "src/app/sign-in.tsx": "a221580ea185fb4fae615449e72e4ae2d4da895ad9dfea99eab2f2e9d962b803",
+          "src/cloud/auth-service.native.ts": "2ee52adbd097d31d731f2ae19e4319aa1045af3ac7288920a166eab2aea4f85c",
+          "src/cloud/otp-policy.ts": "b66a406422de7dda1aa08b644627a58c6145f1d114b6079588ba18a6ac96d007",
+          "src/components/ui/input.tsx": "058028c6367fe104d17b650cbc8a15de25c7208f79498289d4f16c273f9c9dfd",
+          "src/features/account/components/backup-sign-in.tsx": "94e6b5f239230e20f2e979a34803a928bb327b80901d67f896299a0b8f79f53c",
+          "src/features/account/components/sign-in-card.tsx": "353551edb8083d380f18c832dbe3248aabad242c3c6957b5b573dfe538d0df79",
+          "src/features/account/sign-in-screen.tsx": "0eaa77028b7e59827af7cf96264ba1434c1050affee32cb58865f2e59775a535",
+          "src/features/onboarding/components/first-run-gate.tsx": "aca32161b73475edcd7c80b3cd9f9f00954e4c46c2f2f9dafe53b3212b5dc0a6",
+          "src/features/onboarding/components/onboarding-overlay.tsx": "2117a1f953e4f777f1b26038fbe6ac85ff3ad6d09f12c77dceb21cff784a7084",
+          "src/features/onboarding/first-run-provider.tsx": "604687d3d0990621694bada272bded853bb392fcd1c81a0a562321d58085070b",
+          "src/features/onboarding/onboarding-flow.ts": "2d3649c146e31c749c0935f554d4da1f29980480829da892f192b5a85c5f52fa"
+        }
+      },
+      {
+        "path": ".artifacts/stage2/index.android.bundle.packager.map",
+        "bytes": 20288218,
+        "sha256": "b9eeb7af222faabead9095287c66b1946a20a38754098c320745570ba3f8a066",
+        "mappedRuntimeSourcesMatchingCommit": 242,
+        "changedRuntimeSourcesMatchingCommit": 12,
+        "changedRuntimeSources": {
+          "src/app/(tabs)/account.tsx": "3ac36bd10dff0b9f0e7189edb4c44f562dcf74138ec581c7c09305068ea01ef7",
+          "src/app/sign-in.tsx": "a221580ea185fb4fae615449e72e4ae2d4da895ad9dfea99eab2f2e9d962b803",
+          "src/cloud/auth-service.native.ts": "2ee52adbd097d31d731f2ae19e4319aa1045af3ac7288920a166eab2aea4f85c",
+          "src/cloud/otp-policy.ts": "b66a406422de7dda1aa08b644627a58c6145f1d114b6079588ba18a6ac96d007",
+          "src/components/ui/input.tsx": "058028c6367fe104d17b650cbc8a15de25c7208f79498289d4f16c273f9c9dfd",
+          "src/features/account/components/backup-sign-in.tsx": "94e6b5f239230e20f2e979a34803a928bb327b80901d67f896299a0b8f79f53c",
+          "src/features/account/components/sign-in-card.tsx": "353551edb8083d380f18c832dbe3248aabad242c3c6957b5b573dfe538d0df79",
+          "src/features/account/sign-in-screen.tsx": "0eaa77028b7e59827af7cf96264ba1434c1050affee32cb58865f2e59775a535",
+          "src/features/onboarding/components/first-run-gate.tsx": "aca32161b73475edcd7c80b3cd9f9f00954e4c46c2f2f9dafe53b3212b5dc0a6",
+          "src/features/onboarding/components/onboarding-overlay.tsx": "2117a1f953e4f777f1b26038fbe6ac85ff3ad6d09f12c77dceb21cff784a7084",
+          "src/features/onboarding/first-run-provider.tsx": "604687d3d0990621694bada272bded853bb392fcd1c81a0a562321d58085070b",
+          "src/features/onboarding/onboarding-flow.ts": "2d3649c146e31c749c0935f554d4da1f29980480829da892f192b5a85c5f52fa"
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "path": "app.config.ts",
+        "bytes": 969,
+        "sha256": "7526fad775a7ad30ea9d7f66895ee6c0f32b649fa0cc6a28a3b35d4cc37f904e"
+      },
+      {
+        "path": "app.json",
+        "bytes": 2015,
+        "sha256": "703df1cc76a8770626ed8346b1956059489167503e2d90472556caf42f5f1804"
+      },
+      {
+        "path": "package.json",
+        "bytes": 3709,
+        "sha256": "287e8d425e86e6d58f165bebaef13ca4299a78fd59e28990ff66c5ca5dcb963a"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "bytes": 469669,
+        "sha256": "4fc15aae44da8dd5ecf27ab2bce9e1b0bb4102ad804186196fa8ce878dd11cd0"
+      },
+      {
+        "path": "metro.config.js",
+        "bytes": 883,
+        "sha256": "899b27a316df197f68dddc3c34f5a1688aa2e9bed245499e65a23b7e9c3354d4"
+      }
+    ]
+  },
+  "deviceAcceptance": {
+    "status": "pending",
+    "reason": "User explicitly deferred ADB and device work while away. No Stage 2 install or screenshots."
+  },
+  "ordinaryNativeRestoration": {
+    "package": "com.xxvalhallacoderxx.xcmvp",
+    "scheme": "xcmvp",
+    "name": "Flight Log Alpha",
+    "internetPermission": true,
+    "allowBackup": false,
+    "iosScriptPreserved": true,
+    "normalApkBuiltOrInstalled": false
+  }
+}

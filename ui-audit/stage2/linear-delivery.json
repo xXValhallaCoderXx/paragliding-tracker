@@ -1,0 +1,38 @@
+{
+  "issues": [
+    {
+      "id": "PAR-47",
+      "url": "https://linear.app/sentiment-hound/issue/PAR-47/uiux-optional-backup-and-friends-onboarding",
+      "status": "In Progress",
+      "parentId": "PAR-40",
+      "labels": [
+        "Design"
+      ],
+      "cycleId": null,
+      "completedAt": null,
+      "commentId": "c8008419-2a50-4aac-a97d-09ce19ae27ec",
+      "commentReadBack": true,
+      "designAttachmentIds": [
+        "8e0d49ae-cf89-4048-a385-b079d1a5ed99"
+      ],
+      "acceptance": "Pending physical-device checks at user request"
+    },
+    {
+      "id": "PAR-66",
+      "url": "https://linear.app/sentiment-hound/issue/PAR-66/uiux-account-sign-in-backup-restoration-and-deletion",
+      "status": "In Progress",
+      "parentId": "PAR-40",
+      "labels": [
+        "Design"
+      ],
+      "cycleId": null,
+      "completedAt": null,
+      "commentId": "10956e4a-79ec-4a0e-bca4-6449ccdcd841",
+      "commentReadBack": true,
+      "designAttachmentIds": [
+        "f618d397-1f09-4cd0-b6dc-676a70c0e4b3"
+      ],
+      "acceptance": "Pending physical-device checks at user request"
+    }
+  ]
+}

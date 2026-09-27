@@ -1,0 +1,10 @@
+✓ Lockfile passes supply-chain policies (verified 1h ago)
+Lockfile is up to date, resolution step is skipped
+Already up to date
+
+Done in 1s using pnpm v11.8.0
+$ expo install --check
+env: load .env.local
+env: export EXPO_PUBLIC_ACCOUNT_DELETION_URL EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN EXPO_PUBLIC_PRIVACY_POLICY_URL EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY EXPO_PUBLIC_SUPABASE_URL
+Dependency validation is unreliable in offline-mode
+Dependencies are up to date

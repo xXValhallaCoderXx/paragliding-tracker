@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-09-27T12:57:21.595148+00:00",
+  "method": "GET only; Supabase Management API",
+  "projectRef": "dqbmbkalksunxbjldxdo",
+  "mailer_otp_length": 8,
+  "mailer_otp_exp": 3600,
+  "smtp_max_frequency": 60,
+  "rate_limit_email_sent": 30,
+  "external_email_enabled": true,
+  "disable_signup": false,
+  "customSmtpConfigured": true,
+  "confirmation": {
+    "containsToken": true,
+    "containsConfirmationUrl": false,
+    "containsLink": false
+  },
+  "magic_link": {
+    "containsToken": true,
+    "containsConfirmationUrl": false,
+    "containsLink": false
+  },
+  "result": "read successfully"
+}
