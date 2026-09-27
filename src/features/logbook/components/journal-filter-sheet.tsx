@@ -54,7 +54,7 @@ export function JournalFilterSheet({ flights, criteria, onApply, onClose }: {
             accessibilityHint="Resets this draft to all flights, all time, newest first. Apply to update Home." />
         </View>
       </View>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
           <Text style={styles.hint}>Choose any options within a group. Flights must match every group you choose.</Text>
           <MultiSelect title="Sport" options={result.facets.sports} selected={draft.sports}
