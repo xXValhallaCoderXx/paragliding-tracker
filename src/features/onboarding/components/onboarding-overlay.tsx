@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Disclaimer, Input, LinkButton, ListRow, Notice } from '@/components/ui';
 import { JournalArt } from '@/components/ui/journal-art';
-import { useCloudAuth } from '@/features/account/auth-provider';
-import { SignInCard } from '@/features/account/components/sign-in-card';
+import { BackupSignIn } from '@/features/account/components/backup-sign-in';
 import { paper, spacing, typography } from '@/ui/theme';
 import { useFirstRun } from '../first-run-provider';
 import { stepProgress } from '../onboarding-flow';
@@ -13,13 +11,9 @@ import { PermissionsStep } from './permissions-step';
 
 export function OnboardingOverlay() {
   const firstRun = useFirstRun();
-  const auth = useCloudAuth();
-  const [authError, setAuthError] = useState<string | null>(null);
   const state = firstRun.wizard;
   const busy = firstRun.saving !== null;
   const progress = stepProgress(state.step);
-
-
 
   return (
     <View style={styles.overlay} accessibilityViewIsModal>
@@ -41,8 +35,8 @@ export function OnboardingOverlay() {
               onContinue={() => firstRun.nameReadFailed ? firstRun.retryProfile() : void firstRun.navigate('continue')}
               onSkip={() => void firstRun.navigate('skip')} /> : null}
             {state.step === 'location' ? <PermissionsStep onContinue={() => void firstRun.navigate('continue')} /> : null}
-            {state.step === 'backup' ? <BackupStep auth={auth} error={authError ?? auth.lastError?.message ?? null}
-              disabled={busy} onClearError={() => setAuthError(null)} onDone={() => void firstRun.navigate('continue')} /> : null}
+            {state.step === 'backup' ? <View style={styles.block}><BackupSignIn setup reviewing={firstRun.mode === 'review'}
+              disabled={busy || firstRun.completionError !== null} onComplete={(destination) => void firstRun.completeSetup(destination)} /></View> : null}
             {firstRun.saving === 'completion' ? <View style={styles.block}><Notice title="Saving setup…">Your choices are being saved on this phone.</Notice></View> : null}
             {firstRun.completionError ? (
               <View style={styles.block}>
@@ -76,72 +70,6 @@ export function PilotStep({ pilotName, onPilotName, onContinue, onSkip, saving, 
         <Button label={saving ? 'Saving…' : error ? 'Retry' : 'Continue'} variant="primary" size="lg"
           busy={saving} disabled={loading} onPress={onContinue} />
         <LinkButton label="Skip for now" disabled={saving} onPress={onSkip} />
-      </View>
-    </View>
-  );
-}
-
-export function BackupStep({
-  auth,
-  error,
-  onClearError,
-  onDone,
-  disabled = false,
-}: {
-  auth: ReturnType<typeof useCloudAuth>;
-  error: string | null;
-  onClearError: () => void;
-  onDone: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <View style={styles.block}>
-      <Text style={styles.heading}>Last one — a backup.</Text>
-      <Text style={styles.body}>
-        Stop recording after landing to save a flight on this phone. An optional account backs up eligible summaries and IGC files, and restores them into your logbook on another phone. Archived routes download over Wi-Fi by default.
-      </Text>
-      <Card className="px-[16px] py-[4px]">
-        <ListRow
-          label="Without an account"
-          value="Local journal"
-          mono={false}
-          detail="Recording stays available. Saved flights are never automatically removed."
-        />
-        <ListRow
-          label="With a free account"
-          value="Optional backup"
-          mono={false}
-          tone="good"
-          showDot
-          detail="Eligible summaries and IGC files can upload while connected. Your local journal stays available."
-          last
-        />
-      </Card>
-      {auth.status === 'signed_in' ? (
-        <Notice tone="good" title="Signed in">
-          Backup can run while connected. Check its progress and any errors on Pilot.
-        </Notice>
-      ) : auth.status === 'unconfigured' ? (
-        <Notice tone="info" title="Backup is not set up in this build">
-          Flights still record and stay on this phone.
-        </Notice>
-      ) : (
-        <SignInCard
-          requestOtp={auth.requestOtp}
-          verifyOtp={auth.verifyOtp}
-          error={error}
-          onClearError={onClearError}
-        />
-      )}
-      <Disclaimer align="left">
-        We store your email, your flight summaries and your IGC files — IGC files contain GPS coordinates. Raw sensor and diagnostic samples stay on this phone.
-      </Disclaimer>
-      <View style={styles.finish}>
-        <LinkButton
-          label={auth.status === 'signed_in' ? 'Done' : 'Skip — keep it on this phone'}
-          onPress={onDone}
-          disabled={disabled}
-        />
       </View>
     </View>
   );
@@ -231,5 +159,4 @@ const styles = StyleSheet.create({
   body: { ...typography.body, color: paper.text },
   ack: { paddingTop: 2 },
   actions: { paddingTop: spacing.action, gap: spacing.tight, alignItems: 'stretch' },
-  finish: { paddingTop: 6, alignItems: 'center' },
 });

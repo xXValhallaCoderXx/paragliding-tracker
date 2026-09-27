@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 
 import {
   BusyRow,
+  Button,
   Card,
   Disclaimer,
   LinkButton,
@@ -27,7 +28,6 @@ import { IdentityCard } from '@/features/account/components/identity-card';
 import { PilotDetailsSheet } from '@/features/account/components/pilot-details-sheet';
 import {
   CloudUnconfiguredNotice,
-  SignInCard,
 } from '@/features/account/components/sign-in-card';
 import { SyncCard } from '@/features/account/components/sync-card';
 import { RestoreCard } from '@/features/account/components/restore-card';
@@ -206,9 +206,9 @@ export default function AccountScreen() {
 
         <View style={styles.block}>
           <SectionLabel>Account &amp; backup</SectionLabel>
-          {authError ? (
+          {(authError ?? auth.lastError?.message) ? (
             <Notice tone="danger" title="That did not work">
-              {authError}
+              {authError ?? auth.lastError?.message}
             </Notice>
           ) : null}
           {auth.status === 'restoring' ? (
@@ -258,14 +258,7 @@ export default function AccountScreen() {
                       last
                     />
                   </Card>
-                  <SignInCard
-                    initiallyExpanded={false}
-                    showStorageNotice
-                    requestOtp={auth.requestOtp}
-                    verifyOtp={auth.verifyOtp}
-                    error={authError ? null : auth.lastError?.message ?? null}
-                    onClearError={() => setAuthError(null)}
-                  />
+                  <Button label="Sign in" variant="primary" onPress={() => router.push('/sign-in')} />
                 </>
               ) : null}
             </>

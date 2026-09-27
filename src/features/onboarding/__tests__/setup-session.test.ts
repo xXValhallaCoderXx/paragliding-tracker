@@ -1,5 +1,7 @@
 import React from 'react';
 import { Modal, View } from 'react-native';
+import type { AuthSnapshot } from '@/cloud/types';
+import type { SetupDestination } from '../onboarding-flow';
 import { Button, Input, LinkButton } from '@/components/ui';
 import { FirstRunProvider, useFirstRun } from '../first-run-provider';
 import { FirstRunGate } from '../components/first-run-gate';
@@ -8,6 +10,9 @@ import { act, create } from '../../../../tests/support/renderer';
 import { profile } from '../../../../tests/support/fixtures';
 
 let mockSettings: any;
+let mockAuth: AuthSnapshot;
+const mockRequestOtp = jest.fn();
+const mockVerifyOtp = jest.fn();
 let mockProfile: any;
 let mockProfileFailed = false;
 let mockSettingsFailed = false;
@@ -25,7 +30,8 @@ jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
 jest.mock('nativewind', () => ({ styled: () => 'SafeArea' }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeArea' }));
 jest.mock('@/components/ui/journal-art', () => ({ JournalArt: () => null }));
-jest.mock('@/features/account/auth-provider', () => ({ useCloudAuth: () => ({ status: 'unconfigured' }) }));
+jest.mock('@/features/account/auth-provider', () => ({ useCloudAuth: () => ({ ...mockAuth, requestOtp: mockRequestOtp, verifyOtp: mockVerifyOtp }) }));
+jest.mock('@/features/account/cloud-sync-provider', () => ({ useCloudSync: () => ({ phase: 'blocked', blockedBy: 'recording', pendingFlights: 2, pendingDeletions: 0, lastSyncAt: null, cloudOnlyFlights: 0 }) }));
 jest.mock('../components/permissions-step', () => ({ PermissionsStep: () => null }));
 
 let session: ReturnType<typeof useFirstRun>;
@@ -51,6 +57,9 @@ function deferred() { let resolve!: () => void; let reject!: (error: Error) => v
 
 beforeEach(() => {
   jest.clearAllMocks(); childMounts = 0;
+  mockAuth = { status: 'unconfigured', userId: null, email: null, lastError: null };
+  mockRequestOtp.mockReset().mockResolvedValue(undefined);
+  mockVerifyOtp.mockReset().mockResolvedValue(undefined);
   mockSettings = { onboardingState: 'pending', onboardingCompletedAt: null, disclaimerAckAt: null };
   mockProfile = profile({ pilotName: 'Saved Pilot', gliderType: 'Wing', registrationId: 'ID' });
   mockProfileFailed = false; mockSettingsFailed = false;
@@ -163,4 +172,85 @@ it('Review preloads saved values, dismisses with Android Back or Close, and pres
     await press('Start setup'); await press('Skip for now'); await run(() => session.navigate('skip')); await press('Skip — keep it on this phone');
     expect(session.showWizard).toBe(false); expect(mockSaveSettings).not.toHaveBeenCalled(); expect(mockSaveName).not.toHaveBeenCalled();
     expect(mockSettings).toMatchObject({ onboardingCompletedAt: 100, disclaimerAckAt: 90 });
+});
+
+async function backupStep() {
+  await nameStep(); await press('Skip for now'); await run(() => session.navigate('continue'));
+}
+const destinations: [SetupDestination, string | null][] = [['home', '/'], ['friends', '/friends'], ['pilot', '/account'], ['return', null]];
+
+it.each(destinations)('persists before navigating to %s, consumes it once, and preserves existing history', async (destination, route) => {
+  mockSettings.onboardingCompletedAt = 100; mockSettings.disclaimerAckAt = 90;
+  const save = deferred(); mockSaveSettings.mockReturnValue({ unwrap: () => save.promise });
+  await mount(); await backupStep();
+  await run(() => { void session.completeSetup(destination); void session.completeSetup('home'); });
+  expect(mockSaveSettings).toHaveBeenCalledTimes(1); expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(mockSaveSettings).toHaveBeenCalledWith({ onboardingState: 'done', onboardingCompletedAt: 100, disclaimerAckAt: 90 });
+  await run(save.resolve); expect(session.showWizard).toBe(false);
+  if (route) expect(mockRouter.replace).toHaveBeenCalledWith(route); else expect(mockRouter.replace).not.toHaveBeenCalled();
+  await run(() => rendered.update(React.createElement(App)));
+  expect(mockRouter.replace).toHaveBeenCalledTimes(route ? 1 : 0);
+  expect(session.consumeDestination()).toBeNull();
+});
+
+it.each(destinations)('preserves %s through save failure, Retry and Continue without saving', async (destination, route) => {
+  mockSaveSettings.mockReturnValue({ unwrap: () => Promise.reject(new Error('Disk')) });
+  await mount(); await backupStep(); await run(() => session.completeSetup(destination));
+  expect(session.showWizard).toBe(true); expect(mockRouter.replace).not.toHaveBeenCalled();
+  await run(() => session.completeSetup('home')); expect(mockSaveSettings).toHaveBeenCalledTimes(1);
+  await press('Retry saving setup'); expect(mockSaveSettings).toHaveBeenCalledTimes(2); expect(session.showWizard).toBe(true);
+  await press('Continue without saving'); expect(session.showWizard).toBe(false);
+  if (route) expect(mockRouter.replace).toHaveBeenCalledWith(route); else expect(mockRouter.replace).not.toHaveBeenCalled();
+});
+
+it.each(destinations)('keeps %s after a successful Retry', async (destination, route) => {
+  mockSaveSettings.mockReturnValueOnce({ unwrap: () => Promise.reject(new Error('Disk')) });
+  await mount(); await backupStep(); await run(() => session.completeSetup(destination));
+  await press('Retry saving setup'); expect(session.showWizard).toBe(false);
+  if (route) expect(mockRouter.replace).toHaveBeenCalledWith(route); else expect(mockRouter.replace).not.toHaveBeenCalled();
+});
+
+it.each(destinations)('completes Review to %s without rewriting original timestamps', async (destination, route) => {
+  mockSettings = { onboardingState: 'done', onboardingCompletedAt: 100, disclaimerAckAt: 90 };
+  await mount(); await run(() => session.restartSetup()); await press('Start setup'); await press('Skip for now');
+  await run(() => session.navigate('continue')); await run(() => session.completeSetup(destination));
+  expect(session.showWizard).toBe(false); expect(mockSaveSettings).not.toHaveBeenCalled();
+  expect(mockSettings).toMatchObject({ onboardingCompletedAt: 100, disclaimerAckAt: 90 });
+  if (route) expect(mockRouter.replace).toHaveBeenCalledWith(route); else expect(mockRouter.replace).not.toHaveBeenCalled();
+});
+
+it('keeps all auth stages at 3/3; Back resets the form and ignores a late verification for navigation', async () => {
+  mockAuth.status = 'signed_out';
+  await mount(); await backupStep();
+  await run(() => rendered.root.findByType(Input).props.onChangeText('qa@example.test')); await press('Email me a code');
+  expect(rendered.root.findByType(StepChrome).props).toMatchObject({ current: 3, total: 3 });
+  await run(() => rendered.root.findByType(Input).props.onChangeText('12345678'));
+  const verify = deferred(); mockVerifyOtp.mockReturnValue(verify.promise); await press('Continue');
+  await run(() => rendered.root.findByType(Modal).props.onRequestClose()); expect(session.wizard.step).toBe('location');
+  await run(() => { mockAuth = { ...mockAuth, status: 'signed_in', userId: 'qa', email: 'qa@example.test' }; verify.resolve(); rendered.update(React.createElement(App)); });
+  expect(mockSaveSettings).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled(); expect(session.wizard.step).toBe('location');
+  await run(() => session.navigate('continue')); expect(rendered.root.findByType(StepChrome).props).toMatchObject({ current: 3, total: 3 });
+  await press('Set up Friends'); expect(mockRouter.replace).toHaveBeenCalledWith('/friends');
+});
+
+it('starts a fresh email form when returning to Backup after Android Back', async () => {
+  mockAuth.status = 'signed_out'; await mount(); await backupStep();
+  await run(() => rendered.root.findByType(Input).props.onChangeText('qa@example.test')); await press('Email me a code');
+  await run(() => rendered.root.findByType(Modal).props.onRequestClose()); await run(() => session.navigate('continue'));
+  expect(rendered.root.findByType(Input).props).toMatchObject({ label: 'Email', value: '' });
+});
+
+it.each(['restoring', 'unconfigured'] as const)('offers local completion while %s without requesting authentication', async (status) => {
+  mockAuth.status = status; await mount(); await backupStep();
+  expect(rendered.root.findAllByType(Input)).toHaveLength(0); await press('Skip — keep it on this phone');
+  expect(mockRequestOtp).not.toHaveBeenCalled(); expect(mockVerifyOtp).not.toHaveBeenCalled(); expect(mockRouter.replace).toHaveBeenCalledWith('/');
+});
+
+it('already-signed-in setup waits for an explicit action, never for backup, and dismissal of Review returns to its caller', async () => {
+  mockAuth = { ...mockAuth, status: 'signed_in', userId: 'qa', email: 'qa@example.test' };
+  mockSettings = { onboardingState: 'done', onboardingCompletedAt: 100, disclaimerAckAt: 90 };
+  await mount(); await run(() => session.restartSetup()); await press('Start setup'); await press('Skip for now'); await run(() => session.navigate('continue'));
+  expect(control('Open Home')).toBeDefined(); expect(control('Set up Friends')).toBeDefined();
+  expect(mockSaveSettings).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
+  await press('Close review'); expect(session.showWizard).toBe(false); expect(mockRouter.replace).not.toHaveBeenCalled();
 });

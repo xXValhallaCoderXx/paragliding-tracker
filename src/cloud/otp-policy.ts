@@ -72,6 +72,14 @@ export function resendLabel(state: OtpState, now: number): string {
   return seconds > 0 ? `Resend code in ${seconds} s` : 'Send a new code';
 }
 
+/** Guidance only; the account service remains authoritative about code validity. */
+export function expiryLabel(state: OtpState, now: number): string {
+  if (state.sentAt === null) return '';
+  const seconds = Math.max(0, Math.ceil((state.sentAt + CLOUD_CONFIG.otpExpiryMs - now) / 1000));
+  return seconds === 0 ? 'This code may have expired. Send a new code.'
+    : `Code expires in ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
 /**
  * Maps Supabase auth error codes to copy a pilot can act on.
  *

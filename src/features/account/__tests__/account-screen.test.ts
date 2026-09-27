@@ -13,6 +13,7 @@ import { flight, profile } from '../../../../tests/support/fixtures';
 
 let mockAuth: AuthSnapshot;
 const mockSignOut = jest.fn();
+const mockPush = jest.fn();
 const mockRequestOtp = jest.fn();
 const mockVerifyOtp = jest.fn();
 const mockResumeRestore = jest.fn();
@@ -42,7 +43,7 @@ jest.mock('@/store/endpoints', () => ({
   useUpdateProfileMutation: () => [jest.fn(), { isLoading: false }],
 }));
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: () => ({ push: mockPush }),
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- Jest factories are hoisted.
   useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]),
 }));
@@ -102,7 +103,7 @@ it('waits for session restoration before offering sign-in or logout', async () =
   expect(rendered.root.findAllByType(ListRow).some((row) => row.props.value === 'Signed in')).toBe(true);
 });
 
-it('keeps email entry behind Sign in when a local profile and previous backup have no session', async () => {
+it('opens the dedicated sign-in route while preserving the local Pilot page', async () => {
   await mount();
   expect(rendered.root.findByType(IdentityCard).props.profile).toBe(mockProfile);
   expect(rendered.root.findAllByType(AccountCard)).toHaveLength(0);
@@ -110,12 +111,9 @@ it('keeps email entry behind Sign in when a local profile and previous backup ha
   expect(rendered.root.findAllByType(Input)).toHaveLength(0);
 
   await press(() => button('Sign in')!.props.onPress());
-  const emailInput = rendered.root.findByType(Input);
-  await press(() => emailInput.props.onChangeText('pilot@example.com'));
-  await press(() => button('Email me a code')!.props.onPress());
-  expect(mockRequestOtp).toHaveBeenCalledWith('pilot@example.com');
-  await press(() => rendered.root.findByType(Input).props.onChangeText('12345678'));
-  expect(mockVerifyOtp).toHaveBeenCalledWith('pilot@example.com', '12345678');
+  expect(mockPush).toHaveBeenCalledWith('/sign-in');
+  expect(rendered.root.findAllByType(Input)).toHaveLength(0);
+  expect(mockRequestOtp).not.toHaveBeenCalled();
 
   await updateAuth({ status: 'signed_in', userId: 'pilot', email: 'pilot@example.com' });
   expect(rendered.root.findAllByType(Input)).toHaveLength(0);

@@ -16,6 +16,9 @@ export type OnboardingStep = 'welcome' | 'pilot' | 'location' | 'backup';
 /** What the pilot did on a step. `skip` and `continue` both move forward. */
 export type StepOutcome = 'continue' | 'skip' | 'back';
 
+export type SetupDestination = 'home' | 'friends' | 'pilot' | 'return';
+export const SETUP_DESTINATIONS = { home: '/', friends: '/friends', pilot: '/account' } as const;
+
 export interface OnboardingState {
   step: OnboardingStep;
   /** The "not a certified flight recorder" acknowledgement on the welcome screen. */

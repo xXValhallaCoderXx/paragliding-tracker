@@ -38,7 +38,7 @@ export function Input({
   value: string;
   placeholder: string;
   onChangeText: (value: string) => void;
-  maxLength: number;
+  maxLength?: number;
   multiline?: boolean;
   editable?: boolean;
   /** Drops the bottom hairline for the final field in a stack. */

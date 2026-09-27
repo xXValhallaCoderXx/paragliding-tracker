@@ -6,6 +6,7 @@ import { View, StyleSheet, Modal } from 'react-native';
 import { LoadingScreen } from '@/components/ui';
 
 import { useFirstRun } from '../first-run-provider';
+import { SETUP_DESTINATIONS } from '../onboarding-flow';
 import { OnboardingOverlay } from './onboarding-overlay';
 
 /**
@@ -22,10 +23,12 @@ import { OnboardingOverlay } from './onboarding-overlay';
 export function FirstRunGate({ children }: { children: ReactNode }) {
   const firstRun = useFirstRun();
   const router = useRouter();
+  const { destination: requestedDestination, consumeDestination } = firstRun;
   useEffect(() => {
-    if (firstRun.homeRequested) router.replace('/');
-  }, [firstRun.homeRequested, router]);
-
+    if (!requestedDestination) return;
+    const destination = consumeDestination();
+    if (destination && destination !== 'return') router.replace(SETUP_DESTINATIONS[destination]);
+  }, [requestedDestination, consumeDestination, router]);
 
   const covered = firstRun.status === 'loading' || firstRun.showWizard;
 

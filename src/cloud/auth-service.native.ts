@@ -86,6 +86,19 @@ class SupabaseAuthService implements CloudAuthService {
   private snapshot: AuthSnapshot = initialAuthSnapshot();
   private readonly listeners = new Set<(snapshot: AuthSnapshot) => void>();
   private subscribed = false;
+  private requestInFlight = false;
+  private restoration: Promise<AuthSnapshot> | null = null;
+
+  /** The request belongs to the service, even after its form leaves the screen. Never
+   * queue another account operation behind a dismissed verification or deletion. */
+  private async exclusive<T>(operation: () => Promise<T>): Promise<T> {
+    if (this.requestInFlight) {
+      throw new CloudError('auth_error', 'Another account request is still finishing. Wait a moment and try again.');
+    }
+    this.requestInFlight = true;
+    try { return await operation(); }
+    finally { this.requestInFlight = false; }
+  }
 
   getSnapshot(): AuthSnapshot {
     return this.snapshot;
@@ -130,7 +143,15 @@ class SupabaseAuthService implements CloudAuthService {
     });
   }
 
-  async restore(): Promise<AuthSnapshot> {
+  restore(): Promise<AuthSnapshot> {
+    if (this.restoration) return this.restoration;
+    // A user operation already owns the identity. Do not apply an older disk read over it.
+    if (this.requestInFlight) return Promise.resolve(this.snapshot);
+    this.restoration = this.exclusive(() => this.readStoredSession()).finally(() => { this.restoration = null; });
+    return this.restoration;
+  }
+
+  private async readStoredSession(): Promise<AuthSnapshot> {
     if (!cloudConfigured) {
       this.update({ status: 'unconfigured' });
       return this.snapshot;
@@ -148,7 +169,11 @@ class SupabaseAuthService implements CloudAuthService {
     return this.snapshot;
   }
 
-  async requestOtp(email: string): Promise<void> {
+  requestOtp(email: string): Promise<void> {
+    return this.exclusive(() => this.sendCode(email));
+  }
+
+  private async sendCode(email: string): Promise<void> {
     try {
       const { error } = await getSupabase().auth.signInWithOtp({
         email: normalizeEmail(email),
@@ -157,11 +182,16 @@ class SupabaseAuthService implements CloudAuthService {
       if (error) throw error;
       this.update({ lastError: null });
     } catch (error) {
-      this.fail(error, 'auth_error');
+      // OTP failures belong only to the form that requested them.
+      throw toCloudError(error, 'auth_error');
     }
   }
 
-  async verifyOtp(email: string, code: string): Promise<void> {
+  verifyOtp(email: string, code: string): Promise<void> {
+    return this.exclusive(() => this.verifyCode(email, code));
+  }
+
+  private async verifyCode(email: string, code: string): Promise<void> {
     const normalizedEmail = normalizeEmail(email);
     const token = normalizeOtpCode(code);
 
@@ -207,7 +237,7 @@ class SupabaseAuthService implements CloudAuthService {
       this.update({ lastError: null });
       this.applySession(session);
     } catch (error) {
-      this.fail(error, 'auth_error');
+      throw toCloudError(error, 'auth_error');
     }
   }
 
@@ -221,7 +251,11 @@ class SupabaseAuthService implements CloudAuthService {
     return data.session;
   }
 
-  async signOut(): Promise<void> {
+  signOut(): Promise<void> {
+    return this.exclusive(() => this.endSession());
+  }
+
+  private async endSession(): Promise<void> {
     try {
       const { error } = await getSupabase().auth.signOut();
       if (error) throw error;
@@ -234,7 +268,11 @@ class SupabaseAuthService implements CloudAuthService {
     }
   }
 
-  async deleteAccount(): Promise<void> {
+  deleteAccount(): Promise<void> {
+    return this.exclusive(() => this.removeAccount());
+  }
+
+  private async removeAccount(): Promise<void> {
     try {
       const { error } = await getSupabase().functions.invoke('delete-account', { method: 'POST' });
       if (error) throw error;
@@ -243,7 +281,7 @@ class SupabaseAuthService implements CloudAuthService {
       // pilot has to be able to try again.
       this.fail(error, 'auth_error');
     }
-    await this.signOut();
+    await this.endSession();
   }
 }
 
