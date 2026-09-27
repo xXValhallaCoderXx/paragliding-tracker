@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flight Log · Stage 1 evidence gallery</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #18382c; background: #f3f0e7; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 1500px; margin: auto; padding: clamp(16px, 3vw, 40px); }
+    header { max-width: 940px; margin-bottom: 28px; }
+    h1 { margin: 8px 0 16px; font-size: clamp(28px, 4vw, 44px); line-height: 1.12; }
+    header p { font-size: 16px; line-height: 1.6; }
+    a { color: #963a23; text-underline-offset: 3px; }
+    a:focus-visible, select:focus-visible { outline: 3px solid #156ac3; outline-offset: 4px; }
+    nav { display: flex; flex-wrap: wrap; gap: 16px; }
+    .context { padding: 16px 20px; border-left: 4px solid #63705f; background: #fcfbf5; border-radius: 4px; }
+    .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 20px 0; }
+    select { min-height: 44px; padding: 8px 12px; border: 1px solid #63705f; border-radius: 8px; font: inherit; color: inherit; background: #fcfbf5; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 24px; align-items: start; }
+    figure { margin: 0; background: #fcfbf5; border: 1px solid #d8dccf; border-radius: 14px; overflow: hidden; }
+    figure[hidden] { display: none; }
+    .image-link { display: block; background: #e7e7e1; border-bottom: 1px solid #d8dccf; }
+    img { width: 100%; height: auto; display: block; }
+    figcaption { padding: 18px; }
+    h2 { font-size: 19px; line-height: 1.3; margin: 12px 0 8px; }
+    figcaption p { color: #44543f; line-height: 1.5; font-size: 14px; margin: 0 0 14px; }
+    figcaption a { font-size: 14px; }
+    small { display: block; margin-top: 12px; color: #63705f; overflow-wrap: anywhere; }
+    .badge { display: inline-block; font-size: 12px; font-weight: 700; line-height: 1.4; padding: 5px 8px; border-radius: 6px; background: #eee4ca; color: #5c481e; }
+    .badge.B { background: #e1e9ed; color: #274e64; }
+    .badge.C { background: #e1ebde; color: #245323; }
+    .badge.D { background: #e5e0f0; color: #53416c; }
+    .badge.E { background: #d7e9de; color: #183f2b; }
+    .badge.earlier, .badge.unclassified { background: #f1dfd7; color: #773c25; }
+    footer { margin-top: 32px; color: #44543f; line-height: 1.6; }
+    code { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p>Flight Log · Android QA · 27 September 2026</p>
+    <h1>Stage 1 evidence gallery</h1>
+    <nav aria-label="Evidence documents"><a href="README.md">Read acceptance and provenance</a><a href="build-identity.json">Final E build identity</a><a href="build-standard-d-identity.json">D preview build identity</a><a href="build-identity.json">Offline setup identities</a><a href="talkback-service.txt">TalkBack service evidence</a></nav>
+    <p>Samsung SM-S938B · Android 16 · 1080 × 2340 · density 420. Select an image to open its original PNG at full resolution.</p>
+    <div class="context">
+      <p>The required Stage 1 checks have passed within the <a href="README.md#installed-device-acceptance">documented acceptance bounds</a>; screenshots and final statuses were read back: PAR-45/46 are Done; PAR-44/41/42 and PAR-65 remain open. Captures retain individual build labels. A, B, and C are setup-only QA builds with INTERNET removed; C includes the accessibility fix from <code>1234143</code>. Earlier interim captures have no exact APK assignment. Standard D retains INTERNET for postcard previews. Final E adds the enlarged-tab correction from <code>e835a52</code>, with fully visible labels at font scales 1.0 and 1.3.</p>
+      <p>The no-INTERNET setup harness raised a native image-loader SecurityException after a ground fixture was saved. Its screenshots do not establish general offline-app reliability.</p>
+      <p>TalkBack evidence covers the enabled/bound service, visible keyboard focus, activation, and overlay isolation. It does not establish an auditory recording or a complete gesture audit.</p>
+      <p>Postcard font/layout previews passed on standard QA. An existing Modal-focus issue can disable Share image until Home → return; it is recorded for PAR-65. No postcard was exported or sent.</p>
+    </div>
+  </header>
+  <div class="tools">
+    <label for="build-filter">Show captures</label>
+    <select id="build-filter">
+      <option value="all">All builds</option><option value="A">A · interim behavior</option><option value="B">B · interim visual fixes</option><option value="C">C · offline setup only</option><option value="D">D · standard QA previews</option><option value="E">E · final standard QA</option><option value="earlier">Earlier interim</option><option value="unclassified">Unclassified</option>
+    </select>
+    <span id="count" aria-live="polite">38 captures</span>
+  </div>
+  <section class="grid" aria-label="Device screenshots">
+<figure data-build="A">
+  <a class="image-link" href="screens/01-welcome.png" target="_blank" rel="noopener" aria-label="Open original: Welcome">
+    <img src="screens/01-welcome.png" alt="Welcome" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge A">A · interim behavior</span>
+    <h2>Welcome</h2>
+    <p>Illustrated welcome and recorder limitation notice.</p>
+    <a href="screens/01-welcome.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>01-welcome.png</small>
+  </figcaption>
+</figure>
+<figure data-build="A">
+  <a class="image-link" href="screens/02-welcome-guard.png" target="_blank" rel="noopener" aria-label="Open original: Acknowledgement guard">
+    <img src="screens/02-welcome-guard.png" alt="Acknowledgement guard" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge A">A · interim behavior</span>
+    <h2>Acknowledgement guard</h2>
+    <p>Start and Skip were disabled; tapping either before acknowledgement did not exit.</p>
+    <a href="screens/02-welcome-guard.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>02-welcome-guard.png</small>
+  </figcaption>
+</figure>
+<figure data-build="A">
+  <a class="image-link" href="screens/03-name.png" target="_blank" rel="noopener" aria-label="Open original: Optional private name">
+    <img src="screens/03-name.png" alt="Optional private name" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge A">A · interim behavior</span>
+    <h2>Optional private name</h2>
+    <p>Name is the first numbered setup step; equipment stays in Pilot details.</p>
+    <a href="screens/03-name.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>03-name.png</small>
+  </figcaption>
+</figure>
+<figure data-build="A">
+  <a class="image-link" href="screens/04-name-keyboard.png" target="_blank" rel="noopener" aria-label="Open original: Name with keyboard">
+    <img src="screens/04-name-keyboard.png" alt="Name with keyboard" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge A">A · interim behavior</span>
+    <h2>Name with keyboard</h2>
+    <p>Initial keyboard evidence; enlarged-text checks are recorded separately on B.</p>
+    <a href="screens/04-name-keyboard.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>04-name-keyboard.png</small>
+  </figcaption>
+</figure>
+<figure data-build="earlier">
+  <a class="image-link" href="screens/05-permissions-initial.png" target="_blank" rel="noopener" aria-label="Open original: Permissions entry">
+    <img src="screens/05-permissions-initial.png" alt="Permissions entry" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge earlier">Earlier interim · exact build unassigned</span>
+    <h2>Permissions entry</h2>
+    <p>Earlier interim capture of passive permission status. Exact APK identity is not assigned.</p>
+    <a href="screens/05-permissions-initial.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>05-permissions-initial.png</small>
+  </figcaption>
+</figure>
+<figure data-build="earlier">
+  <a class="image-link" href="screens/06-approximate.png" target="_blank" rel="noopener" aria-label="Open original: Approximate location">
+    <img src="screens/06-approximate.png" alt="Approximate location" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge earlier">Earlier interim · exact build unassigned</span>
+    <h2>Approximate location</h2>
+    <p>Earlier interim capture distinguishes approximate location. Exact APK identity is not assigned.</p>
+    <a href="screens/06-approximate.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>06-approximate.png</small>
+  </figcaption>
+</figure>
+<figure data-build="earlier">
+  <a class="image-link" href="screens/07-settings-return.png" target="_blank" rel="noopener" aria-label="Open original: Initial Settings return">
+    <img src="screens/07-settings-return.png" alt="Initial Settings return" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge earlier">Earlier interim · exact build unassigned</span>
+    <h2>Initial Settings return</h2>
+    <p>Earlier interim capture of permission refresh after Settings. Exact APK identity is not assigned.</p>
+    <a href="screens/07-settings-return.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>07-settings-return.png</small>
+  </figcaption>
+</figure>
+<figure data-build="A">
+  <a class="image-link" href="screens/08-draft-settings-return.png" target="_blank" rel="noopener" aria-label="Open original: Draft retained after Settings">
+    <img src="screens/08-draft-settings-return.png" alt="Draft retained after Settings" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge A">A · interim behavior</span>
+    <h2>Draft retained after Settings</h2>
+    <p>The unsaved provider-owned name draft survived the Settings round trip.</p>
+    <a href="screens/08-draft-settings-return.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>08-draft-settings-return.png</small>
+  </figcaption>
+</figure>
+<figure data-build="A">
+  <a class="image-link" href="screens/09-restart-prefill.png" target="_blank" rel="noopener" aria-label="Open original: Restart prefill">
+    <img src="screens/09-restart-prefill.png" alt="Restart prefill" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge A">A · interim behavior</span>
+    <h2>Restart prefill</h2>
+    <p>After force-stop, unfinished setup returned to Welcome and used the saved name, dropping the unsaved draft.</p>
+    <a href="screens/09-restart-prefill.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>09-restart-prefill.png</small>
+  </figcaption>
+</figure>
+<figure data-build="A">
+  <a class="image-link" href="screens/10-notifications-denied.png" target="_blank" rel="noopener" aria-label="Open original: Optional notifications denied">
+    <img src="screens/10-notifications-denied.png" alt="Optional notifications denied" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge A">A · interim behavior</span>
+    <h2>Optional notifications denied</h2>
+    <p>Denial retained the Not now path through setup.</p>
+    <a href="screens/10-notifications-denied.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>10-notifications-denied.png</small>
+  </figcaption>
+</figure>
+<figure data-build="A">
+  <a class="image-link" href="screens/11-backup.png" target="_blank" rel="noopener" aria-label="Open original: Optional Backup, step 3 of 3">
+    <img src="screens/11-backup.png" alt="Optional Backup, step 3 of 3" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge A">A · interim behavior</span>
+    <h2>Optional Backup, step 3 of 3</h2>
+    <p>Not now advanced from Permissions to optional Backup before offline completion.</p>
+    <a href="screens/11-backup.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>11-backup.png</small>
+  </figcaption>
+</figure>
+<figure data-build="B">
+  <a class="image-link" href="screens/12-home-offline.png" target="_blank" rel="noopener" aria-label="Open original: Completed offline Home">
+    <img src="screens/12-home-offline.png" alt="Completed offline Home" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge B">B · interim visual fixes</span>
+    <h2>Completed offline Home</h2>
+    <p>Installing and restarting B retained completed setup and opened Home without an account.</p>
+    <a href="screens/12-home-offline.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>12-home-offline.png</small>
+  </figcaption>
+</figure>
+<figure data-build="A">
+  <a class="image-link" href="screens/13-equipment-editor.png" target="_blank" rel="noopener" aria-label="Open original: Pilot equipment editor">
+    <img src="screens/13-equipment-editor.png" alt="Pilot equipment editor" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge A">A · interim behavior</span>
+    <h2>Pilot equipment editor</h2>
+    <p>Equipment remained in the existing Pilot details editor.</p>
+    <a href="screens/13-equipment-editor.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>13-equipment-editor.png</small>
+  </figcaption>
+</figure>
+<figure data-build="B">
+  <a class="image-link" href="screens/14-pilot.png" target="_blank" rel="noopener" aria-label="Open original: Pilot details preserved">
+    <img src="screens/14-pilot.png" alt="Pilot details preserved" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge B">B · interim visual fixes</span>
+    <h2>Pilot details preserved</h2>
+    <p>Saved private name, QA Test Glider, and QA-123 survived installation and restart.</p>
+    <a href="screens/14-pilot.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>14-pilot.png</small>
+  </figcaption>
+</figure>
+<figure data-build="B">
+  <a class="image-link" href="screens/15-review.png" target="_blank" rel="noopener" aria-label="Open original: Review setup">
+    <img src="screens/15-review.png" alt="Review setup" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge B">B · interim visual fixes</span>
+    <h2>Review setup</h2>
+    <p>Review closed with Android Back and the Close button.</p>
+    <a href="screens/15-review.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>15-review.png</small>
+  </figcaption>
+</figure>
+<figure data-build="B">
+  <a class="image-link" href="screens/16-blocked-preflight.png" target="_blank" rel="noopener" aria-label="Open original: Blocked recorder preflight">
+    <img src="screens/16-blocked-preflight.png" alt="Blocked recorder preflight" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge B">B · interim visual fixes</span>
+    <h2>Blocked recorder preflight</h2>
+    <p>Recorder preflight remained blocked while required permission was unavailable.</p>
+    <a href="screens/16-blocked-preflight.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>16-blocked-preflight.png</small>
+  </figcaption>
+</figure>
+<figure data-build="B">
+  <a class="image-link" href="screens/17-name-enlarged.png" target="_blank" rel="noopener" aria-label="Open original: Name at enlarged font scale">
+    <img src="screens/17-name-enlarged.png" alt="Name at enlarged font scale" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge B">B · interim visual fixes</span>
+    <h2>Name at enlarged font scale</h2>
+    <p>Font scale 1.3; name content and controls remained reachable.</p>
+    <a href="screens/17-name-enlarged.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>17-name-enlarged.png</small>
+  </figcaption>
+</figure>
+<figure data-build="B">
+  <a class="image-link" href="screens/18-name-keyboard-enlarged.png" target="_blank" rel="noopener" aria-label="Open original: Enlarged name with keyboard">
+    <img src="screens/18-name-keyboard-enlarged.png" alt="Enlarged name with keyboard" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge B">B · interim visual fixes</span>
+    <h2>Enlarged name with keyboard</h2>
+    <p>Font scale 1.3 with the keyboard open; action buttons remained reachable.</p>
+    <a href="screens/18-name-keyboard-enlarged.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>18-name-keyboard-enlarged.png</small>
+  </figcaption>
+</figure>
+<figure data-build="B">
+  <a class="image-link" href="screens/19-permissions-enlarged.png" target="_blank" rel="noopener" aria-label="Open original: Enlarged Permissions">
+    <img src="screens/19-permissions-enlarged.png" alt="Enlarged Permissions" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge B">B · interim visual fixes</span>
+    <h2>Enlarged Permissions</h2>
+    <p>Font scale 1.3; setup step changes reset scroll position to the top.</p>
+    <a href="screens/19-permissions-enlarged.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>19-permissions-enlarged.png</small>
+  </figcaption>
+</figure>
+<figure data-build="B">
+  <a class="image-link" href="screens/20-permanent-denial.png" target="_blank" rel="noopener" aria-label="Open original: Permanent denial">
+    <img src="screens/20-permanent-denial.png" alt="Permanent denial" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge B">B · interim visual fixes</span>
+    <h2>Permanent denial</h2>
+    <p>Only QA was seeded with revoke/user-fixed. Retry returned without a prompt before refreshed state offered Open app settings.</p>
+    <a href="screens/20-permanent-denial.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>20-permanent-denial.png</small>
+  </figcaption>
+</figure>
+<figure data-build="B">
+  <a class="image-link" href="screens/21-permissions-restored.png" target="_blank" rel="noopener" aria-label="Open original: Permissions restored">
+    <img src="screens/21-permissions-restored.png" alt="Permissions restored" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge B">B · interim visual fixes</span>
+    <h2>Permissions restored</h2>
+    <p>Settings → Permissions → Location → Allow all the time restored precise/allowed state; the long-name draft remained intact.</p>
+    <a href="screens/21-permissions-restored.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>21-permissions-restored.png</small>
+  </figcaption>
+</figure>
+<figure data-build="B">
+  <a class="image-link" href="screens/22-device-location-off.png" target="_blank" rel="noopener" aria-label="Open original: Device location off">
+    <img src="screens/22-device-location-off.png" alt="Device location off" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge B">B · interim visual fixes</span>
+    <h2>Device location off</h2>
+    <p>The disabled service showed OFF and Open location settings. Foreground refresh reflected re-enabling the service.</p>
+    <a href="screens/22-device-location-off.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>22-device-location-off.png</small>
+  </figcaption>
+</figure>
+<figure data-build="B">
+  <a class="image-link" href="screens/23-friends-offline.png" target="_blank" rel="noopener" aria-label="Open original: Signed-out Friends offline">
+    <img src="screens/23-friends-offline.png" alt="Signed-out Friends offline" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge B">B · interim visual fixes</span>
+    <h2>Signed-out Friends offline</h2>
+    <p>Friends correctly offered Open Pilot. Enlarged tab labels are clipped in this earlier capture; final E corrects them in captures 33–34.</p>
+    <a href="screens/23-friends-offline.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>23-friends-offline.png</small>
+  </figcaption>
+</figure>
+<figure data-build="C">
+  <a class="image-link" href="screens/24-talkback-progress.png" target="_blank" rel="noopener" aria-label="Open original: TalkBack progress focus">
+    <img src="screens/24-talkback-progress.png" alt="TalkBack progress focus" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge C">C · offline setup only</span>
+    <h2>TalkBack progress focus</h2>
+    <p>With TalkBack enabled and bound, keyboard traversal focused the accessible setup progress control.</p>
+    <a href="screens/24-talkback-progress.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>24-talkback-progress.png</small>
+  </figcaption>
+</figure>
+<figure data-build="C">
+  <a class="image-link" href="screens/25-talkback-name.png" target="_blank" rel="noopener" aria-label="Open original: TalkBack name focus">
+    <img src="screens/25-talkback-name.png" alt="TalkBack name focus" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge C">C · offline setup only</span>
+    <h2>TalkBack name focus</h2>
+    <p>Tab/Shift+Tab moved visible blue focus to the name field.</p>
+    <a href="screens/25-talkback-name.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>25-talkback-name.png</small>
+  </figcaption>
+</figure>
+<figure data-build="C">
+  <a class="image-link" href="screens/26-talkback-permissions.png" target="_blank" rel="noopener" aria-label="Open original: TalkBack activation to Permissions">
+    <img src="screens/26-talkback-permissions.png" alt="TalkBack activation to Permissions" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge C">C · offline setup only</span>
+    <h2>TalkBack activation to Permissions</h2>
+    <p>Two Tabs and Enter activated Skip and advanced from Name to Permissions.</p>
+    <a href="screens/26-talkback-permissions.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>26-talkback-permissions.png</small>
+  </figcaption>
+</figure>
+<figure data-build="C">
+  <a class="image-link" href="screens/27-talkback-not-now.png" target="_blank" rel="noopener" aria-label="Open original: TalkBack Not now focus">
+    <img src="screens/27-talkback-not-now.png" alt="TalkBack Not now focus" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge C">C · offline setup only</span>
+    <h2>TalkBack Not now focus</h2>
+    <p>Five Tabs focused the optional Not now action on Permissions.</p>
+    <a href="screens/27-talkback-not-now.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>27-talkback-not-now.png</small>
+  </figcaption>
+</figure>
+<figure data-build="C">
+  <a class="image-link" href="screens/28-talkback-backup.png" target="_blank" rel="noopener" aria-label="Open original: TalkBack activation to Backup">
+    <img src="screens/28-talkback-backup.png" alt="TalkBack activation to Backup" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge C">C · offline setup only</span>
+    <h2>TalkBack activation to Backup</h2>
+    <p>Enter on Not now opened optional Backup at step 3 of 3.</p>
+    <a href="screens/28-talkback-backup.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>28-talkback-backup.png</small>
+  </figcaption>
+</figure>
+<figure data-build="C">
+  <a class="image-link" href="screens/29-qa-ground-recording.png" target="_blank" rel="noopener" aria-label="Open original: Ground recording fixture">
+    <img src="screens/29-qa-ground-recording.png" alt="Ground recording fixture" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge C">C · offline setup only</span>
+    <h2>Ground recording fixture</h2>
+    <p>A ground fixture was recorded for postcard checks. After Stop, map-image loading crashed in this no-INTERNET harness; this is not flight-reliability evidence.</p>
+    <a href="screens/29-qa-ground-recording.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>29-qa-ground-recording.png</small>
+  </figcaption>
+</figure>
+<figure data-build="D">
+  <a class="image-link" href="screens/30-postcard-square-d.png" target="_blank" rel="noopener" aria-label="Open original: Square postcard · Flying">
+    <img src="screens/30-postcard-square-d.png" alt="Square postcard · Flying" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge D">D · standard QA previews</span>
+    <h2>Square postcard · Flying</h2>
+    <p>Visual preview passed for Bricolage typography, layout, recorded route, statistics and signature. No export or send was performed.</p>
+    <a href="screens/30-postcard-square-d.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>30-postcard-square-d.png</small>
+  </figcaption>
+</figure>
+<figure data-build="D">
+  <a class="image-link" href="screens/31-postcard-story-d.png" target="_blank" rel="noopener" aria-label="Open original: Story postcard · Launch">
+    <img src="screens/31-postcard-story-d.png" alt="Story postcard · Launch" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge D">D · standard QA previews</span>
+    <h2>Story postcard · Launch</h2>
+    <p>Second format/scene preview passed typography and layout checks with the recorded route, statistics and signature preserved.</p>
+    <a href="screens/31-postcard-story-d.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>31-postcard-story-d.png</small>
+  </figcaption>
+</figure>
+<figure data-build="D">
+  <a class="image-link" href="screens/32-postcard-ready-d.png" target="_blank" rel="noopener" aria-label="Open original: Postcard readiness after returning">
+    <img src="screens/32-postcard-ready-d.png" alt="Postcard readiness after returning" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge D">D · standard QA previews</span>
+    <h2>Postcard readiness after returning</h2>
+    <p>Home → return enabled Share image without edits. Fresh-open Modal focus is a pre-existing PAR-65 follow-up; no export or send was performed.</p>
+    <a href="screens/32-postcard-ready-d.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>32-postcard-ready-d.png</small>
+  </figcaption>
+</figure>
+<figure data-build="E">
+  <a class="image-link" href="screens/33-home-tabs-normal-e.png" target="_blank" rel="noopener" aria-label="Open original: Final Home tabs · normal text">
+    <img src="screens/33-home-tabs-normal-e.png" alt="Final Home tabs · normal text" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge E">E · final standard QA</span>
+    <h2>Final Home tabs · normal text</h2>
+    <p>Font scale 1.0: Home / Friends / Pilot labels are fully visible after the tab-height correction.</p>
+    <a href="screens/33-home-tabs-normal-e.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>33-home-tabs-normal-e.png</small>
+  </figcaption>
+</figure>
+<figure data-build="E">
+  <a class="image-link" href="screens/34-friends-tabs-enlarged-e.png" target="_blank" rel="noopener" aria-label="Open original: Final Friends tabs · enlarged text">
+    <img src="screens/34-friends-tabs-enlarged-e.png" alt="Final Friends tabs · enlarged text" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge E">E · final standard QA</span>
+    <h2>Final Friends tabs · enlarged text</h2>
+    <p>Font scale 1.3: the tab bar grows with text and retains complete labels above the system navigation bar.</p>
+    <a href="screens/34-friends-tabs-enlarged-e.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>34-friends-tabs-enlarged-e.png</small>
+  </figcaption>
+</figure>
+<figure data-build="E">
+  <a class="image-link" href="screens/35-pilot-equipment-preserved-e.png" target="_blank" rel="noopener" aria-label="Open original: Final Pilot editor · preserved values">
+    <img src="screens/35-pilot-equipment-preserved-e.png" alt="Final Pilot editor · preserved values" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge E">E · final standard QA</span>
+    <h2>Final Pilot editor · preserved values</h2>
+    <p>At font scale 1.3, the editor retains Stage One Pilot, QA-123 and QA Test Glider after the QA build updates.</p>
+    <a href="screens/35-pilot-equipment-preserved-e.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>35-pilot-equipment-preserved-e.png</small>
+  </figcaption>
+</figure>
+<figure data-build="E">
+  <a class="image-link" href="screens/36-postcard-disabled-e.png" target="_blank" rel="noopener" aria-label="Open original: Existing postcard focus issue">
+    <img src="screens/36-postcard-disabled-e.png" alt="Existing postcard focus issue" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge E">E · final standard QA</span>
+    <h2>Existing postcard focus issue</h2>
+    <p>Fresh-open Share image remains disabled although the preview is visible. This existing readiness logic is unchanged from base b4b3771 and is tracked with PAR-65.</p>
+    <a href="screens/36-postcard-disabled-e.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>36-postcard-disabled-e.png</small>
+  </figcaption>
+</figure>
+<figure data-build="E">
+  <a class="image-link" href="screens/37-postcard-ready-e.png" target="_blank" rel="noopener" aria-label="Open original: Postcard focus recovery · final build">
+    <img src="screens/37-postcard-ready-e.png" alt="Postcard focus recovery · final build" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge E">E · final standard QA</span>
+    <h2>Postcard focus recovery · final build</h2>
+    <p>The same unedited postcard after Home → return: Share image is enabled. Native UI trees preserve the disabled/enabled difference; no export or send occurred.</p>
+    <a href="screens/37-postcard-ready-e.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>37-postcard-ready-e.png</small>
+  </figcaption>
+</figure>
+<figure data-build="E">
+  <a class="image-link" href="screens/38-review-final-e.png" target="_blank" rel="noopener" aria-label="Open original: Final Review dismissal">
+    <img src="screens/38-review-final-e.png" alt="Final Review dismissal" width="1080" height="2340" loading="lazy" decoding="async">
+  </a>
+  <figcaption>
+    <span class="badge E">E · final standard QA</span>
+    <h2>Final Review dismissal</h2>
+    <p>Review opens with Close review available; Android Back returned to Settings on final E.</p>
+    <a href="screens/38-review-final-e.png" target="_blank" rel="noopener">Open original PNG · 1080 × 2340</a>
+    <small>38-review-final-e.png</small>
+  </figcaption>
+</figure>
+  </section>
+  <footer><p>Generated from every PNG currently in <code>screens/</code>. Rebuild with <code>python3 ui-audit/stage1/generate-gallery.py</code>; classify new captures in the generator before citing them as acceptance evidence. This gallery does not change ticket status.</p></footer>
+</main>
+<script>
+  const filter = document.querySelector('#build-filter');
+  const cards = [...document.querySelectorAll('figure[data-build]')];
+  filter.addEventListener('change', () => {
+    for (const card of cards) card.hidden = filter.value !== 'all' && card.dataset.build !== filter.value;
+    document.querySelector('#count').textContent = `${cards.filter(card => !card.hidden).length} of ${cards.length} captures`;
+  });
+</script>
+</body>
+</html>

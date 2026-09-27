@@ -18,12 +18,16 @@ See [Stage 1 evidence](../ui-audit/stage1/README.md) for source/build identity, 
 
 ## Isolated Android QA build
 
-`app.config.ts` leaves ordinary builds on their existing package and scheme. `FLIGHT_LOG_QA=stage1` selects `com.xxvalhallacoderxx.xcmvp.stage1qa` / `xcmvp-stage1qa`. Adding `FLIGHT_LOG_QA_OFFLINE=1` removes this QA app's INTERNET permission, so account-free offline use can be exercised without disconnecting wireless ADB or changing another app's network access.
+`app.config.ts` leaves ordinary builds on their existing package and scheme. `FLIGHT_LOG_QA=stage1` selects `com.xxvalhallacoderxx.xcmvp.stage1qa` / `xcmvp-stage1qa`. Use this standard isolated flavor, with INTERNET retained, for navigation, recording fixtures, and postcard acceptance. It uses the same isolated QA package/database as the setup-only flavor.
+
+Adding `FLIGHT_LOG_QA_OFFLINE=1` removes this QA app's INTERNET permission. That flavor is **for account-free setup checks only**: after a ground recording was stopped, Expo Image/OkHttp attempted to load a map image and raised a native `SecurityException` because INTERNET was missing. Removing the manifest permission is therefore not a valid simulation of general app offline behavior. The ordinary app and standard isolated QA flavor retain INTERNET. Exercise broader offline behavior by controlling network availability, not by removing this permission.
 
 ```sh
-FLIGHT_LOG_QA=stage1 FLIGHT_LOG_QA_OFFLINE=1 pnpm exec expo prebuild --platform android --no-install
+env -u FLIGHT_LOG_QA_OFFLINE FLIGHT_LOG_QA=stage1 pnpm exec expo prebuild --platform android --no-install
 cd android
-FLIGHT_LOG_QA=stage1 FLIGHT_LOG_QA_OFFLINE=1 ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a
+env -u FLIGHT_LOG_QA_OFFLINE FLIGHT_LOG_QA=stage1 ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a
 ```
 
-After copying the named QA APK, regenerate ordinary native configuration with `pnpm exec expo prebuild --platform android --no-install`. Prebuild may rewrite the iOS package script; preserve the repository's `expo start --ios` script. Never reset or replace the normal installation for setup acceptance.
+For setup-only network isolation, add `FLIGHT_LOG_QA_OFFLINE=1` to both QA commands and label the resulting evidence accordingly. Do not use that artifact for postcard/image-loading acceptance. Preserve its APK/source-map identity separately from the standard QA artifact.
+
+After copying the named QA APK and source maps, regenerate ordinary native configuration with `env -u FLIGHT_LOG_QA -u FLIGHT_LOG_QA_OFFLINE pnpm exec expo prebuild --platform android --no-install`. Prebuild may rewrite the iOS package script; immediately preserve the repository's `expo start --ios` script. Never reset or replace the normal installation for setup acceptance.

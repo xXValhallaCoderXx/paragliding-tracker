@@ -1,0 +1,27 @@
+{
+  "archive": ".artifacts/stage1/stage1-evidence-20260927.zip",
+  "bytes": 15827300,
+  "sha256": "8aefcc502aaee1747dbcb34e853a798418e56f0157ea430e68aef17211fdc778",
+  "uploadedArchiveDownloadedAndHashVerified": true,
+  "readback": [
+    {
+      "id": "PAR-44",
+      "status": "Backlog",
+      "attachmentId": "9a18e869-09d3-4c3f-a85f-0094bb2287fb",
+      "title": "Stage 1 — complete acceptance evidence (38 captures, builds, tests)"
+    },
+    {
+      "id": "PAR-45",
+      "status": "Done",
+      "attachmentId": "6308ae7f-393a-4a72-b760-3626085b995f",
+      "title": "Stage 1 — complete acceptance evidence (38 captures, builds, tests)"
+    },
+    {
+      "id": "PAR-46",
+      "status": "Done",
+      "attachmentId": "6f17b926-f8c0-4420-8566-94e219d2c35f",
+      "title": "Stage 1 — complete acceptance evidence (38 captures, builds, tests)"
+    }
+  ],
+  "note": "Archive contains evidence through ticket state/comment read-back. This separate upload receipt records the final archive links without a circular self-hash."
+}

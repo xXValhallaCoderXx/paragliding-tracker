@@ -1,0 +1,286 @@
+$ node scripts/test.mjs
+test:types: 21.1s
+✔ boundary checks resolve aliases, relative paths, dynamic imports and require (6147.042821ms)
+✔ type-only edges and local helpers are allowed (344.514973ms)
+✔ unsupported native abort APIs and recorder SQL writes fail lint (23.063369ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7540.194114
+test:lint: 34.3s
+PASS src/features/onboarding/__tests__/setup-session.test.ts
+PASS src/features/record/__tests__/record-map-screen.test.ts
+PASS src/recorder/__tests__/database-migration.test.ts
+PASS src/features/onboarding/__tests__/setup-permissions.test.ts
+PASS src/features/postcard/__tests__/composer.test.ts
+PASS src/recorder/__tests__/live-map-repository.test.ts
+PASS src/features/feed/__tests__/kudos-screen.test.ts
+PASS src/features/feed/__tests__/feed-setup.test.ts
+PASS src/recorder/__tests__/sqlite-repository.test.ts
+PASS src/lib/track/__tests__/simplify.test.ts
+PASS src/archives/__tests__/igc.test.ts
+PASS src/features/flights/__tests__/replay-map.test.ts
+PASS src/features/feed/__tests__/shared-screens.test.ts
+PASS src/features/feed/__tests__/feed-screen.test.ts
+PASS src/features/friends/__tests__/friends-screen.test.ts
+PASS src/features/feed/__tests__/sharing-controls.test.ts
+PASS src/cloud/__tests__/sync-engine.test.ts
+PASS src/features/account/__tests__/account-screen.test.ts
+PASS src/features/friends/__tests__/pilot-search-screen.test.ts
+PASS src/features/record/__tests__/live-map.test.ts
+PASS src/features/flights/__tests__/replay-recovery.test.ts
+PASS src/lib/replay/__tests__/long-track.test.ts
+  ● Console
+
+    console.info
+      {"fixture":"12h","usableFixes":42900,"routeVertices":2803,"chartVertices":696,"loadAndGeometryMs":101,"seek10000Ms":8}
+
+      at Object.info (src/lib/replay/__tests__/long-track.test.ts:36:11)
+
+PASS src/store/__tests__/live-map-cache.test.ts
+PASS src/components/flight-map/__tests__/native-map.test.ts
+PASS src/archives/__tests__/repository-core.test.ts
+PASS src/recorder/__tests__/recorder-lifecycle.test.ts
+PASS src/features/flights/__tests__/metadata-sheet.test.ts
+PASS src/features/feed/__tests__/kudos-controls.test.ts
+PASS src/features/flights/__tests__/flight-detail-screen.test.ts
+PASS src/features/logbook/__tests__/logbook-screen.test.ts
+PASS src/features/offline-maps/__tests__/download-preview.test.ts
+PASS src/ui/__tests__/font-assets.test.ts
+PASS src/cloud/__tests__/publication-worker.test.ts
+PASS src/cloud/__tests__/archive-sync.test.ts
+PASS src/features/friends/__tests__/friend-profile-screen.test.ts
+PASS src/features/flights/__tests__/flight-map-preview.test.ts
+PASS src/recorder/__tests__/recovery-policy.test.ts
+PASS src/offline-maps/__tests__/service.test.ts
+PASS src/features/flights/__tests__/replay-timeline.test.ts
+PASS src/features/record/__tests__/hold-to-stop.test.ts
+PASS src/features/offline-maps/__tests__/saved-region.test.ts
+PASS src/features/feed/__tests__/feed-provider.test.ts
+PASS src/features/feed/__tests__/publication-hook.test.ts
+PASS src/social/__tests__/feed-controller.test.ts
+PASS src/cloud/__tests__/auth-service.test.ts
+PASS src/recorder/__tests__/sync-repository-core.test.ts
+PASS src/features/account/__tests__/restore-card.test.ts
+PASS src/features/offline-maps/__tests__/destination-search.test.ts
+PASS src/offline-maps/__tests__/runtime.test.ts
+PASS src/features/flights/__tests__/use-replay-playback.test.ts
+PASS src/social/__tests__/controller.test.ts
+PASS src/features/postcard/__tests__/export-adapter.test.ts
+PASS src/offline-maps/__tests__/network.test.ts
+PASS src/recorder/__tests__/location-task-bootstrap.test.ts
+PASS src/features/flights/__tests__/site-suggestions-controls.test.ts
+PASS src/social/__tests__/friends-provider.test.ts
+PASS src/social/__tests__/search-service.test.ts
+PASS src/features/account/__tests__/cloud-sync-provider.test.ts
+PASS src/features/flights/__tests__/archive-evidence.test.ts
+PASS src/features/onboarding/__tests__/onboarding-flow.test.ts
+PASS src/social/__tests__/feed-validation.test.ts
+PASS src/lib/track/__tests__/map-geometry.test.ts
+PASS src/cloud/__tests__/sync-plan.test.ts
+PASS src/cloud/__tests__/publication-service.test.ts
+PASS src/social/__tests__/kudos-service.test.ts
+PASS src/lib/__tests__/use-reduced-motion.test.ts
+PASS src/offline-maps/__tests__/destinations.test.ts
+PASS src/social/__tests__/service.test.ts
+PASS src/features/postcard/__tests__/export.test.ts
+PASS src/features/flights/__tests__/replay-screen.test.ts
+PASS src/cloud/__tests__/archive-download.test.ts
+PASS src/store/__tests__/replay-cache.test.ts
+PASS src/recorder/__tests__/igc.test.ts
+PASS src/sites/__tests__/http.test.ts
+PASS src/social/__tests__/feed-service.test.ts
+PASS src/recorder/__tests__/repository-core.test.ts
+PASS src/journal/__tests__/repository.test.ts
+PASS src/components/flight-map/__tests__/missing-native-module.test.ts
+PASS src/features/logbook/__tests__/backup-summary.test.ts
+PASS src/lib/track/__tests__/static-map.test.ts
+PASS src/recorder/__tests__/flight-repository-core.test.ts
+PASS src/cloud/__tests__/otp-policy.test.ts
+PASS src/ui/__tests__/safe-area.test.ts
+PASS src/lib/live/__tests__/map-model.test.ts
+PASS src/lib/track/__tests__/plate.test.ts
+PASS src/features/record/__tests__/recorder-presentation.test.ts
+PASS src/lib/track/__tests__/fixes.test.ts
+PASS src/offline-maps/__tests__/registry.test.ts
+PASS src/cloud/__tests__/email-templates.test.ts
+PASS src/recorder/__tests__/replay-repository.test.ts
+PASS src/components/flight-map/__tests__/camera.test.ts
+PASS src/cloud/__tests__/restore-transfer.test.ts
+PASS src/sites/__tests__/site-plan.test.ts
+PASS src/features/logbook/__tests__/setup-checklist.test.ts
+PASS src/cloud/__tests__/restore-plan.test.ts
+PASS src/cloud/__tests__/payloads.test.ts
+PASS src/recorder/__tests__/state-machine.test.ts
+PASS src/features/account/__tests__/account-presentation.test.ts
+PASS src/features/logbook/__tests__/logbook.test.ts
+PASS src/lib/track/__tests__/geometry.test.ts
+PASS src/lib/replay/__tests__/map-model.test.ts
+PASS src/lib/track/__tests__/encoding.test.ts
+PASS src/features/postcard/__tests__/presentation.test.ts
+PASS src/features/flights/__tests__/site-picker.test.ts
+PASS src/features/record/__tests__/capture-health.test.ts
+PASS src/lib/format/__tests__/flight-format.test.ts
+PASS src/lib/replay/__tests__/playback.test.ts
+PASS src/recorder/__tests__/diagnostics.test.ts
+PASS src/store/__tests__/query-fn.test.ts
+PASS src/lib/replay/__tests__/geometry.test.ts
+PASS src/recorder/__tests__/flight-metrics.test.ts
+PASS src/lib/format/__tests__/error-message.test.ts
+PASS src/recorder/__tests__/ui-state.test.ts
+PASS src/lib/replay/__tests__/model.test.ts
+PASS src/cloud/__tests__/publication-artifact.test.ts
+PASS src/features/feed/__tests__/presentation.test.ts
+PASS src/features/friends/__tests__/presentation.test.ts
+PASS src/features/account/__tests__/account-identity.test.ts
+PASS src/ui/__tests__/theme-css.test.ts
+PASS src/recorder/__tests__/operation-queue.test.ts
+PASS src/features/flights/__tests__/track-presentation.test.ts
+PASS src/features/logbook/__tests__/empty-logbook.test.ts
+PASS src/recorder/__tests__/activity.test.ts
+PASS src/recorder/__tests__/location-task-options.test.ts
+PASS src/offline-maps/__tests__/coverage.test.ts
+PASS src/lib/track/__tests__/stats.test.ts
+PASS src/recorder/__tests__/recovery.test.ts
+PASS src/recorder/__tests__/sharing-preference-cache.test.ts
+
+Test Suites: 128 passed, 128 total
+Tests:       1244 passed, 1244 total
+Snapshots:   0 total
+Time:        25.651 s
+Ran all test suites.
+test:unit: 28.1s
+running 32 tests from ./supabase/functions/delete-account/handler_test.ts
+drains 0 archives before deleting only the verified owner ... ok (3ms)
+drains 1 archives before deleting only the verified owner ... ok (0ms)
+drains 99 archives before deleting only the verified owner ... ok (0ms)
+drains 100 archives before deleting only the verified owner ... ok (7ms)
+drains 101 archives before deleting only the verified owner ... ok (0ms)
+drains 199 archives before deleting only the verified owner ... ok (0ms)
+drains 200 archives before deleting only the verified owner ... ok (0ms)
+drains 201 archives before deleting only the verified owner ... ok (0ms)
+drains 250 archives before deleting only the verified owner ... ok (0ms)
+drains 350 archives before deleting only the verified owner ... ok (0ms)
+only the verified token chooses the account, ignoring a body user ID ... ok (0ms)
+rejects malformed authorization null without a client ... ok (0ms)
+rejects malformed authorization "" without a client ... ok (0ms)
+rejects malformed authorization "Bearer" without a client ... ok (0ms)
+rejects malformed authorization "Basic owner-token" without a client ... ok (0ms)
+rejects malformed authorization "owner-token" without a client ... ok (0ms)
+rejects unverified callers {"invalidToken":true} without mutations ... ok (0ms)
+rejects unverified callers {"missingUser":true} without mutations ... ok (0ms)
+rejects other methods before authentication ... ok (0ms)
+rejects missing server configuration  ... ok (0ms)
+rejects missing server configuration SUPABASE_URL ... ok (0ms)
+rejects missing server configuration SUPABASE_SERVICE_ROLE_KEY ... ok (0ms)
+prefers the explicit secret override ... ok (0ms)
+list failure on page 1 preserves the account and remaining archives ... ok (0ms)
+list failure on page 2 preserves the account and remaining archives ... ok (0ms)
+remove failure on page 1 preserves the account and remaining archives ... ok (0ms)
+remove failure on page 2 preserves the account and remaining archives ... ok (0ms)
+reports auth deletion failure after archive cleanup ... ok (0ms)
+drains both private and shared buckets before account deletion ... ok (0ms)
+live upload leaves storage and account untouched for a retry ... ok (0ms)
+failed deletion gate cannot proceed or expose database details ... ok (0ms)
+shared storage cleanup failure preserves the account for retry ... ok (0ms)
+running 20 tests from ./supabase/functions/shared-flight/handler_test.ts
+upload derives owner from verified auth and publishes only after immutable object upload ... ok (4ms)
+authenticated owner cannot inject a different owner ID ... ok (0ms)
+private fields are rejected before reservations or storage writes ... ok (0ms)
+actual request size is bounded independently of content-length ... ok (34ms)
+auth failure cannot reach database or storage ... ok (0ms)
+shared_consent_changed stays actionable and creates no object ... ok (0ms)
+shared_publication_changed stays actionable and creates no object ... ok (0ms)
+shared_account_deleting stays actionable and creates no object ... ok (0ms)
+shared_flight_not_ready stays actionable and creates no object ... ok (0ms)
+hide during upload prevents activation and releases the lease for durable cleanup ... ok (0ms)
+lost upload response reuses only identical immutable bytes ... ok (1ms)
+already-published retry returns receipt without a storage write ... ok (0ms)
+no-track artifact is published with replay unavailable ... ok (0ms)
+read verifies original bytes and authorizes again after download ... ok (0ms)
+block or hide during download prevents returning already-loaded bytes ... ok (0ms)
+corrupt artifact bytes are not returned ... ok (0ms)
+unexpected server diagnostics never enter response ... ok (0ms)
+cloud flight mismatch rejects validated-shaped artifact and releases lease ... ok (0ms)
+cleanup removes only server-authorized owner-prefixed paths and acknowledges failures for retry ... ok (0ms)
+successful cleanup acknowledges exactly the removed object ... ok (0ms)
+running 19 tests from ./supabase/functions/shared-flight/validator_test.ts
+preserves original nullable telemetry and exact timestamps ... ok (0ms)
+accepts no-track and single-fix artifacts without inventing replay ... ok (0ms)
+rejects privateField ... ok (0ms)
+rejects privatePoint ... ok (0ms)
+rejects unordered ... ok (0ms)
+rejects duplicate ... ok (0ms)
+rejects latitude ... ok (0ms)
+rejects longitude ... ok (0ms)
+rejects outsideBounds ... ok (0ms)
+rejects nonfinite ... ok (0ms)
+rejects negativeSpeed ... ok (0ms)
+rejects fakeIgcSpeed ... ok (0ms)
+rejects fractionalBounds ... ok (0ms)
+rejects fractionalTimestamp ... ok (0ms)
+IGC provenance requires unavailable speed and recorded precision ... ok (0ms)
+limits sample count before consuming unbounded arrays ... ok (10ms)
+checks artifact against the owned cloud flight bounds and partial status ... ok (0ms)
+preview retains real 15-second gaps without joining discontinuous runs ... ok (0ms)
+overview stays bounded even with thousands of disconnected fixes ... ok (8ms)
+
+ok | 71 passed | 0 failed (281ms)
+
+test:functions: 0.9s
+Finished supabase init.
+A new version of Supabase CLI is available: v2.118.0 (currently installed v2.116.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
+Isolated database: xc-test-906dc43e-4a0 (port 39364)
+Starting database...
+Initialising schema...
+Seeding globals from roles.sql...
+Applying migration 20260818120000_cloud_init.sql...
+Applying migration 20260818120100_cloud_rls.sql...
+Applying migration 20260818120200_cloud_storage.sql...
+Applying migration 20260820120000_profile_site_columns.sql...
+Applying migration 20260921120000_private_archive_restore.sql...
+Applying migration 20260921130000_friends.sql...
+Applying migration 20260921140000_shared_flights.sql...
+Applying migration 20260921150000_flight_kudos.sql...
+Applying migration 20260921160000_pilot_search.sql...
+{"DB_URL":"postgresql://[redacted-local-test-credentials]@127.0.0.1:39364/postgres","message":""}
+A new version of Supabase CLI is available: v2.118.0 (currently installed v2.116.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
+Connecting to local database...
+/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/flight-kudos-concurrency.test.sql ..... ok
+/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/flight-kudos.test.sql ................. ok
+psql:/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/friends-concurrency.test.sql:2: NOTICE:  extension "dblink" already exists, skipping
+/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/friends-concurrency.test.sql .......... ok
+/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/friends-rate-limit.test.sql ........... ok
+/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/friends.test.sql ...................... ok
+psql:/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/pilot-search-concurrency.test.sql:2: NOTICE:  extension "dblink" already exists, skipping
+/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/pilot-search-concurrency.test.sql ..... ok
+/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/pilot-search.test.sql ................. ok
+psql:/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/private-archive-concurrency.test.sql:3: NOTICE:  extension "dblink" already exists, skipping
+/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/private-archive-concurrency.test.sql .. ok
+/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/private-archive.test.sql .............. ok
+/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/rls.test.sql .......................... ok
+/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/schema.test.sql ....................... ok
+psql:/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/shared-flights-concurrency.test.sql:2: NOTICE:  extension "dblink" already exists, skipping
+/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/shared-flights-concurrency.test.sql ... ok
+/tmp/xc-test-906dc43e-4a0-AoRjgT/supabase/tests/shared-flights.test.sql ............... ok
+All tests successful.
+Files=13, Tests=469,  2 wallclock secs ( 0.12 usr  0.06 sys +  0.13 cusr  0.12 csys =  0.43 CPU)
+Result: PASS
+A new version of Supabase CLI is available: v2.118.0 (currently installed v2.116.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
+Connecting to db 5432
+A new version of Supabase CLI is available: v2.118.0 (currently installed v2.116.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
+Generated database types match.
+{"project_id_filter":"xc-test-906dc43e-4a0","backup":false,"message":"Stopped supabase local development setup."}
+A new version of Supabase CLI is available: v2.118.0 (currently installed v2.116.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
+Database verification including cleanup: 41.2s
+test:db: 41.2s
+Total verification: 125.7s

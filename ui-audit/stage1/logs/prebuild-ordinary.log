@@ -1,0 +1,10 @@
+env: load .env.local
+env: export EXPO_PUBLIC_ACCOUNT_DELETION_URL EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN EXPO_PUBLIC_PRIVACY_POLICY_URL EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY EXPO_PUBLIC_SUPABASE_URL
+- Clearing android
+✔ Cleared android code
+- Creating native directory (./android)
+✔ Created native directory
+- Updating package.json
+✔ Updated package.json
+- Running prebuild
+✔ Finished prebuild

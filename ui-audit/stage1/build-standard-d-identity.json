@@ -1,0 +1,501 @@
+{
+  "schemaVersion": 1,
+  "buildLabel": "D",
+  "status": "Intermediate standard QA build for postcard checks; enlarged tab-label follow-up is pending.",
+  "verifiedAtUtc": "2026-09-27T12:04:26.158857+00:00",
+  "implementationCommit": "123414322bf73dd0faf13748d95e4c05b47cb026",
+  "appName": "Flight Log Stage 1 QA",
+  "applicationId": "com.xxvalhallacoderxx.xcmvp.stage1qa",
+  "scheme": "xcmvp-stage1qa",
+  "internetPermissionPresent": true,
+  "androidAllowBackup": false,
+  "build": {
+    "command": "env -u FLIGHT_LOG_QA_OFFLINE FLIGHT_LOG_QA=stage1 ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a",
+    "workingDirectory": "android",
+    "result": "BUILD SUCCESSFUL in 3m 6s; 871 actionable tasks: 839 executed, 32 up-to-date",
+    "logs": [
+      {
+        "path": "ui-audit/stage1/logs/build-standard-qa.log",
+        "sha256": "b3b673dc05d2f37bfedcd6b9e4d037b2465a3eda92fce01e12fe75923bc075f7",
+        "bytes": 314956
+      },
+      {
+        "path": "ui-audit/stage1/logs/prebuild-standard-qa.log",
+        "sha256": "0ead7c5b240473a83a24cbb709db225d8e6d7e05423e13c3acc19b0d0927b495",
+        "bytes": 394
+      }
+    ]
+  },
+  "apk": {
+    "path": ".artifacts/stage1/flight-log-stage1-standard-d.apk",
+    "initialInstallPath": ".artifacts/stage1/flight-log-stage1-20260927.apk",
+    "sha256": "b08df914555e770aa25aa55c41fe535ca0107295782712c97d47020264bec2e1",
+    "bytes": 80051178,
+    "matchesGradleOutput": true,
+    "embeddedBundleSha256": "66900528e1fffea702b911aaf0ca748b4aaf4268410eec26e4b2f1df2b940630",
+    "embeddedBundleBytes": 5721012,
+    "embeddedBundleMatchesGenerated": true
+  },
+  "sourceMaps": [
+    {
+      "name": "composed",
+      "path": ".artifacts/stage1/sourcemaps/standard-d/index.android.bundle.map",
+      "generatedPath": "android/app/build/generated/sourcemaps/react/release/index.android.bundle.map",
+      "sha256": "224da2d631a7d3b11bee7b1b897bdd81b50f1004ecad194545a2b09b1011dd57",
+      "bytes": 15394131,
+      "preservedCopyMatchesGenerated": true
+    },
+    {
+      "name": "packager",
+      "path": ".artifacts/stage1/sourcemaps/standard-d/index.android.bundle.packager.map",
+      "generatedPath": "android/app/build/intermediates/sourcemaps/react/release/index.android.bundle.packager.map",
+      "sha256": "7fe0a967cbc730e4b7e5066763e6bf6b347377e9ad0858673cdc46e6c6540e4c",
+      "bytes": 20259525,
+      "preservedCopyMatchesGenerated": true
+    }
+  ],
+  "matchedRuntimeSources": 43,
+  "matchedSources": [
+    {
+      "path": "src/app/(tabs)/_layout.tsx",
+      "sha256": "8ea4d3e102bfa28ccbf2a9091e07cf06ce3d50b75bbc2a47e995bfae1bae84bf",
+      "bytes": 2074,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/app/(tabs)/account.tsx",
+      "sha256": "66c9e1cfb4f21e682d7c7d4a605053c03237e71c769dc4720cd869009fc87a34",
+      "bytes": 14879,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/app/+not-found.tsx",
+      "sha256": "9ce2d99775284e5914bf24714586d1aab4d861db2cefc0893e4b251f05334af7",
+      "bytes": 756,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/app/_layout.tsx",
+      "sha256": "c3e9fa7310f8a490f93f8dd738ffb754e834e467fb1e8f61f61cc877e96c01bc",
+      "bytes": 4143,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/app/flights/[id].tsx",
+      "sha256": "16a8396caef0ed3081e3c5e88724ea561751231ea1ac234a9e570302fabae599",
+      "bytes": 21190,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/app/record.tsx",
+      "sha256": "ec4a9d83a7bf3d1eb404fbb5c4e0b4bd59ff4f89dcd6ba041845e3606e08854c",
+      "bytes": 10093,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/app/settings.tsx",
+      "sha256": "b3d5a90c7224108f5fd1f4fa2cac3332b1f3791c09fb52f41aa70498c8e1d935",
+      "bytes": 8350,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/components/ui/button.tsx",
+      "sha256": "19980baa2ed588c8e8c928124ee032795799f8fbe5a4f9d4f3a8619145281a5e",
+      "bytes": 2800,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/components/ui/chip.tsx",
+      "sha256": "44c9cbe515c7f917d677b8b5d5876eec48fb647e329ab095e157249275dcb571",
+      "bytes": 953,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/components/ui/disclaimer.tsx",
+      "sha256": "93d508ad405937a79bc360068602331927b58dc5d09c495a5ba87bd79b7efeca",
+      "bytes": 446,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/components/ui/input.tsx",
+      "sha256": "cc8ca546579828bcae64f91f97ede9618a006c1373628a66cd21a4afe9debed0",
+      "bytes": 3472,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/components/ui/link-button.tsx",
+      "sha256": "3edf53f7e4e78dd4afde4679fe27ab480f4ac813db7ef5ea455b9e293359daad",
+      "bytes": 774,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/components/ui/list-row.tsx",
+      "sha256": "912e67609861de556b2f6c088599518bf2dd0c863db0c8f139a8640fa993ab01",
+      "bytes": 2053,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/components/ui/notice.tsx",
+      "sha256": "395b023c07d7c991dbfb4290334108efdcf34df2124d5199acfba70e9ce6dd5f",
+      "bytes": 1352,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/components/ui/section-label.tsx",
+      "sha256": "3b0caaa1d3504230e6699bd91a96922b725684003adf6f6e4bb66d649f42b704",
+      "bytes": 392,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/components/ui/state-label.tsx",
+      "sha256": "a0fdea65c5407a72b5e336ede2af8160b9babba146738c9b7c7a90cc3f382022",
+      "bytes": 1055,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/components/ui/status-pill.tsx",
+      "sha256": "8ea853852ad4d5c67ecba603f0cd28203ba0765cc6a90c1d95b39dbcd3ccb434",
+      "bytes": 1754,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/components/ui/top-bar.tsx",
+      "sha256": "7007b49ad146b365f5110e8b001948f43cfb6e9dfe50ed94fa9ec2eb9188d3d7",
+      "bytes": 1209,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/account/components/pilot-details-sheet.tsx",
+      "sha256": "14deee86bb891399f199bf1e5afacbbfef92d2dd6391b99710cc1cd9974d079f",
+      "bytes": 6560,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/feed/flight-sharing-section.tsx",
+      "sha256": "614f1b71cf8eca260c82661ad8af60fe5552190259a9650b83bbbe3827721708",
+      "bytes": 7796,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/feed/shared-detail-screen.tsx",
+      "sha256": "9432366992d72d3595266786001dfaadc0b7c40fbb3f07b3d66b27164a43200c",
+      "bytes": 7983,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/feed/sharing-sheet.tsx",
+      "sha256": "101352d4cc794afdc787802bcc3295f4baa4a051ab88a7dd987cf0c7fc8ef4d3",
+      "bytes": 2397,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/friends/friend-profile-screen.tsx",
+      "sha256": "b0e4442ea656bd14c7e9c4229c6fee2bc85efe9bd0bfa9da92efe32fa10465ff",
+      "bytes": 4897,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/friends/friends-screen.tsx",
+      "sha256": "20cfb0b85376d874f257fec72a115dcfaeda41addd4519dc09a18fe8d8e0c38d",
+      "bytes": 10109,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/friends/pilot-search-screen.tsx",
+      "sha256": "bdb28cbf2507d289f2553ff78e0e9571b80ac9dc6731373f413df8f239cfe295",
+      "bytes": 11020,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/logbook/setup-checklist.ts",
+      "sha256": "b02c407b9c14091843482099b4d937569805ef649a26e8210ab7a200d86f8474",
+      "bytes": 3151,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/onboarding/components/first-run-gate.tsx",
+      "sha256": "a4abca2bee4afe22bbf1ad4d0c711e035dbe87c8102a5c24d8e660b64925de69",
+      "bytes": 2157,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/onboarding/components/onboarding-overlay.tsx",
+      "sha256": "85a5d10bcd4804d0577407385ab1eb25866881ccb46610b0d92850565d6a69bd",
+      "bytes": 10631,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/onboarding/components/permissions-step.tsx",
+      "sha256": "7943983a6416058f87897e69030c4bdd341df06f38a09376ace4414301954b03",
+      "bytes": 5625,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/onboarding/components/step-chrome.tsx",
+      "sha256": "849cce78baa7bf8c1326f0ced4e23013ed002aad30ad9d32ac3465a852ab21c1",
+      "bytes": 2116,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/onboarding/first-run-provider.tsx",
+      "sha256": "71c2d0b9375e13658f5aadccbf4c3f8a7905b2e8b3d9d69b7bf9f4945a402135",
+      "bytes": 8507,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/onboarding/onboarding-flow.ts",
+      "sha256": "d62f87bed3f5a91a89b63a207589b7a58dce441cf93f50122cd266c9fe49a6cf",
+      "bytes": 4122,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/onboarding/use-setup-permissions.ts",
+      "sha256": "4685b1b71fe1e240e28891b195d4622a0041eb3a044a20a0cfb592d32c3e6049",
+      "bytes": 4795,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/postcard/assets.ts",
+      "sha256": "12d935f5bd88baa50205878e312771d9c9b3ec1679b6656503916341b2399a9e",
+      "bytes": 475,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/record/components/instrument.tsx",
+      "sha256": "d1e1af3f8e68514af98712ab08299df7b623bce3c3ef5d0ce3f2f01cf2a724e3",
+      "bytes": 10006,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/record/components/interrupted.tsx",
+      "sha256": "78e52e36a8a0724cbf59530b9db38e4552a02768861175d41e53a6fbd166038a",
+      "bytes": 6093,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/features/record/components/preflight.tsx",
+      "sha256": "a2cca81315981fcd4fea4d91f1d53338013bab463e89afd18b959f7220b69f8c",
+      "bytes": 6689,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/global.css",
+      "sha256": "50e8f82ba77d26d4afd0c6498f62733d6b9954cca21b73b012d280151c331130",
+      "bytes": 5959,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/lib/location-permission.ts",
+      "sha256": "9494388c502cbd7e63995093729ca38cb6f039fc0e3df4339a34d5afdcdcbf44",
+      "bytes": 3827,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/lib/notification-permission.ts",
+      "sha256": "3fe4c7ff66577cc06abe60525a5ad8281669ec2afbc778bd89338c45bd749b14",
+      "bytes": 1368,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/recorder/recorder-service.native.ts",
+      "sha256": "178675ee2c17daa67083df5207a3452e98fdc709f4da184b1f655864cc5bb316",
+      "bytes": 47854,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/ui/font-assets.ts",
+      "sha256": "40cbba3129786a17c7ccf735374167f64efe8d957a94275dbced75b0f2eb8515",
+      "bytes": 1093,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    },
+    {
+      "path": "src/ui/theme.ts",
+      "sha256": "79004bb696f306a1d9e22aa1aa9b670e7dd812d0d36ad15fc9e25b29b9de207e",
+      "bytes": 3283,
+      "matchesSourcesContent": {
+        "composed": true,
+        "packager": true
+      },
+      "matchesImplementationCommit": true
+    }
+  ],
+  "workingTreeDifferencesFromBuildCommitAtVerification": [
+    "src/app/(tabs)/_layout.tsx"
+  ],
+  "sourceVerification": "Each listed runtime source from both preserved maps exactly matches git show 123414322bf73dd0faf13748d95e4c05b47cb026:<path>.",
+  "offlineSetupBuild": {
+    "identityFile": "ui-audit/stage1/build-identity.json",
+    "apk": ".artifacts/stage1/flight-log-stage1-offline-20260927.apk",
+    "sha256": "0886251a2f26ab469705cc3586019888d71a7dd0819137bddc3ba64b047fb779",
+    "scope": "Setup-only flavor with INTERNET removed. Prior A/B identities remain in that identity record. The native image loader crashed on map-image loading after a ground fixture stop; this is not a general offline-app simulation."
+  },
+  "ordinaryNativeRestoration": "Deferred at root request to allow the incremental enlarged-tab QA rebuild. No normal APK built or installed."
+}

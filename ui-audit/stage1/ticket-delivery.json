@@ -1,0 +1,122 @@
+{
+  "date": "2026-09-27",
+  "implementationCommits": [
+    "123414322bf73dd0faf13748d95e4c05b47cb026",
+    "e835a5298949025d7debeafce85a5ff5c01c3142"
+  ],
+  "apkSha256": "bc06af4e392b99a9be846d4511249cd69c674d840728bd58b0535532531f9e57",
+  "issues": [
+    {
+      "id": "PAR-41",
+      "status": "Backlog",
+      "completedAt": null,
+      "attachments": [],
+      "verifiedComments": [
+        {
+          "id": "7ed7d2d4-a73b-4182-8de3-bb8f036be78c",
+          "body": "Stage 1 implementation contract (PAR-44 foundation + PAR-45/46): equipment and registration are optional and stay in **Pilot → Edit pilot details**. Onboarding is Welcome → optional Name → Permissions → optional Backup; it does not edit or clear existing equipment. Private pilot name remains separate from explicitly chosen Friends identity. Existing IGC mappings and original restored files are unchanged. No schema, migration, backend, sport/aircraft model, public projection or history change is included.\n\nThis settles Stage 1 placement only. PAR-41 and its broader aircraft/sport/history/export decisions remain open. Durable implementation agreement: `new-design/stage-1.md`; build/device evidence is being recorded on PAR-44/45/46."
+        }
+      ]
+    },
+    {
+      "id": "PAR-42",
+      "status": "Backlog",
+      "completedAt": null,
+      "attachments": [],
+      "verifiedComments": [
+        {
+          "id": "97d135b3-d294-4d67-97d4-3301d79b6d17",
+          "body": "Stage 1 navigation choice: rename visible tabs and destination references to **Home / Friends / Pilot** immediately while preserving existing route URLs. **Home remains the personal logbook**, Friends remains the separate supported feed, and Pilot initially contains the existing profile/account screen. Keep “account” terminology for cloud-account actions. Welcome’s acknowledged Skip setup opens Home.\n\nThis is the explicit temporary fallback for the shared foundation/onboarding slice. Combined Home sources, filters, totals, pagination/deduplication and social/offline contracts are not implemented or resolved by this rename. PAR-42 stays open; PAR-44 remains open for its dependent final navigation work. Durable agreement: `new-design/stage-1.md`."
+        }
+      ]
+    },
+    {
+      "id": "PAR-44",
+      "status": "Backlog",
+      "completedAt": null,
+      "attachments": [
+        {
+          "id": "40446c5f-23d7-4e83-859a-d19bb553b602",
+          "title": "Stage 1 — Final E tab labels at font scale 1.3"
+        },
+        {
+          "id": "169f505c-ea63-4804-affa-ef4b28b92505",
+          "title": "Design screens — PAR-44 — 27 September 2026"
+        }
+      ],
+      "verifiedComments": [
+        {
+          "id": "b472eee9-1217-4b1d-a2b3-ad43cb19ea6a",
+          "body": "Delivered the **Stage 1 foundation slice**; keeping PAR-44 open for the remaining PAR-42-dependent navigation contract and broader screen coverage.\n\nThe explicit approved direction is now implemented: bundled **Bricolage Grotesque 400/500/600/700/800**, retaining IBM Plex Mono, one startup/postcard font registry, paired runtime/CSS paper/green/rust tokens, muted text `#63705F`, 12px shared-label/helper minimum, typography/spacing/radius roles, and shared controls that grow with text (56px primary, 50px secondary, 48px text actions, 44px icon targets). Dark-recorder tokens are defined; runtime recorder-theme/instrument redesign stays PAR-62. Token-parity, font-registry and contrast tests pass.\n\nShared buttons, inputs, cards, notices, rows, status/header and startup/recovery/not-found presentation use the foundation. Safe-area ownership, native semantics and reduced motion remain. Native setup preserves the underlying navigator and isolates modal accessibility/touches. Enlarged tab labels were found clipped during QA and fixed in the final follow-up commit.\n\nLabels are **Home / Friends / Pilot** with route URLs preserved. Home remains the personal logbook, Friends the separate feed, and Pilot the existing profile/account destination. Cloud-account wording stays where appropriate. Agreed temporary Home behavior and optional equipment placement were recorded on PAR-42 and PAR-41.\n\nImplementation: `123414322bf73dd0faf13748d95e4c05b47cb026`; enlarged-tab fix: `e835a5298949025d7debeafce85a5ff5c01c3142`, branch `feature/ui-revamp-beta`.\n\nInstalled named build: **Flight Log Stage 1 QA**, standard **E**, package `com.xxvalhallacoderxx.xcmvp.stage1qa`, version `1.0.0-stage1-qa`, arm64 release. APK SHA-256 `bc06af4e392b99a9be846d4511249cd69c674d840728bd58b0535532531f9e57`. Build passed in 58s; all 239 mapped source files match final commit/current source. Installed APK hash was read back on **Samsung SM-S938B, Android 16/API 36**, OS `BP4A.251205.006.S938BXXSCCZH1`.\n\nNode **24.16.0** full `pnpm test` passed (125.7s): types/lint, 3 architecture tests, **128 Jest suites / 1,244 tests**, **71 Deno tests**, **13 pgTAP files / 469 tests**, generated DB-type parity and isolated DB cleanup. This run covers commit `1234143`; the only later product edit, enlarged-tab sizing in `e835a52`, passed full TypeScript/focused ESLint plus installed E checks at font scales 1.0 and 1.3.\n\nPhysical E checks show full tab labels at normal 1.0 and enlarged 1.3, navigation across Home/Friends/Pilot/Settings/Review, preserved pilot/equipment, and Android Back. Square/Flying and Story/Launch postcard previews on D passed Bricolage/mono font and layout checks; D/E use identical postcard sources. The **pre-existing postcard Modal-focus readiness bug** was reproduced and recorded on PAR-65 with before/after captures; native export/handoff remains open there/PAR-2. No postcard was sent.\n\nDurable evidence: `ui-audit/stage1/README.md`, `gallery.html` (38 captures), `build-identity.json`, `device-identity.json`, and logs; agreement in `new-design/stage-1.md`. Captures keep their A/B/C/D/E provenance; earlier setup checks are not relabelled as E. A/B/C are setup-only no-INTERNET flavors; D/E retain INTERNET. Original font scale 0.9, Wispr accessibility service and enabled device location were restored. Normal installation/data/account were untouched.\n\nBounds: TalkBack was enabled/bound and keyboard focus/activation plus overlay isolation were verified; no auditory recording or complete gesture audit. PAR-6 remains separate. Physical recording reliability is not established by the short stationary postcard fixture. `pnpm validate:deps` reports 27 newer SDK57 package patches; no dependency upgrade was included.\n\nPAR-45/46 acceptance is complete. Next planned batch remains PAR-47 plus the sign-in portion of PAR-66."
+        }
+      ]
+    },
+    {
+      "id": "PAR-45",
+      "status": "Done",
+      "completedAt": "2026-09-27T12:12:42.206Z",
+      "attachments": [
+        {
+          "id": "c4c4cb97-ded0-475a-a238-7637e21d5af2",
+          "title": "Stage 1 — Name with keyboard, enlarged text (build B)"
+        },
+        {
+          "id": "1ee94806-a52f-47a1-bbd0-879970504308",
+          "title": "Design screens — PAR-45 — 27 September 2026"
+        }
+      ],
+      "verifiedComments": [
+        {
+          "id": "afb7ccfc-f7e4-44fa-b01e-9ce62a4d9a4f",
+          "body": "Stage 1 implementation and acceptance **passed** for this ticket; closing PAR-45.\n\nWelcome uses the shared foundation, retains the recorder limitation, and guards **both Start and Skip** in controls and handlers. Welcome sits outside Name → Permissions → optional Backup (1/3–3/3). Name is the only onboarding profile field (optional, 60 characters); equipment/registration remain in Pilot → Edit pilot details.\n\nProvider-owned drafts survive step navigation and Settings. Continue trims/saves only changed nonblank names; Skip does not save, and blank cannot erase an existing name. Save failure keeps the field/draft with Retry/Skip, and duplicate actions are guarded. Private name/IGC use stays distinct from Friends identity.\n\nPhysical QA covered acknowledgement-disabled exits, name/keyboard reachability, Skip/Back draft retention, Settings return, restart-prefill semantics, long names/enlarged text, Review dismissal through Android Back and Close, and preservation of pilot/equipment values across installs. Real component/provider tests additionally cover acknowledged Skip-to-Home, changed/blank saves, save failure/retry, duplicate submissions and completion history. Onboarding save failures were exercised by tests, not induced on the phone.\n\nImplementation: `123414322bf73dd0faf13748d95e4c05b47cb026`; enlarged-tab fix: `e835a5298949025d7debeafce85a5ff5c01c3142`, branch `feature/ui-revamp-beta`.\n\nInstalled named build: **Flight Log Stage 1 QA**, standard **E**, package `com.xxvalhallacoderxx.xcmvp.stage1qa`, version `1.0.0-stage1-qa`, arm64 release. APK SHA-256 `bc06af4e392b99a9be846d4511249cd69c674d840728bd58b0535532531f9e57`. Build passed in 58s; all 239 mapped source files match final commit/current source. Installed APK hash was read back on **Samsung SM-S938B, Android 16/API 36**, OS `BP4A.251205.006.S938BXXSCCZH1`.\n\nNode **24.16.0** full `pnpm test` passed (125.7s): types/lint, 3 architecture tests, **128 Jest suites / 1,244 tests**, **71 Deno tests**, **13 pgTAP files / 469 tests**, generated DB-type parity and isolated DB cleanup. This run covers commit `1234143`; the only later product edit, enlarged-tab sizing in `e835a52`, passed full TypeScript/focused ESLint plus installed E checks at font scales 1.0 and 1.3.\n\nDurable evidence: `ui-audit/stage1/README.md`, `gallery.html` (38 captures), `build-identity.json`, `device-identity.json`, and logs; agreement in `new-design/stage-1.md`. Captures keep their A/B/C/D/E provenance; earlier setup checks are not relabelled as E. A/B/C are setup-only no-INTERNET flavors; D/E retain INTERNET. Original font scale 0.9, Wispr accessibility service and enabled device location were restored. Normal installation/data/account were untouched.\n\nBounds: TalkBack was enabled/bound and keyboard focus/activation plus overlay isolation were verified; no auditory recording or complete gesture audit. PAR-6 remains separate. Physical recording reliability is not established by the short stationary postcard fixture. `pnpm validate:deps` reports 27 newer SDK57 package patches; no dependency upgrade was included.\n\nThe attached enlarged-keyboard screenshot is build B. Final E confirms preserved Pilot details and Review dismissal. No backend/schema changes or account requirement were introduced. Backup's dedicated redesign stays PAR-47 / sign-in portion of PAR-66."
+        }
+      ]
+    },
+    {
+      "id": "PAR-46",
+      "status": "Done",
+      "completedAt": "2026-09-27T12:12:44.189Z",
+      "attachments": [
+        {
+          "id": "0af91100-c83c-41b1-af73-cedeb54a63c4",
+          "title": "Stage 1 — Precise/background access after Settings (build B)"
+        },
+        {
+          "id": "e5cc583e-6bbf-4398-8652-94f8bfc3f6f2",
+          "title": "Design screens — PAR-46 — 27 September 2026"
+        }
+      ],
+      "verifiedComments": [
+        {
+          "id": "06263691-39dd-494b-906e-5f5433b9ecb4",
+          "body": "Stage 1 implementation and acceptance **passed** for this ticket; closing PAR-46.\n\nPermissions are read passively on entry/foreground. Precise/approximate/denied/unavailable/checking and device-location-off are distinct. Foreground permission precedes background access; request eligibility selects retry versus Settings. Notifications are independently optional and Not now remains available. Reads do not start recording or imply recorder health. Action locks span re-entry; departed owners cannot apply stale results or continue prompts.\n\nThe navigator stays mounted beneath touch/accessibility-isolating setup/loading overlays. First-run completion persists before dismissal; failure exposes Retry and Continue without saving. Review can be dismissed and preserves completion/acknowledgement history. Saved-name prefill survives full restart; unfinished session drafts do not persist.\n\nPhysical QA covered approximate → precise → background Settings access, return refresh and draft retention, notification denial/Not now → Backup, permanent-denial recovery, location services off/on, blocked preflight, account-free/offline completion, completed restart, Android Back/Review dismissal, enlarged text, and bounded TalkBack focus/activation/isolation. Tests cover unavailable/error states, optional notifications, duplicate requests, obsolete results, save-completion failure/retry/continue-without-saving and unchanged Review timestamps. The phone's initial Expo eligibility after a QA-only user-fixed denial still offered Retry; that request returned without a prompt, refreshed eligibility and correctly showed Open app settings.\n\nImplementation: `123414322bf73dd0faf13748d95e4c05b47cb026`; enlarged-tab fix: `e835a5298949025d7debeafce85a5ff5c01c3142`, branch `feature/ui-revamp-beta`.\n\nInstalled named build: **Flight Log Stage 1 QA**, standard **E**, package `com.xxvalhallacoderxx.xcmvp.stage1qa`, version `1.0.0-stage1-qa`, arm64 release. APK SHA-256 `bc06af4e392b99a9be846d4511249cd69c674d840728bd58b0535532531f9e57`. Build passed in 58s; all 239 mapped source files match final commit/current source. Installed APK hash was read back on **Samsung SM-S938B, Android 16/API 36**, OS `BP4A.251205.006.S938BXXSCCZH1`.\n\nNode **24.16.0** full `pnpm test` passed (125.7s): types/lint, 3 architecture tests, **128 Jest suites / 1,244 tests**, **71 Deno tests**, **13 pgTAP files / 469 tests**, generated DB-type parity and isolated DB cleanup. This run covers commit `1234143`; the only later product edit, enlarged-tab sizing in `e835a52`, passed full TypeScript/focused ESLint plus installed E checks at font scales 1.0 and 1.3.\n\nDurable evidence: `ui-audit/stage1/README.md`, `gallery.html` (38 captures), `build-identity.json`, `device-identity.json`, and logs; agreement in `new-design/stage-1.md`. Captures keep their A/B/C/D/E provenance; earlier setup checks are not relabelled as E. A/B/C are setup-only no-INTERNET flavors; D/E retain INTERNET. Original font scale 0.9, Wispr accessibility service and enabled device location were restored. Normal installation/data/account were untouched.\n\nBounds: TalkBack was enabled/bound and keyboard focus/activation plus overlay isolation were verified; no auditory recording or complete gesture audit. PAR-6 remains separate. Physical recording reliability is not established by the short stationary postcard fixture. `pnpm validate:deps` reports 27 newer SDK57 package patches; no dependency upgrade was included.\n\nThe attached Settings-return screenshot is build B; final E retains the completed setup/profile state. The no-INTERNET harness is setup-only: native image loading after a ground fixture exposed a harness limitation, so postcard checks used standard D/E. Recorder capture/recovery code and reliability acceptance remain under their existing owners."
+        }
+      ]
+    },
+    {
+      "id": "PAR-65",
+      "status": "Backlog",
+      "completedAt": null,
+      "attachments": [
+        {
+          "id": "b3b69c46-45dc-4a82-880a-59973db10af6",
+          "title": "Existing postcard focus issue — Home then return (standard E)"
+        },
+        {
+          "id": "561f2829-1308-4238-bb2e-2090053b7a5f",
+          "title": "Existing postcard focus issue — fresh open (standard E)"
+        },
+        {
+          "id": "de0c60a3-9112-4491-b390-25f87060de4c",
+          "title": "Design screens — PAR-65 — 27 September 2026"
+        }
+      ],
+      "verifiedComments": [
+        {
+          "id": "184524af-952a-4db9-9c32-53c723a2ec9b",
+          "body": "Stage 1 device audit reproduced the existing disabled **Share image** state and narrowed its cause. This remains in PAR-65's existing scope; no status change.\n\nOn Samsung SM-S938B / Android 16, **Flight Log Stage 1 QA**, standard build E (commit `e835a5298949025d7debeafce85a5ff5c01c3142`, APK SHA-256 `bc06af4e392b99a9be846d4511249cd69c674d840728bd58b0535532531f9e57`):\n\n1. Open a saved ground-test flight → Share postcard. Art, fonts and preview render, but Share image stays disabled.\n2. Press Android Home, then return to the existing app task without editing anything. Share image becomes enabled.\n3. Attached before/after captures show the same composer state; corresponding native UI XML is saved in `ui-audit/stage1/postcard-{disabled,ready}-e.xml`.\n\nThe composer, card and export code are byte-for-byte unchanged from base commit `b4b3771`. Source inspection points to the existing Android AppState blur guard: the Activity loses focus when its postcard Dialog opens, while the Dialog does not forward a matching Activity focus event. Resuming the app runs the existing active-state handler. This is a supported diagnosis, not instrumented proof of every event.\n\nStage 1's bundled Bricolage/IBM Plex Mono **preview** check passed for Square/Flying and Story/Launch on standard build D (same postcard runtime as E). No image was exported or sent; PAR-2's output/handoff and PAR-65's composer acceptance remain open. The separate no-INTERNET QA flavor is limited to setup tests because remote-image loading can crash that harness; use the standard QA APK for postcard work."
+        }
+      ]
+    }
+  ]
+}

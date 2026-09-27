@@ -1,0 +1,35 @@
+{
+  "appPackage": "com.xxvalhallacoderxx.xcmvp.stage1qa",
+  "installedApkSha256": "bc06af4e392b99a9be846d4511249cd69c674d840728bd58b0535532531f9e57",
+  "model": "SM-S938B",
+  "androidVersion": "16",
+  "sdk": "36",
+  "osBuild": "BP4A.251205.006.S938BXXSCCZH1",
+  "physicalSize": "Physical size: 1080x2340",
+  "density": "Physical density: 450\nOverride density: 420",
+  "normalAppPreserved": true,
+  "offlinePermissionCheck": "Offline C manifest lacked INTERNET; standard E retains INTERNET. Offline harness used only for setup acceptance.",
+  "fontScalesTested": [
+    1.0,
+    1.3
+  ],
+  "originalFontScale": 0.9,
+  "locationServicesRestored": true,
+  "originalFontScaleRestored": true,
+  "originalAccessibilityServiceRestored": true,
+  "talkBackCheck": "Enabled service; keyboard traversal and activation; visible native focus on progress/name/Not now; no auditory recording or complete gesture audit.",
+  "offlineSetupInstalledApkSha256": "0886251a2f26ab469705cc3586019888d71a7dd0819137bddc3ba64b047fb779",
+  "installedBuild": "Standard E",
+  "implementationCommit": "e835a5298949025d7debeafce85a5ff5c01c3142",
+  "fontScaleAfterQa": "0.9",
+  "accessibilityServicesAfterQa": "com.wispr.flowapp/com.wispr.flowapp.service.FlowAccessibilityService",
+  "locationModeAfterQa": "3",
+  "normalAppStillPresent": true,
+  "standardQaInternetPermission": true,
+  "equipmentPreserved": {
+    "pilotName": "Stage One Pilot",
+    "pilotRegistrationId": "QA-123",
+    "glider": "QA Test Glider"
+  },
+  "postcardChecks": "D: Square/Flying and Story/Launch font/layout previews. E: existing fresh-open disabled Share image becomes enabled after Home/return; no export or external sharing."
+}
