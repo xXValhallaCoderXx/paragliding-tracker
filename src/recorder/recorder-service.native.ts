@@ -1,3 +1,4 @@
+import { permissionValue, precisePermission } from '@/lib/location-permission';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
 import * as Battery from 'expo-battery';
 import Constants from 'expo-constants';
@@ -54,7 +55,6 @@ import {
   type RecorderActivity,
   type RecorderFailure,
   type RecorderFailureCode,
-  type RecorderPermission,
   type RecorderService,
   type RecorderSnapshot,
   type RecorderState,
@@ -64,14 +64,6 @@ import {
 } from './types';
 
 const SUPPORTED = Platform.OS === 'android' || Platform.OS === 'ios';
-
-function permissionValue(
-  status: Location.PermissionStatus,
-  precise = true,
-): RecorderPermission {
-  if (status === Location.PermissionStatus.UNDETERMINED) return 'unknown';
-  return status === Location.PermissionStatus.GRANTED && precise ? 'granted' : 'denied';
-}
 
 function unknownCapabilities(): RecorderCapabilities {
   return {
@@ -160,12 +152,6 @@ async function readPower(): Promise<PowerReading> {
       recordedAt,
     };
   }
-}
-
-function precisePermission(response: Location.LocationPermissionResponse): boolean {
-  if (Platform.OS === 'android') return response.android?.accuracy === 'fine';
-  if (Platform.OS === 'ios') return response.ios?.accuracy !== 'reduced';
-  return false;
 }
 
 interface LocationTaskState {

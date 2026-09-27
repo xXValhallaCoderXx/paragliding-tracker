@@ -46,7 +46,7 @@ describe('the welcome gate', () => {
 
 describe('stepping through', () => {
   it('visits every step once, in the order the design draws them', () => {
-    expect(walk(accepted())).toEqual(['welcome', 'pilot', 'glider', 'location', 'backup']);
+    expect(walk(accepted())).toEqual(['welcome', 'pilot', 'location', 'backup']);
   });
 
 
@@ -77,12 +77,11 @@ describe('stepping through', () => {
 });
 
 describe('stepProgress', () => {
-  it('numbers the four steps and leaves welcome out of the count', () => {
+  it('numbers the three steps and leaves welcome out of the count', () => {
     expect(stepProgress('welcome')).toBeNull();
-    expect(stepProgress('pilot')).toEqual({ current: 1, total: 4 });
-    expect(stepProgress('glider')).toEqual({ current: 2, total: 4 });
-    expect(stepProgress('location')).toEqual({ current: 3, total: 4 });
-    expect(stepProgress('backup')).toEqual({ current: 4, total: 4 });
+    expect(stepProgress('pilot')).toEqual({ current: 1, total: 3 });
+    expect(stepProgress('location')).toEqual({ current: 2, total: 3 });
+    expect(stepProgress('backup')).toEqual({ current: 3, total: 3 });
   });
 });
 

@@ -29,7 +29,7 @@ export function FlightSharingSection({ flightId, preview }: { flightId: string; 
   return <View style={styles.detailSection}><SectionLabel>Share with friends</SectionLabel>
     {friends.status !== 'ready' ? <>
       <Text style={styles.body}>Sign in to share this flight with accepted friends. Your private notes and original files stay private.</Text>
-      <Button label="Open Account to share" onPress={() => router.push('/account')} />
+      <Button label="Open Pilot to share" onPress={() => router.push('/account')} />
     </> : friends.available && !friends.profile ? <>
         <Text style={styles.body}>Choose the name friends see before sharing a flight.</Text>
         <Button label="Set up your Friends profile" onPress={() => router.push('/friends/manage')} />

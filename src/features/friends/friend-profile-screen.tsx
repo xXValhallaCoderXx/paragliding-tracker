@@ -19,7 +19,7 @@ export default function FriendProfileScreen() {
       {friends.status === 'restoring' ? <BusyRow label="Loading your account…" />
         : friends.status !== 'ready' ? <View style={styles.section}>
           <Notice title="Sign in to view a friend">Profiles are available to accepted friends.</Notice>
-          <Button label="Open Account" onPress={() => router.push('/account')} />
+          <Button label="Open Pilot" onPress={() => router.push('/account')} />
         </View>
         : !friends.available ? <Notice title="Connect to view this profile">Profiles and backed-up flight counts need an internet connection.</Notice>
         : typeof id !== 'string' || !id ? <Notice tone="danger" title="Profile unavailable">Open a profile from your Friends tab.</Notice>

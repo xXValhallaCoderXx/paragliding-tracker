@@ -1,45 +1,23 @@
 import { PermissionsAndroid, Platform } from 'react-native';
 
-/**
- * The POST_NOTIFICATIONS permission, which Android 13 (API 33) introduced.
- *
- * The recorder's foreground-service notification is what stops Android killing a flight
- * to save power. Without this permission that notification is silently suppressed —
- * exactly the case where a long recording is most at risk — so setup asks for it, while
- * being honest that it is recommended rather than required.
- *
- * Uses React Native's `PermissionsAndroid` rather than `expo-notifications`: the app does
- * not send notifications of its own, and a bare permission request does not justify a
- * native module.
- */
-
-export type NotificationPermission = 'unsupported' | 'granted' | 'denied' | 'unknown';
-
+/** Notification visibility is optional and does not guarantee recorder health or continuity.
+ * Android's passive check does not report prompt eligibility. Remember a prompt's explicit
+ * NEVER_ASK_AGAIN result for this process; never infer permanent denial from a passive false. */
+export type NotificationPermission = 'unsupported' | 'granted' | 'denied' | 'blocked' | 'unknown' | 'unavailable';
 const POST_NOTIFICATIONS = 'android.permission.POST_NOTIFICATIONS' as const;
-
-/** Android 13 is the first version that has the permission to ask for. */
+let lastDenial: 'denied' | 'blocked' | null = null;
 function supported(): boolean {
   return Platform.OS === 'android' && Number(Platform.Version) >= 33;
 }
-
 export async function getNotificationPermission(): Promise<NotificationPermission> {
   if (!supported()) return 'unsupported';
-  try {
-    const granted = await PermissionsAndroid.check(POST_NOTIFICATIONS);
-    return granted ? 'granted' : 'unknown';
-  } catch {
-    return 'unknown';
-  }
+  if (await PermissionsAndroid.check(POST_NOTIFICATIONS)) { lastDenial = null; return 'granted'; }
+  return lastDenial ?? 'unknown';
 }
-
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
   if (!supported()) return 'unsupported';
-  try {
-    const result = await PermissionsAndroid.request(POST_NOTIFICATIONS);
-    return result === PermissionsAndroid.RESULTS.GRANTED ? 'granted' : 'denied';
-  } catch {
-    // A refusal here must never stop setup: the notification is a safeguard, not a
-    // requirement, and recording works without it.
-    return 'unknown';
-  }
+  const result = await PermissionsAndroid.request(POST_NOTIFICATIONS);
+  if (result === PermissionsAndroid.RESULTS.GRANTED) { lastDenial = null; return 'granted'; }
+  lastDenial = result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN ? 'blocked' : 'denied';
+  return lastDenial;
 }

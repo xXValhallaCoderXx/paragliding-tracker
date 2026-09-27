@@ -40,7 +40,7 @@ export function StatusPill({
     <View
       className={`flex-row items-center gap-[8px] rounded-[20px] border px-[12px] py-[7px] ${palette.box}`}>
       <PulseDot color={palette.dot} size={emphasis ? 9 : 7} pulse={pulse} />
-      <Text className={`font-data-semi text-[10.5px] tracking-[1.1px] ${palette.text}`}>
+      <Text className={`font-data-semi text-[12px] tracking-[1.1px] ${palette.text}`}>
         {label.toUpperCase()}
       </Text>
     </View>

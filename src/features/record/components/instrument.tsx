@@ -92,7 +92,7 @@ export function InstrumentView({
       <View testID="recording-header" style={{ flexShrink: 0 }}>
         <TopBar
           onBack={onBack}
-          backLabel="Back to logbook, recording continues"
+          backLabel="Back to Home, recording continues"
           right={
             <StatusPill
               label={battery ? `Phone sensors · ${battery}` : 'Phone sensors'}

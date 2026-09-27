@@ -27,14 +27,14 @@ export function Notice({
   return (
     <View
       accessibilityRole={tone === 'danger' ? 'alert' : undefined}
-      className={`gap-[2px] rounded-[11px] border px-[13px] py-[11px] ${palette.box}`}>
+      className={`gap-[4px] rounded-control border px-[13px] py-[11px] ${palette.box}`}>
       {title ? (
-        <Text className={`font-body-semi text-[11.5px] ${palette.title}`}>{title}</Text>
+        <Text className={`font-body-semi text-[12px] ${palette.title}`}>{title}</Text>
       ) : null}
       {children ? (
         <Text
           className={`font-body ${
-            title ? 'text-[11.5px] leading-[16px]' : 'text-[12.5px] leading-[18px]'
+            title ? 'text-[12px] leading-[19px]' : 'text-[12.5px] leading-[18px]'
           } ${palette.body}`}>
           {children}
         </Text>

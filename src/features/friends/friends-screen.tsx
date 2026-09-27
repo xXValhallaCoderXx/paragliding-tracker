@@ -27,7 +27,7 @@ export default function FriendsScreen({ manage = false }: { manage?: boolean }) 
       {status === 'restoring' ? <BusyRow label="Loading your account…" />
         : status === 'signed_out' ? <View style={styles.section}>
           <Notice title="Sign in to connect">Use your account to add friends and choose the name they see.</Notice>
-          <Button label="Open Account" onPress={() => router.push('/account')} />
+          <Button label="Open Pilot" onPress={() => router.push('/account')} />
         </View>
         : status === 'unconfigured' ? <Notice title="Friends is unavailable in this build">Your logbook and recorder remain available.</Notice>
         : <FriendsContent key={friends.identityKey} />}

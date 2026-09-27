@@ -26,7 +26,7 @@ export default function SharedDetailScreen() {
   const accessible = friends.status === 'ready' && feed.available && feed.identityKey === friends.identityKey;
   return <Screen><TopBar title="Shared flight" onBack={back} backLabel="Back to Friends" />
     {friends.status !== 'ready' ? <View style={styles.content}><Notice title="Sign in to view shared flights">Flights are available to the owner and their accepted friends.</Notice>
-      <Button label="Open Account" onPress={() => router.push('/account')} /></View>
+      <Button label="Open Pilot" onPress={() => router.push('/account')} /></View>
       : !accessible ? <View style={styles.content}><Notice title="Connect to view this flight">Shared flights and replays are available while you are online.</Notice></View>
         : !id || typeof id !== 'string' ? <View style={styles.content}><Notice title="Shared flight unavailable">Open a flight from Friends.</Notice></View>
           : focused ? <SharedDetailContent key={`${feed.identityKey}:${feed.revision}:${id}`} activityId={id} /> : null}

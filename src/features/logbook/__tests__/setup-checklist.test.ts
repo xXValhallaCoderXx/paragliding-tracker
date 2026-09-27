@@ -38,7 +38,7 @@ describe('setupChecklist', () => {
   it('counts nothing done on a fresh install', () => {
     const checklist = build({ profile: profile(), capabilities: capabilities() })!;
     expect(checklist.progressLabel).toBe('0 OF 3 DONE');
-    expect(checklist.title).toBe('Three things before you fly');
+    expect(checklist.title).toBe('Three setup items to review');
     expect(checklist.items.map((item) => item.done)).toEqual([false, false, false]);
   });
 
@@ -48,7 +48,7 @@ describe('setupChecklist', () => {
       capabilities: capabilities(GRANTED),
     })!;
     expect(checklist.progressLabel).toBe('1 OF 3 DONE');
-    expect(checklist.title).toBe('Two things before you fly');
+    expect(checklist.title).toBe('Two setup items to review');
     expect(checklist.items[0]).toMatchObject({ key: 'location', label: 'Location allowed', done: true });
   });
 
@@ -78,8 +78,8 @@ describe('setupChecklist', () => {
 
   it('explains why each outstanding item matters, and stops once it is done', () => {
     const outstanding = build({ profile: profile(), capabilities: capabilities() })!;
-    expect(outstanding.items[1]!.detail).toBe('IGC files say UNSPECIFIED until you do');
-    expect(outstanding.items[2]!.detail).toBe('Used in your IGC exports');
+    expect(outstanding.items[1]!.detail).toBe('Edit in Pilot; new IGC files use UNSPECIFIED without a name');
+    expect(outstanding.items[2]!.detail).toBe('Pilot → Edit pilot details; used in new IGC exports');
 
     const partly = build({
       profile: profile({ pilotName: 'Renate' }),

@@ -83,7 +83,7 @@ export function PreflightView({
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <TopBar onBack={onBack} backLabel="Back to logbook" title="Pre-flight" />
+        <TopBar onBack={onBack} backLabel="Back to Home" title="Pre-flight" />
 
         <View style={styles.illustration}>
           <JournalArt scene="launch" height={112} />

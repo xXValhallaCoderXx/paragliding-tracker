@@ -166,7 +166,7 @@ export default function SettingsScreen() {
             />
             <ListRow
               label="Delete your account"
-              detail="Also available from the Account screen while signed in."
+              detail="Also available from Pilot while signed in."
               action={
                 ACCOUNT_DELETION_URL.length > 0
                   ? {

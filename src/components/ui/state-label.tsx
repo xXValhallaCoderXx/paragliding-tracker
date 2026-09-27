@@ -25,8 +25,8 @@ export function StateLabel({
       <PulseDot color={color} size={12} pulse={pulse} halo={halo} />
       {/* Neutral reads as body copy rather than the faint dot colour, which would be unreadable. */}
       <Text
-        className="font-data-semi text-[10px] tracking-[1.2px]"
-        style={{ color: tone === 'neutral' ? paper.text : color }}>
+        className="font-data-semi text-[12px] tracking-[1.2px]"
+        style={{ color: tone === 'neutral' ? paper.text : tone === 'warning' ? paper.warnInk : color }}>
         {label.toUpperCase()}
       </Text>
     </View>

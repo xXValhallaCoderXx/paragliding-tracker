@@ -132,7 +132,7 @@ export default function AccountScreen() {
     <Screen edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>YOUR ACCOUNT</Text>
+          <Text style={styles.eyebrow}>YOUR PILOT DETAILS</Text>
           <Text style={styles.title}>Your pilot page</Text>
         </View>
 

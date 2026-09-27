@@ -156,7 +156,7 @@ export function PilotDetailsSheet({
 }
 
 const styles = StyleSheet.create({
-  sheet: { flex: 1, backgroundColor: paper.background },
+  sheet: { flex: 1, backgroundColor: paper.sheet },
   flex: { flex: 1 },
   grabber: {
     alignSelf: 'center',

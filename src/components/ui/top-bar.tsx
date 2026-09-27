@@ -13,7 +13,7 @@ export function TopBar({
   right?: ReactNode;
 }) {
   return (
-    <View className="min-h-[50px] flex-row items-center justify-between px-[12px] pt-[6px]">
+    <View className="min-h-[56px] flex-row items-center justify-between px-[12px] pt-[6px]">
       <View className="flex-1 flex-row items-center gap-[6px]">
         {onBack ? (
           <Pressable
@@ -27,7 +27,7 @@ export function TopBar({
           </Pressable>
         ) : null}
         {title ? (
-          <Text className="shrink font-body-semi text-[13px] text-body" numberOfLines={1}>
+          <Text className="shrink font-body-bold text-[17px] text-ink">
             {title}
           </Text>
         ) : null}

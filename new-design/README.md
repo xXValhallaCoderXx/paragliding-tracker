@@ -1,5 +1,7 @@
 # Final UI/UX design coverage
 
+**Current implementation direction:** [Stage 1 shared foundation and setup](stage-1.md) uses pages 1–8 of the 27 September PAR-40 pack. Its agreed Bricolage/palette and Home/Friends/Pilot labels supersede the original font/navigation guidance below. The rest of this document preserves the earlier coverage inventory.
+
 Reviewed 22 September 2026. Planning only; application code was not changed for this ticket-creation task.
 
 [PAR-40 — Finalize Flight Log UI/UX](https://linear.app/sentiment-hound/issue/PAR-40/finalize-flight-log-uiux-screen-designs-flows-and-implementation) contains the original HTML attachment, **25 screen/flow subtasks** and **3 product/data prerequisites**. All 28 children were read back from Linear with the expected parent, Design label, Backlog status and blocking relations. No cycle, assignee or deadline was set.

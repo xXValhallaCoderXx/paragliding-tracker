@@ -66,14 +66,14 @@ export function setupChecklist(args: {
     },
     {
       key: 'pilotName',
-      label: profile.pilotName ? 'Pilot name added' : 'Add your pilot name',
-      detail: profile.pilotName ? '' : 'IGC files say UNSPECIFIED until you do',
+      label: profile.pilotName ? 'Pilot name added' : 'Add a pilot name — optional',
+      detail: profile.pilotName ? '' : 'Edit in Pilot; new IGC files use UNSPECIFIED without a name',
       done: Boolean(profile.pilotName),
     },
     {
       key: 'glider',
-      label: profile.gliderType ? 'Glider named' : 'Name your glider',
-      detail: profile.gliderType ? '' : 'Used in your IGC exports',
+      label: profile.gliderType ? 'Glider named' : 'Add equipment — optional',
+      detail: profile.gliderType ? '' : 'Pilot → Edit pilot details; used in new IGC exports',
       done: Boolean(profile.gliderType),
     },
   ];
@@ -83,7 +83,7 @@ export function setupChecklist(args: {
   if (outstanding === 0) return null;
 
   return {
-    title: `${countWord(outstanding)} thing${outstanding === 1 ? '' : 's'} before you fly`,
+    title: `${countWord(outstanding)} setup item${outstanding === 1 ? '' : 's'} to review`,
     progressLabel: `${done} OF ${items.length} DONE`,
     items,
     done,

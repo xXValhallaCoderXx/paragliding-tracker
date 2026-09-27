@@ -38,8 +38,8 @@ export function SharingSheet({ title, busy, onClose, children }: {
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { backgroundColor: paper.ink, opacity: 0.22 },
-  sheet: { maxHeight: '100%', flexShrink: 1, borderTopLeftRadius: radii.cardLarge, borderTopRightRadius: radii.cardLarge,
-    backgroundColor: paper.background, overflow: 'hidden' },
+  sheet: { maxHeight: '100%', flexShrink: 1, borderTopLeftRadius: radii.sheet, borderTopRightRadius: radii.sheet,
+    backgroundColor: paper.sheet, overflow: 'hidden' },
   content: { padding: spacing.gutter, paddingTop: 12, gap: 18 },
   handle: { width: 36, height: 4, borderRadius: radii.pill, backgroundColor: paper.border, alignSelf: 'center', marginBottom: 4 },
   title: { fontFamily: fonts.sansBold, fontSize: 25, lineHeight: 32, color: paper.ink },

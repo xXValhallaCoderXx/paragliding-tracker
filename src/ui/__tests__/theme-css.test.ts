@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { paper } from '../theme';
+import { paper, darkRecorder, fonts, radii } from '../theme';
 
 /**
  * The paper palette is written twice: once as TypeScript in theme.ts (for the handful of runtime
@@ -25,6 +25,14 @@ function normalise(value: string): string {
 it('keeps the CSS colour map consistent with the runtime palette', () => {
   const declared = Object.fromEntries([...css.matchAll(/^\s*--(color-[a-z0-9-]+):\s*([^;]+);/gm)]
     .map(([, name, value]) => [name, normalise(value)]));
-  const expected = Object.fromEntries(Object.entries(paper).map(([key, value]) => [cssNameFor(key), normalise(value)]));
+  const expected = Object.fromEntries([...Object.entries(paper).map(([key, value]) => [cssNameFor(key), normalise(value)]), ...Object.entries(darkRecorder).map(([key, value]) => [cssNameFor(key).replace('color-', 'color-recorder-'), normalise(value)])]);
   expect(declared).toEqual(expected);
+});
+
+it('keeps font and radius roles paired with CSS', () => {
+  for (const family of Object.values(fonts)) expect(css).toContain(`: ${family};`);
+  for (const [key, value] of Object.entries(radii)) {
+    const name = key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
+    expect(css).toContain(`--radius-${name}: ${value}px;`);
+  }
 });

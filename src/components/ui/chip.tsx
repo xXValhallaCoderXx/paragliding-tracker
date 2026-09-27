@@ -13,8 +13,8 @@ const CHIP: Record<ChipTone, { box: string; text: string }> = {
 
 export function Chip({ label, tone = 'muted' }: { label: string; tone?: ChipTone }) {
   return (
-    <View className={`self-start rounded-[5px] px-[6px] py-[3px] ${CHIP[tone].box}`}>
-      <Text className={`font-data-medium text-[9.5px] tracking-[0.3px] ${CHIP[tone].text}`}>
+    <View className={`self-start rounded-control-large px-[6px] py-[3px] ${CHIP[tone].box}`}>
+      <Text className={`font-data-medium text-[12px] tracking-[0.3px] ${CHIP[tone].text}`}>
         {label.toUpperCase()}
       </Text>
     </View>

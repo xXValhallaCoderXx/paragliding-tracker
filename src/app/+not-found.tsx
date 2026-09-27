@@ -14,7 +14,7 @@ export default function NotFoundScreen() {
       <Text className="text-center font-body text-[13.5px] leading-[21px] text-body">
         Nothing was lost — your flights are stored on this phone.
       </Text>
-      <Button label="Back to logbook" variant="primary" onPress={() => router.replace('/')} />
+      <Button label="Back to Home" variant="primary" onPress={() => router.replace('/')} />
     </Screen>
   );
 }

@@ -30,8 +30,8 @@ const SPINNER: Record<ButtonVariant, string> = {
 };
 
 const SIZE = {
-  md: { box: 'min-h-[46px] rounded-[11px] gap-[8px]', text: 'text-[13.5px]' },
-  lg: { box: 'min-h-[56px] rounded-card gap-[10px]', text: 'text-[15.5px]' },
+  md: { box: 'min-h-[50px] rounded-control-large gap-[8px]', text: 'text-[15px]' },
+  lg: { box: 'min-h-[56px] rounded-control-large gap-[10px]', text: 'text-[15.5px]' },
   xl: { box: 'min-h-[60px] rounded-control-large gap-[11px]', text: 'text-[17px]' },
 } as const;
 
@@ -69,7 +69,7 @@ export function Button({
       style={({ pressed }) => (pressed && !inactive ? { opacity: 0.72 } : null)}
       className={`flex-row items-center justify-center border border-transparent px-[16px] py-[10px] ${
         SIZE[size].box
-      } ${SURFACE[variant]} ${
+      } ${SURFACE[variant]} ${variant === 'primary' ? 'min-h-[56px]' : ''} ${
         variant === 'primary' && size === 'xl' ? 'shadow-[0_6px_18px_rgba(217,89,31,0.34)]' : ''
       } ${inactive ? 'opacity-[0.42]' : ''} ${className}`}>
       {busy ? (

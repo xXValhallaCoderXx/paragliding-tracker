@@ -40,7 +40,7 @@ it('directs signed-out pilots to Account and never exposes an old profile or pro
   await mount();
   expect(rendered.root.findAllByType(Input)).toHaveLength(0);
   expect(control('Share friend code')).toBeUndefined();
-  await run(() => control('Open Account').props.onPress());
+  await run(() => control('Open Pilot').props.onPress());
   expect(mockPush).toHaveBeenCalledWith('/account');
 });
 

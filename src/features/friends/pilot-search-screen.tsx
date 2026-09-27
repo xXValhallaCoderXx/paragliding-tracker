@@ -18,7 +18,7 @@ export default function PilotSearchScreen() {
     {friends.status === 'restoring' ? <BusyRow label="Loading your account…" />
       : friends.status !== 'ready' ? <View style={styles.content}>
         <Notice title="Sign in to find pilots">Search is available to signed-in pilots with a Friends profile.</Notice>
-        <Button label="Open Account" onPress={() => router.push('/account')} />
+        <Button label="Open Pilot" onPress={() => router.push('/account')} />
       </View> : <SearchContent key={friends.identityKey} />}
   </Screen>;
 }

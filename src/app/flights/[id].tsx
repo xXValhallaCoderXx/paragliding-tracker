@@ -174,13 +174,13 @@ export default function FlightDetailScreen() {
   if (!flight) {
     return (
       <Screen>
-        <TopBar onBack={leaveDetail} backLabel="Back to logbook" title="Flight" />
+        <TopBar onBack={leaveDetail} backLabel="Back to Home" title="Flight" />
         <View style={styles.missing}>
           <Notice tone="danger" title={loadError ? 'Could not open flight' : 'Flight not found'}>
             {loadError ? errorMessage(loadError) : 'This flight is not in the logbook any more.'}
           </Notice>
           {loadError ? <Button label="Try again" variant="primary" onPress={() => void refetch()} /> : null}
-          <Button label="Back to logbook" variant="dark" onPress={() => router.replace('/')} />
+          <Button label="Back to Home" variant="dark" onPress={() => router.replace('/')} />
         </View>
       </Screen>
     );
@@ -213,7 +213,7 @@ export default function FlightDetailScreen() {
   return (
     <Screen>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <TopBar onBack={leaveDetail} backLabel="Back to logbook" />
+          <TopBar onBack={leaveDetail} backLabel="Back to Home" />
 
           <FlightHero flight={flight} status={status} saved={savedContext} insight={insight} />
           {flight.source === 'archive' && flight.archive.trackState !== 'ready' ? <View style={styles.notices}>
@@ -222,7 +222,7 @@ export default function FlightDetailScreen() {
               {flight.archive.downloadedAt !== null ? `Your previously downloaded route remains available for replay and sharing.${flight.archive.error ? ` ${flight.archive.error}` : ''}`
                 : flight.archive.error ?? (flight.archive.trackState === 'missing'
                 ? 'This flight has a backed-up summary but no archived IGC route. Its summary and your notes are still available.'
-                : 'Your flight summary is restored. The archived route is waiting to download; manage restoration from Account.')}
+                : 'Your flight summary is restored. The archived route is waiting to download; manage restoration from Pilot.')}
             </Notice>
             {flight.archive.trackState === 'error' && signedIn ? <Button label="Retry archived route"
               onPress={() => sync.retryRestore({ allowMobileData: false })} /> : null}

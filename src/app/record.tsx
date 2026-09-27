@@ -172,7 +172,7 @@ export default function RecordFlightScreen() {
       'You can go back to the logbook without stopping. Come back here when you have landed to stop and save.',
       [
         { text: 'Stay here', style: 'cancel' },
-        { text: 'Back to logbook', onPress: goBack },
+        { text: 'Back to Home', onPress: goBack },
       ],
     );
   }, [goBack, snapshot?.state]);

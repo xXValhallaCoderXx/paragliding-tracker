@@ -61,7 +61,7 @@ export function Input({
 }) {
   return (
     <View className={`gap-[4px] py-[11px] ${last ? '' : 'border-b border-b-hairline'} ${className}`}>
-      <Text className="font-body-semi text-[9.5px] tracking-[1.4px] text-muted">
+      <Text className="font-data-medium text-[12px] tracking-[1.6px] text-muted">
         {label.toUpperCase()}
       </Text>
       <TextInput
@@ -71,8 +71,8 @@ export function Input({
         autoFocus={autoFocus}
         className={
           multiline
-            ? 'min-h-[72px] px-0 py-[4px] font-body text-[14px] leading-[20px] text-ink'
-            : 'min-h-[30px] px-0 py-[4px] font-body-semi text-[15px] text-ink'
+            ? 'min-h-[72px] rounded-control border border-border bg-card px-[13px] py-[9px] font-body text-[15px] leading-[20px] text-ink'
+            : 'min-h-[50px] rounded-control border border-border bg-card px-[13px] py-[9px] font-body-semi text-[15px] text-ink'
         }
         cursorColor={paper.thermal}
         editable={editable}
@@ -91,11 +91,11 @@ export function Input({
         value={value}
       />
       {error ? (
-        <Text accessibilityRole="alert" className="font-body text-[11.5px] text-danger-body">
+        <Text accessibilityRole="alert" className="font-body text-[12px] text-danger-body">
           {error}
         </Text>
       ) : hint ? (
-        <Text className="font-body text-[11.5px] text-muted">{hint}</Text>
+        <Text className="font-body text-[12px] text-muted">{hint}</Text>
       ) : null}
     </View>
   );

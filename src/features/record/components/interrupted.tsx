@@ -56,7 +56,7 @@ export function InterruptedView({
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        <TopBar onBack={onBack} backLabel="Back to logbook" title="Recorder" />
+        <TopBar onBack={onBack} backLabel="Back to Home" title="Recorder" />
 
         <View style={styles.headline}>
           <StateLabel label="Needs attention" tone="danger" />

@@ -3,16 +3,15 @@ import type { OnboardingState as PersistedOnboardingState } from '@/recorder/typ
 /**
  * Pure state machine for first-run setup.
  *
- * Lives in its own `.ts` module so jest covers it — `testMatch` only picks up `.ts`, so
- * nothing decision-shaped may live in the `.tsx` screens. Same split as
- * `@/cloud/otp-policy`, which the sign-in card follows.
+ * Pure sequencing is shared by the provider and behavioral tests. Persistence, drafts and
+ * error recovery belong to the provider; permission lifecycle belongs to the Permissions step.
  *
  * The whole flow is skippable by design. Recording must work with no account, no signal
  * and no setup, so every step here is an offer rather than a gate — including the
  * location step, which explains why it matters and then still lets the pilot past.
  */
 
-export type OnboardingStep = 'welcome' | 'pilot' | 'glider' | 'location' | 'backup';
+export type OnboardingStep = 'welcome' | 'pilot' | 'location' | 'backup';
 
 /** What the pilot did on a step. `skip` and `continue` both move forward. */
 export type StepOutcome = 'continue' | 'skip' | 'back';
@@ -21,7 +20,7 @@ export interface OnboardingState {
   step: OnboardingStep;
   /** The "not a certified flight recorder" acknowledgement on the welcome screen. */
   disclaimerAcknowledged: boolean;
-  /** True when the pilot took "Skip setup, take me to record" rather than stepping through. */
+  /** True when the pilot took Skip setup to Home rather than stepping through. */
   abandoned: boolean;
 }
 
@@ -31,14 +30,13 @@ export const INITIAL_ONBOARDING_STATE: OnboardingState = Object.freeze({
   abandoned: false,
 });
 
-/** The four numbered steps, in order. `welcome` sits outside the count. */
-const STEPS: readonly OnboardingStep[] = ['pilot', 'glider', 'location', 'backup'];
+/** Welcome sits outside the three numbered steps. Equipment stays in Pilot. */
+const STEPS: readonly OnboardingStep[] = ['pilot', 'location', 'backup'];
 
 export const ONBOARDING_STEP_COUNT = STEPS.length;
 
 /**
- * The "2/4" indicator. Null on the welcome screen, which is deliberately not numbered —
- * counting it would promise five steps and then show four.
+ * The 2/3 indicator. Welcome is deliberately not numbered.
  */
 export function stepProgress(step: OnboardingStep): { current: number; total: number } | null {
   const index = STEPS.indexOf(step);

@@ -126,7 +126,7 @@ it('does not claim a queued hide is complete or allow a re-share before confirma
 it('gates sharing on sign-in and permits only a queued hide while offline', async () => {
   mockFriends.status = 'signed_out';
   await mount(React.createElement(FlightSharingSection, { flightId: 'flight-1', preview }));
-  expect(control('Open Account to share')).toBeDefined();
+  expect(control('Open Pilot to share')).toBeDefined();
   expect(control('Share flight…')).toBeUndefined();
   mockFriends = friendsContext({ available: false });
   mockPublication = publicationView({ state: 'shared', online: false, activityId: 'activity-1' });

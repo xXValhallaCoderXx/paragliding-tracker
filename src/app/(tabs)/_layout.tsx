@@ -28,12 +28,12 @@ export default function TabsLayout() {
           borderTopColor: paper.border,
           borderTopWidth: 1,
         },
-        tabBarLabelStyle: { fontFamily: fonts.sansSemi, fontSize: 10, letterSpacing: 0.6 },
+        tabBarLabelStyle: { fontFamily: fonts.sansSemi, fontSize: 12, letterSpacing: 0.6 },
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Logbook',
+          title: 'Home',
           tabBarIcon: ({ color, focused }) => (
             <TabGlyph shape="logbook" color={color} focused={focused} />
           ),
@@ -51,7 +51,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="account"
         options={{
-          title: 'Account',
+          title: 'Pilot',
           tabBarIcon: ({ color, focused }) => (
             <TabGlyph shape="pilot" color={color} focused={focused} />
           ),

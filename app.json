@@ -11,6 +11,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "xcmvp",
     "userInterfaceStyle": "automatic",
+    "backgroundColor": "#F3F0E7",
     "ios": {
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.xxvalhallacoderxx.xcmvp",
@@ -24,11 +25,12 @@
         "android.permission.POST_NOTIFICATIONS"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#203F36",
+        "backgroundColor": "#18382C",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "allowBackup": false,
       "package": "com.xxvalhallacoderxx.xcmvp"
     },
     "plugins": [
@@ -36,7 +38,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#203F36",
+          "backgroundColor": "#18382C",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 160
         }

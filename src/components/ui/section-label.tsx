@@ -9,7 +9,7 @@ export function SectionLabel({
   className?: string;
 }) {
   return (
-    <Text className={`font-body-semi text-[10px] tracking-[1.4px] text-muted ${className}`}>
+    <Text className={`font-data-medium text-[12px] tracking-[1.4px] text-muted ${className}`}>
       {typeof children === 'string' ? children.toUpperCase() : children}
     </Text>
   );

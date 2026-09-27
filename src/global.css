@@ -25,7 +25,7 @@
   /*
    * Remove Tailwind's font-weight utilities entirely.
    *
-   * The design's font families carry their weight in the family name (Archivo_700Bold), and
+   * The design's font families carry their weight in the family name (BricolageGrotesque_700Bold), and
    * combining fontFamily with fontWeight makes Android synthesise a fake bold — see the header
    * comment in src/ui/theme.ts. Clearing this namespace makes font-bold / font-semibold /
    * font-medium generate nothing at all, so weight can only be chosen via a family utility.
@@ -36,17 +36,18 @@
   --font-weight-*: initial;
 
   /*
-   * The seven loaded families, one utility each.
+   * The eight loaded families, one utility each.
    *
    * Deliberately NOT named sans/serif/mono: `nativewind/theme` redefines --font-sans,
    * --font-serif and --font-mono in a :root block per platform (on Android they become
    * SystemAndroid / sans-serif / monospace), which would silently override these at runtime on
    * device.
    */
-  --font-body: Archivo_400Regular;
-  --font-body-medium: Archivo_500Medium;
-  --font-body-semi: Archivo_600SemiBold;
-  --font-body-bold: Archivo_700Bold;
+  --font-body: BricolageGrotesque_400Regular;
+  --font-body-medium: BricolageGrotesque_500Medium;
+  --font-body-semi: BricolageGrotesque_600SemiBold;
+  --font-body-bold: BricolageGrotesque_700Bold;
+  --font-body-extra-bold: BricolageGrotesque_800ExtraBold;
   --font-data: IBMPlexMono_400Regular;
   --font-data-medium: IBMPlexMono_500Medium;
   --font-data-semi: IBMPlexMono_600SemiBold;
@@ -56,10 +57,12 @@
    * one-off (14 distinct values, including 3.5) and is written as an arbitrary value at the
    * call site instead.
    */
-  --radius-card: 22px;
-  --radius-card-large: 28px;
-  --radius-control: 14px;
-  --radius-control-large: 18px;
+  --radius-card: 18px;
+  --radius-card-large: 20px;
+  --radius-control: 16px;
+  --radius-control-large: 28px;
+  --radius-tile: 12px;
+  --radius-sheet: 26px;
   --radius-pill: 999px;
 
   /*
@@ -71,42 +74,96 @@
    * theme.ts stays the source of truth for the handful of runtime JS reads (the navigator's
    * contentStyle, ActivityIndicator colours, Animated interpolations) that cannot be classes.
    */
-  --color-background: #f7f3e8;
-  --color-card: #fffcf5;
+  --color-background: #F3F0E7;
+  --color-card: #FCFBF5;
+  --color-sheet: #F8F6EE;
+  --color-scrim: #DEDACC;
+  --color-action-text: #A8401F;
+  --color-restored: #5B7FA0;
   --color-card-alt: #eee8d9;
-  --color-border: #dadccf;
-  --color-hairline: #eaeadd;
+  --color-border: #E9E5D8;
+  --color-hairline: #E9E5D8;
   --color-grid: #d3d9ca;
-  --color-ink: #203f36;
-  --color-body: #4f6257;
-  --color-muted: #637368;
+  --color-ink: #18382C;
+  --color-body: #44543F;
+  --color-muted: #63705F;
   --color-faint: #c9bfae;
   --color-ghost: #a79a82;
-  --color-placeholder: #b8ad9c;
-  --color-thermal: #b74e29;
+  --color-placeholder: #63705F;
+  --color-thermal: #B8482A;
   --color-thermal-pressed: #943d20;
-  --color-thermal-soft: #f5e5d8;
-  --color-thermal-ink: #8a3f14;
+  --color-thermal-soft: #F7E6DE;
+  --color-thermal-ink: #A8401F;
   --color-altitude: #356c88;
   --color-altitude-soft: #e5eef2;
-  --color-good: #3e7a52;
+  --color-good: #2E7050;
   --color-good-soft: #e7f0e7;
   --color-good-border: #cfe1cf;
   --color-good-body: #3e5e45;
-  --color-warn: #c98a20;
-  --color-warn-ink: #9a6a12;
-  --color-warn-soft: #f6ebd3;
+  --color-warn: #C9A227;
+  --color-warn-ink: #7A5A12;
+  --color-warn-soft: #F2E6C8;
   --color-warn-border: #e5d3ac;
   --color-warn-body: #7a5a1a;
-  --color-danger: #b4320e;
+  --color-danger: #A8401F;
   --color-danger-soft: #fff1ec;
-  --color-danger-border: #efc6b6;
+  --color-danger-border: #EED2C6;
   --color-danger-body: #7a3a24;
   --color-attention-soft: #fff3ea;
   --color-attention-border: #e0b79e;
   --color-attention-ink: #7a4a2c;
-  --color-on-dark: #fffcf5;
+  --color-on-dark: #FCFBF5;
   --color-on-dark-muted: rgba(255, 252, 246, 0.6);
   --color-on-dark-faint: rgba(255, 252, 246, 0.45);
   --color-on-dark-hairline: rgba(255, 252, 246, 0.14);
+  --spacing-micro: 4px;
+  --spacing-tight: 9px;
+  --spacing-inline: 13px;
+  --spacing-top: 46px;
+  --spacing-bottom: 28px;
+  --spacing-gutter: 20px;
+  --spacing-screen: 20px;
+  --spacing-section: 18px;
+  --spacing-action: 26px;
+  --color-recorder-background: #101F18;
+  --color-recorder-panel: #183025;
+  --color-recorder-recessed: #16291F;
+  --color-recorder-border: #2E4C3A;
+  --color-recorder-ink: #F4F7F1;
+  --color-recorder-body: #B9CDBE;
+  --color-recorder-recording: #E0503A;
+  --color-recorder-good: #58B182;
+  --text-display: 46px;
+  --text-display--line-height: 51px;
+  --text-display--letter-spacing: -1.4px;
+  --text-title: 31px;
+  --text-title--line-height: 35px;
+  --text-title--letter-spacing: -1px;
+  --text-section: 23px;
+  --text-section--line-height: 28px;
+  --text-section--letter-spacing: -0.6px;
+  --text-card-title: 17px;
+  --text-card-title--line-height: 22px;
+  --text-card-title--letter-spacing: -0.3px;
+  --text-body: 15px;
+  --text-body--line-height: 24px;
+  --text-body--letter-spacing: 0px;
+  --text-caption: 12px;
+  --text-caption--line-height: 19px;
+  --text-caption--letter-spacing: 0px;
+  --text-hero-figure: 46px;
+  --text-hero-figure--line-height: 51px;
+  --text-hero-figure--letter-spacing: -2.2px;
+  --text-progress: 28px;
+  --text-progress--line-height: 34px;
+  --text-progress--letter-spacing: -1.2px;
+  --text-stat: 21px;
+  --text-stat--line-height: 27px;
+  --text-stat--letter-spacing: 0px;
+  --text-eyebrow: 12px;
+  --text-eyebrow--line-height: 18px;
+  --text-eyebrow--letter-spacing: 2px;
+  --text-label: 12px;
+  --text-label--line-height: 18px;
+  --text-label--letter-spacing: 1.6px;
 }

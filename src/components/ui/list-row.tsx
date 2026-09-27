@@ -42,12 +42,12 @@ export function ListRow({
     <View
       className={`gap-[4px] py-[13px] ${last ? '' : 'border-b border-b-hairline'}`}>
       <View className="flex-row flex-wrap items-center justify-between gap-[10px]">
-        <Text className="shrink font-body-medium text-[13px] text-ink">{label}</Text>
+        <Text className="shrink font-body-medium text-[15px] text-ink">{label}</Text>
         {value !== undefined ? (
           <View className="shrink flex-row items-center gap-[8px]">
             <Text
               className={`text-right ${
-                mono ? 'font-data-medium text-[11.5px] text-body' : 'font-body-semi text-[13px] text-ink'
+                mono ? 'font-data-medium text-[12px] text-body' : 'font-body-semi text-[13px] text-ink'
               } ${VALUE_TONE[tone] ?? ''}`}>
               {value}
             </Text>
@@ -56,13 +56,13 @@ export function ListRow({
         ) : null}
       </View>
       {detail ? (
-        <Text className="font-body text-[11.5px] leading-[16.5px] text-body">{detail}</Text>
+        <Text className="font-body text-[12px] leading-[19px] text-body">{detail}</Text>
       ) : null}
       {action ? (
         <LinkButton
           label={`${action.label} ›`}
           onPress={action.onPress}
-          className="mt-[2px] min-h-[44px]"
+          className="mt-[2px] min-h-[48px]"
         />
       ) : null}
     </View>

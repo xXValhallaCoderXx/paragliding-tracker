@@ -4,26 +4,27 @@ import { fonts, paper } from '@/ui/theme';
 
 /**
  * The header every numbered setup step shares: a back chevron, the segmented progress
- * indicator, and the "2/4" count.
+ * indicator, and the "2/3" count.
  *
- * Plain `View`s rather than a new kit component on purpose — nothing here takes a
- * `className`, so `src/ui/__tests__/classname-targets.test.ts` and its `OWN` allowlist
- * stay untouched.
  */
 export function StepChrome({
   current,
   total,
   onBack,
+  disabled = false,
 }: {
   current: number;
   total: number;
   onBack: () => void;
+  disabled?: boolean;
 }) {
   return (
     <View style={styles.row}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Back"
+        accessibilityState={{ disabled }}
+        disabled={disabled}
         hitSlop={12}
         onPress={onBack}
         style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
@@ -32,7 +33,9 @@ export function StepChrome({
 
       <View
         style={styles.track}
+        accessible
         accessibilityRole="progressbar"
+        accessibilityLabel={`Setup step ${current} of ${total}`}
         accessibilityValue={{ min: 1, max: total, now: current }}>
         {Array.from({ length: total }, (_, index) => (
           <View
@@ -42,7 +45,7 @@ export function StepChrome({
         ))}
       </View>
 
-      <Text style={styles.count}>{`${current}/${total}`}</Text>
+      <Text style={styles.count} accessibilityElementsHidden importantForAccessibility="no">{`${current}/${total}`}</Text>
     </View>
   );
 }
@@ -64,7 +67,7 @@ const styles = StyleSheet.create({
   segmentDone: { backgroundColor: paper.thermal },
   count: {
     fontFamily: fonts.mono,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 0.4,
     color: paper.muted,
     minWidth: 26,

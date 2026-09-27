@@ -12,7 +12,7 @@ export function Disclaimer({
 }) {
   return (
     <Text
-      className={`font-body text-[10.5px] leading-[15px] text-muted ${
+      className={`font-body text-[12px] leading-[19px] text-muted ${
         align === 'left' ? 'text-left' : 'text-center'
       } ${className}`}>
       {children}

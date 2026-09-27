@@ -133,7 +133,7 @@ it('removes an already displayed detail immediately on offline, blur, and sign-o
   mockFocused = true; mockFriends.status = 'signed_out';
   await update(React.createElement(SharedDetailScreen));
   expect(rendered.root.findAllByType(FlightHero)).toHaveLength(0);
-  expect(control('Open Account')).toBeDefined();
+  expect(control('Open Pilot')).toBeDefined();
 });
 
 it('ignores late detail responses after the permission revision changes', async () => {

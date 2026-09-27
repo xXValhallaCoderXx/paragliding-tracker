@@ -1,4 +1,7 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { View, StyleSheet, Modal } from 'react-native';
 
 import { LoadingScreen } from '@/components/ui';
 
@@ -18,13 +21,30 @@ import { OnboardingOverlay } from './onboarding-overlay';
  */
 export function FirstRunGate({ children }: { children: ReactNode }) {
   const firstRun = useFirstRun();
+  const router = useRouter();
+  useEffect(() => {
+    if (firstRun.homeRequested) router.replace('/');
+  }, [firstRun.homeRequested, router]);
 
-  if (firstRun.status === 'loading') return <LoadingScreen label="Opening your logbook…" />;
+
+  const covered = firstRun.status === 'loading' || firstRun.showWizard;
 
   return (
-    <>
-      {children}
-      {firstRun.showWizard ? <OnboardingOverlay /> : null}
-    </>
+    <View style={styles.fill}>
+      <View style={styles.fill} collapsable={false} pointerEvents={covered ? 'none' : 'auto'}
+        accessibilityElementsHidden={covered}
+        importantForAccessibility={covered ? 'no-hide-descendants' : 'auto'}>
+        {children}
+      </View>
+      <Modal visible={covered} transparent animationType="none" statusBarTranslucent navigationBarTranslucent
+        // Native-stack styles the Activity. Apply again once Android registers the Modal's own Window.
+        onShow={() => StatusBar.setStyle('dark')}
+        onRequestClose={() => { if (firstRun.showWizard) void firstRun.navigate('back'); }}>
+        <StatusBar style="dark" />
+        {firstRun.showWizard ? <OnboardingOverlay /> : <LoadingScreen label="Opening Home…" />}
+      </Modal>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({ fill: { flex: 1 } });

@@ -100,6 +100,6 @@ it('ignores an old account response and clears profiles immediately on sign-out'
   expect(text()).not.toContain('17');
   expect(rendered.root.findAllByType(Avatar)).toHaveLength(0);
   await update({ status: 'signed_out', identityKey: null });
-  expect(button('Open Account')).toBeDefined();
+  expect(button('Open Pilot')).toBeDefined();
   expect(text()).not.toContain('Amélie Wong');
 });
