@@ -1,0 +1,51 @@
+{
+  "finishedAt": "2026-09-21T15:20:58.661427+00:00",
+  "baseCommit": "c2deac42da4eae4884848d44ce5997963e47b344",
+  "apk": "/home/odin/Dungeon/Personal/xc-mvp/android/app/build/outputs/internal/social-layout-20260921/FlightLog-QA-social-layout-arm64.apk",
+  "apkSha256": "c6e0f44e7bc81fc999a0b496434202880fbedd7fbd121ed4b9c5bc93459f419e",
+  "apkBytes": 80155815,
+  "package": "com.xxvalhallacoderxx.xcmvp.socialqa",
+  "label": "Flight Log QA",
+  "abis": [
+    "arm64-v8a"
+  ],
+  "releaseNonDebuggable": true,
+  "applicationClass": "com.xxvalhallacoderxx.xcmvp.MainApplication",
+  "launcherClass": "com.xxvalhallacoderxx.xcmvp.MainActivity",
+  "providerAuthorities": [
+    "com.xxvalhallacoderxx.xcmvp.socialqa.FileSystemFileProvider",
+    "com.xxvalhallacoderxx.xcmvp.socialqa.SharingFileProvider",
+    "com.xxvalhallacoderxx.xcmvp.socialqa.androidx-startup"
+  ],
+  "providerAuthorityCollisions": false,
+  "signerSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "signatureVerified": true,
+  "alignment16KiBVerified": true,
+  "normalApkSha256": "e43527f6daf5c9bb7be902a1976c1c41f56bd551d8b7724c8c07dfe488804060",
+  "normalApkUnchanged": true,
+  "bundleSha256": "bf5bd233691da44c5bc2956a57a6107f5daec2eb55192d93e666c810fcbfa741",
+  "bundleBytes": 5703984,
+  "byteIdenticalApplicationJavaScriptAndAssets": true,
+  "applicationAssetEntriesCompared": 5,
+  "excludedNativeDexOptimizationProfile": true,
+  "sourceFilesCompared": 413,
+  "sourceChanges": [],
+  "socialLayoutBundleMarkers": {
+    "Shared today": true,
+    "They see": true,
+    "Stays yours": true
+  },
+  "urlSchemes": [
+    "exp+xc-mvp",
+    "xcmvp"
+  ],
+  "deviations": [
+    "QA package suffix and launcher label",
+    "Local debug signing certificate on non-debuggable release build",
+    "arm64-v8a only",
+    "Original URL schemes retained; launch QA package explicitly",
+    "Native dex optimization profiles excluded from application asset equality"
+  ],
+  "deviceActionsPerformed": false,
+  "hostedActionsPerformed": false
+}

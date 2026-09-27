@@ -38,7 +38,7 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]),
 }));
 jest.mock('@/components/ui', () => Object.fromEntries([
-  'Avatar', 'BusyRow', 'Button', 'Card', 'Input', 'LinkButton', 'Notice', 'Screen', 'SectionLabel', 'TopBar',
+  'Avatar', 'BusyRow', 'Button', 'Card', 'Input', 'LinkButton', 'Notice', 'Screen', 'SectionLabel', 'TopBar', 'TabGlyph',
 ].map(name => [name, ({ children }: { children?: React.ReactNode }) => children ?? null])));
 
 type Request = { resolve(value: SocialState): void; reject(error: Error): void };
@@ -110,6 +110,6 @@ it('switches to the feed only after an explicitly created profile is confirmed',
   expect(rendered!.root.findAllByType(FriendsScreen)).toHaveLength(1);
   await finishReads({ ...empty, profile: { userId: OWNER, displayName: 'Consenting pilot', username: 'consenting_pilot', discoverable: true, backedUpFlightCount: 0 } });
   expect(rendered!.root.findAllByType(FriendsScreen)).toHaveLength(0);
-  expect(control('Manage friends')).toBeDefined();
+  expect(rendered!.root.findByProps({ accessibilityLabel: 'Your circle' })).toBeDefined();
   expect(mockFeed.refresh).toHaveBeenCalledTimes(1);
 });

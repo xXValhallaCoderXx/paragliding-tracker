@@ -248,7 +248,11 @@ export default function FlightDetailScreen() {
             </View>
           ) : null}
 
-          {canReview && metrics !== null ? <FlightSharingSection flightId={flight.id} /> : null}
+          {canReview && metrics !== null ? <FlightSharingSection flightId={flight.id} preview={{
+            title: flight.title, site: flight.site, startedAt: flight.startedAt,
+            timezoneOffsetMinutes: flight.timezoneOffsetMinutes, durationMs: metrics.durationMs,
+            distanceMetres: metrics.quality === 'no_track' ? null : metrics.trackDistanceMetres, routePreview: track,
+          }} /> : null}
 
           {isOpen || isProcessing || metrics?.quality !== 'healthy' || message ? (
             <View style={styles.notices}>

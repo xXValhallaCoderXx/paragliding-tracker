@@ -1,6 +1,7 @@
 import React from 'react';
-import { Pressable, Text } from 'react-native';
-import { Button, Notice } from '@/components/ui';
+import { Text } from 'react-native';
+import { Chip, Notice } from '@/components/ui';
+import { TrackPlate } from '@/features/flights/components/track-plate';
 import { KudosControls } from '../kudos-controls';
 import { SharedFlightCard } from '../shared-flight-card';
 import { create, act } from '../../../../tests/support/renderer';
@@ -16,7 +17,7 @@ jest.mock('@/components/ui', () => Object.fromEntries(['Avatar', 'Button', 'Card
 
 type Node = { props: Record<string, any> };
 let rendered: ReturnType<typeof create> | undefined;
-const controls = (label: string) => (rendered!.root.findAllByType(Button) as Node[]).filter(node => node.props.label === label);
+const controls = (label: string) => rendered!.root.findAll((node: Node) => node.props?.accessibilityLabel === label, { deep: false }) as Node[];
 const control = (label: string) => controls(label)[0];
 const run = async (operation: () => unknown) => { await act(async () => { await operation(); }); };
 const element = (own = false, summary: { count: number; givenByMe: boolean } | null = { count: 3, givenByMe: false }) =>
@@ -37,14 +38,25 @@ it('gives once while a request is pending and shows only the confirmed count', a
   expect(mockFeed.setKudos).toHaveBeenCalledWith('activity-1', true);
   mockFeed.kudosByActivity['activity-1'] = { summary: { count: 3, givenByMe: false }, pending: true, error: null };
   await render();
-  expect(control('Giving kudos…').props).toMatchObject({ busy: true, disabled: true });
+  expect(control('Giving kudos…').props).toMatchObject({ accessibilityState: { busy: true, disabled: true }, disabled: true });
   expect(control('View kudos (3)')).toBeDefined();
   expect(control('View kudos (4)')).toBeUndefined();
   await run(() => complete({ activityId: 'activity-1', count: 4, givenByMe: true }));
   mockFeed.kudosByActivity['activity-1'] = { summary: { count: 4, givenByMe: true }, pending: false, error: null };
   await render();
   expect(control('Remove kudos')).toBeDefined();
+  expect(control('Remove kudos').props.accessibilityState.selected).toBe(true);
   expect(control('View kudos (4)')).toBeDefined();
+});
+
+it.each(['partial', 'no_track', 'gaps'] as const)('keeps real route data and explicit %s quality on route-led cards', async quality => {
+  const flight = sharedFlight({ metrics: { ...sharedFlight().metrics, quality }, routePreview: quality === 'no_track' ? [] : sharedFlight().routePreview });
+  await render(React.createElement(SharedFlightCard, { flight, own: false, onOpen: jest.fn(), onAuthor: jest.fn() }));
+  expect(rendered!.root.findByType(TrackPlate).props).toMatchObject({ segments: flight.routePreview, state: quality === 'no_track' ? 'no_track' : 'ready' });
+  expect(rendered!.root.findByType(Chip).props.tone).toBe('warning');
+  const body = rendered!.root.findByProps({ accessibilityLabel: 'Open shared flight: Evening ridge' });
+  expect(body.findAllByType(TrackPlate)).toHaveLength(1);
+  expect(body.props.children[0].type).toBe(TrackPlate);
 });
 
 it('uses the shared confirmed state on card and detail and sends an explicit remove value', async () => {
@@ -114,7 +126,7 @@ it('places kudos outside card navigation and discloses the wider name audience',
   const open = jest.fn(); const author = jest.fn();
   await render(React.createElement(SharedFlightCard, { flight: sharedFlight(), own: false, onOpen: open, onAuthor: author }));
   let parent = rendered!.root.findByType(KudosControls).parent;
-  while (parent) { expect(parent.type).not.toBe(Pressable); parent = parent.parent; }
+  while (parent) { expect(parent.props?.accessibilityRole).not.toBe('button'); parent = parent.parent; }
   await run(() => control('Give kudos').props.onPress());
   expect(open).not.toHaveBeenCalled(); expect(author).not.toHaveBeenCalled();
   expect((rendered!.root.findAllByType(Text) as Node[]).some(node => String(node.props.children).includes('including people outside your friends'))).toBe(true);

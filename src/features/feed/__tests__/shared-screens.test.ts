@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text } from 'react-native';
 import { Button, Notice } from '@/components/ui';
 import { FlightHero } from '@/features/flights/components/hero';
 import { FlightMapPreview } from '@/features/flights/components/flight-map-preview';
@@ -33,7 +34,8 @@ jest.mock('@/features/flights/replay/replay-player', () => ({ ReplayPlayer: () =
 
 let rendered: ReturnType<typeof create>;
 type Node = { props: Record<string, any> };
-const control = (label: string) => (rendered.root.findAllByType(Button) as Node[]).find(node => node.props.label === label)!;
+const control = (label: string) => (rendered.root.findAll((node: Node) =>
+  (node.props.label === label || node.props.accessibilityLabel === label) && typeof node.props.onPress === 'function') as Node[])[0];
 const run = async (operation: () => unknown) => { await act(async () => { await operation(); }); };
 const mount = (element: React.ReactElement) => run(() => { rendered = create(element); });
 const update = (element: React.ReactElement) => run(() => rendered.update(element));
@@ -45,9 +47,42 @@ it('opens a safe shared detail, disables map caching, and exposes no owner-only 
   expect(mockFeed.getDetail).toHaveBeenCalledWith('activity-1');
   expect(rendered.root.findByType(FlightHero).props).toMatchObject({ saved: null, insight: null, flight: { source: 'shared' } });
   expect(rendered.root.findByType(FlightMapPreview).props.cachePolicy).toBe('none');
-  expect((rendered.root.findAllByType(Button) as Node[]).map(node => node.props.label)).toEqual(['View pilot profile', 'Replay shared flight', 'Give kudos', 'View kudos (0)']);
+  expect(control('View Pilot B’s profile')).toBeDefined();
+  expect(control('Give kudos')).toBeDefined();
+  expect(control('View kudos (0)')).toBeDefined();
+  expect((rendered.root.findAllByType(Button) as Node[]).some(node => /edit|delete|export|share this/i.test(node.props.label))).toBe(false);
+  expect(mockFeed.getReplay).not.toHaveBeenCalled();
   await run(() => control('Replay shared flight').props.onPress());
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/shared-flights/[id]/replay', params: { id: 'activity-1' } });
+});
+
+it.each([false, true])('opens the linked pilot row without requesting additional profile data (own: %s)', async own => {
+  if (own) jest.mocked(mockFeed.getDetail).mockResolvedValue(sharedFlight({ author: { userId: 'owner-a', displayName: 'My Name' } }));
+  await mount(React.createElement(SharedDetailScreen));
+  await run(() => control(own ? 'Your Friends profile' : 'View Pilot B’s profile').props.onPress());
+  expect(mockPush).toHaveBeenCalledWith(own ? '/friends/manage' : { pathname: '/friends/[id]', params: { id: 'friend-b' } });
+  expect(mockFriends.getFriendProfile).not.toHaveBeenCalled();
+  expect(mockFeed.getReplay).not.toHaveBeenCalled();
+});
+
+it.each(['partial', 'gaps'] as const)('keeps the saved-track limitations visible in the compact shared detail (%s)', async quality => {
+  jest.mocked(mockFeed.getDetail).mockResolvedValue(sharedFlight({
+    metrics: { ...sharedFlight().metrics, quality },
+  }));
+  await mount(React.createElement(SharedDetailScreen));
+  const warning = (rendered.root.findAllByType(Notice) as Node[])
+    .find(node => node.props.title === (quality === 'partial' ? 'Partial flight' : 'Track has timing gaps'));
+  expect(warning?.props.children).toContain(quality === 'partial' ? 'only the saved portion' : 'Recording gaps stay open');
+  expect(rendered.root.findByType(FlightMapPreview).props.segments).toEqual(sharedFlight().routePreview);
+});
+
+it('explains archived replay precision and privacy without preloading replay bytes', async () => {
+  jest.mocked(mockFeed.getDetail).mockResolvedValue(sharedFlight({ provenance: 'igc' }));
+  await mount(React.createElement(SharedDetailScreen));
+  const paragraphs = (rendered.root.findAllByType(Text) as Node[]).map(node => String(node.props.children));
+  expect(paragraphs.some(text => text.includes('archived IGC') && text.includes('Replay ground speed is unavailable'))).toBe(true);
+  expect(paragraphs.some(text => text.includes('Private journal notes, pilot details and original recorder files are not included'))).toBe(true);
+  expect(mockFeed.getReplay).not.toHaveBeenCalled();
 });
 
 it('keeps a no-track summary visible without attempting replay', async () => {

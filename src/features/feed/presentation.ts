@@ -9,6 +9,22 @@ export function sharedHeadline(flight: SharedFlightSummary): string {
   return flight.title?.trim() || flight.site?.trim() || 'A day in the sky';
 }
 
+/** Publication days use the viewer's timezone; recorded dates keep the flight's timezone. */
+export function sharedFeedRows(flights: readonly SharedFlightSummary[], {
+  now = Date.now(), timeZone,
+}: { now?: number; timeZone?: string } = {}): { flight: SharedFlightSummary; heading: string | null }[] {
+  const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone });
+  const today = day.format(now);
+  let previousDay: string | null | undefined;
+  return flights.map(flight => {
+    const publishedAt = Date.parse(flight.publishedAt);
+    const date = Number.isFinite(publishedAt) ? day.format(publishedAt) : null;
+    const heading = date === previousDay ? null : date === today ? 'Shared today' : date ? `Shared ${date}` : 'Shared recently';
+    previousDay = date;
+    return { flight, heading };
+  });
+}
+
 /** Explicit projection: the reusable hero never receives a complete remote object. */
 export function sharedHeroSummary(flight: SharedFlightSummary): FlightHeroSummary {
   return { source: 'shared', startedAt: flight.startedAt, endedAt: flight.endedAt,

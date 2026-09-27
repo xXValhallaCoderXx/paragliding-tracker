@@ -1,20 +1,21 @@
 import React from 'react';
 import { Text } from 'react-native';
-import { Avatar, BusyRow, Button, Notice } from '@/components/ui';
+import { Avatar, BusyRow, Button, LinkButton, Notice } from '@/components/ui';
 import type { FriendsContextValue, SocialProfile } from '@/social/types';
 import FriendProfileScreen from '../friend-profile-screen';
 import { create, act } from '../../../../tests/support/renderer';
 
 let mockFriends: FriendsContextValue;
+const mockPush = jest.fn();
 jest.mock('../friends-provider', () => ({ useFriends: () => mockFriends }));
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ push: mockPush, back: jest.fn() }),
   useLocalSearchParams: () => ({ id: 'friend-a' }),
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]),
 }));
 jest.mock('@/components/ui', () => Object.fromEntries([
-  'Avatar', 'BusyRow', 'Button', 'Card', 'Notice', 'Screen', 'TopBar',
+  'Avatar', 'BusyRow', 'Button', 'Card', 'LinkButton', 'Notice', 'Screen', 'TopBar',
 ].map(name => [name, ({ children }: { children?: React.ReactNode }) => children ?? null])));
 
 type Node = { props: Record<string, any> };
@@ -30,6 +31,7 @@ async function update(patch: Partial<FriendsContextValue>) {
 const profile: SocialProfile = { userId: 'friend-a', displayName: 'Amélie Wong', username: 'amelie_wong', backedUpFlightCount: 17 };
 
 beforeEach(() => {
+  jest.clearAllMocks();
   mockFriends = { status: 'ready', identityKey: 'owner-a', available: true, revision: 0, loading: false, busy: false, error: null,
     profile: null, relationships: [], refresh: jest.fn(), saveProfile: jest.fn(), searchPilots: jest.fn(), blockPilot: jest.fn(),
     requestPilot: jest.fn(), changeRelationship: jest.fn(), getFriendProfile: jest.fn().mockResolvedValue(profile),
@@ -46,9 +48,19 @@ it('shows loading without a fabricated count and only renders server-provided pr
   await run(() => resolve(profile));
   expect(text()).toContain('17');
   expect(text()).toContain('Backed-up flights');
+  expect(text()).toContain('Finished flights synced to their account. Flights saved only on a phone are not included.');
   expect(text()).toContainEqual(['@', 'amelie_wong']);
   expect(rendered.root.findAllByType(Avatar)[0].props.initials).toBe('AW');
   expect(mockFriends.getFriendProfile).toHaveBeenCalledWith('friend-a');
+});
+
+it('links to existing friend management without changing the connection', async () => {
+  await mount();
+  const manage = rendered.root.findAllByType(LinkButton).find(node => node.props.label === 'Manage friends')!;
+  await run(() => manage.props.onPress());
+  expect(mockPush).toHaveBeenCalledWith('/friends/manage');
+  expect(mockFriends.changeRelationship).not.toHaveBeenCalled();
+  expect(button('Refresh profile')).toBeDefined();
 });
 
 it('clears a previously loaded count during refresh and keeps it absent after access is revoked', async () => {

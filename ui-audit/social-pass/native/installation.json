@@ -1,0 +1,49 @@
+{
+  "installedAt": "2026-09-21T15:22:05.286593+00:00",
+  "device": "Samsung SM-S938B",
+  "androidVersion": "16",
+  "resolution": [
+    1080,
+    2340
+  ],
+  "package": "com.xxvalhallacoderxx.xcmvp.socialqa",
+  "label": "Flight Log QA",
+  "qaApkSha256": "c6e0f44e7bc81fc999a0b496434202880fbedd7fbd121ed4b9c5bc93459f419e",
+  "normalApkSha256": "b3939fbc8411bedbcf1ba8b9b2e4d8a976e1088c9a558ac50cf224122a5965ca",
+  "normalApkUnchanged": true,
+  "originalSettings": {
+    "font_scale": "0.9",
+    "screen_off_timeout": "300000"
+  },
+  "nativeChecks": "Passed scoped social UI review; see README.md and validation.json",
+  "completedAt": "2026-09-21T15:38:17.768410+00:00",
+  "qaAppRemoved": true,
+  "disposableAccountsRemoved": 3,
+  "fixtureStorageAndPublicRowsRemoved": true,
+  "normalAppReopened": true,
+  "normalLogbookAfter": {
+    "flights": 15,
+    "airtime": "3:00"
+  },
+  "finalSettings": {
+    "font_scale": "0.9",
+    "screen_off_timeout": "600000"
+  },
+  "timeoutNote": "User explicitly chose 10 minutes during the audit; retained that value.",
+  "sourceFilesRechecked": 381,
+  "sourceChangesSinceBuild": [],
+  "preservedBaseline": {
+    "flights": {
+      "count": 15,
+      "fullRowFingerprintUnchanged": true
+    },
+    "profiles": {
+      "count": 1,
+      "fullRowFingerprintUnchanged": true
+    },
+    "social_profiles": {
+      "count": 0,
+      "fullRowFingerprintUnchanged": true
+    }
+  }
+}

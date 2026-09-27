@@ -1,0 +1,91 @@
+{
+  "checkedAt": "2026-09-21T15:38:17.768410+00:00",
+  "device": "Samsung SM-S938B",
+  "androidVersion": "16",
+  "resolution": [
+    1080,
+    2340
+  ],
+  "checks": [
+    {
+      "name": "Empty feed",
+      "result": "passed",
+      "observed": "No friends and friends without posts show distinct copy and actions."
+    },
+    {
+      "name": "Navigation",
+      "result": "passed",
+      "observed": "Find pilots, Your circle, linked pilot profile, Manage friends, shared detail and replay open correctly."
+    },
+    {
+      "name": "Feed and profile",
+      "result": "passed",
+      "observed": "Publication-date heading, route-first card and long author name fit; profile shows 2 backed-up flights with definition."
+    },
+    {
+      "name": "Kudos",
+      "result": "passed",
+      "observed": "Give changes 1 to 2; separate count opens Ben Lee/Cora Lim list; remove returns to 1."
+    },
+    {
+      "name": "Automatic sharing",
+      "result": "passed",
+      "observed": "Not now, Android Back, backdrop and background/resume dismiss without changes; explicit on and off update the status."
+    },
+    {
+      "name": "Manual sharing cancellation",
+      "result": "passed",
+      "observed": "Not now, Android Back, backdrop and background/resume dismiss; server readback remains private at revision 0."
+    },
+    {
+      "name": "Large text",
+      "result": "passed",
+      "observed": "Both sharing sheets at font_scale 1.5 stack privacy sections and scroll to complete disclosure and both actions."
+    },
+    {
+      "name": "Archive restoration",
+      "result": "passed",
+      "observed": "Signing in as the owner fixture restores two flights through the normal app flow."
+    },
+    {
+      "name": "Shared replay",
+      "result": "passed",
+      "observed": "Real map loads; seeking and play/pause update elapsed time and altitude; unavailable speed remains marked."
+    },
+    {
+      "name": "Manual publication and Hide",
+      "result": "passed",
+      "observed": "Confirm publishes the selected flight at revision 1 and adds it to the feed; Hide advances to revision 2 and removes it while retaining the private flight."
+    },
+    {
+      "name": "Cleanup",
+      "result": "passed",
+      "observed": "All three fixture accounts and storage removed; QA package uninstalled; original package hash and baseline rows unchanged; original app reopened."
+    }
+  ],
+  "notExercisedNatively": [
+    "TalkBack or other screen readers",
+    "Offline network transitions and offline Hide queue",
+    "Fast pending-operation dismissal and duplicate-submit races",
+    "Pagination across multiple publication dates",
+    "Recorder field reliability or locked-screen endurance"
+  ],
+  "automatedCoverageNote": "Pending, duplicate, account/flight invalidation, pagination and offline Hide cases remain covered by the existing test results documented in the parent README.",
+  "flightPublicationReadbacks": {
+    "afterCancellation": {
+      "title": "Evening ridge",
+      "state": "private",
+      "revision": 0
+    },
+    "afterShare": {
+      "title": "Evening ridge",
+      "state": "shared",
+      "revision": 1
+    },
+    "afterHide": {
+      "title": "Evening ridge",
+      "state": "hidden",
+      "revision": 2
+    }
+  }
+}

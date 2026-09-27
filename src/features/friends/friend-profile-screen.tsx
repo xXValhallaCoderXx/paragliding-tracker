@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { Avatar, BusyRow, Button, Card, Notice, Screen, TopBar } from '@/components/ui';
+import { Avatar, BusyRow, Button, Card, LinkButton, Notice, Screen, TopBar } from '@/components/ui';
 import { errorMessage } from '@/lib/format/error-message';
 import type { SocialProfile } from '@/social/types';
+import { fonts, paper } from '@/ui/theme';
 import { useFriends } from './friends-provider';
 import { friendInitials } from './presentation';
 import { friendsStyles as styles } from './styles';
@@ -31,6 +32,7 @@ type ProfileRead = { kind: 'loading' } | { kind: 'error'; message: string } | { 
 
 function ProfileContent({ userId }: { userId: string }) {
   const { getFriendProfile } = useFriends();
+  const router = useRouter();
   const [read, setRead] = useState<ProfileRead>({ kind: 'loading' });
   const [retry, setRetry] = useState(0);
   useFocusEffect(useCallback(() => {
@@ -50,17 +52,34 @@ function ProfileContent({ userId }: { userId: string }) {
     <Button label="Retry profile" onPress={() => setRetry(value => value + 1)} />
   </View>;
   return <>
-    <View style={styles.profile}>
-      <Avatar initials={friendInitials(read.profile.displayName)} size={76} />
-      <Text style={[styles.title, styles.centered]}>{read.profile.displayName}</Text>
-      {read.profile.username ? <Text style={styles.body}>@{read.profile.username}</Text> : null}
-      <Text style={styles.helper}>Your friend on Flight Log Alpha</Text>
+    <View style={profileStyles.identity}>
+      <Avatar initials={friendInitials(read.profile.displayName)} size={68} />
+      <View style={profileStyles.identityText}>
+        <Text accessibilityRole="header" style={profileStyles.name}>{read.profile.displayName}</Text>
+        {read.profile.username ? <Text style={profileStyles.username}>@{read.profile.username}</Text> : null}
+        <Text style={styles.helper}>Your friend on Flight Log Alpha</Text>
+      </View>
     </View>
-    <Card><View style={[styles.card, styles.profile]}>
-      <Text style={styles.count}>{read.profile.backedUpFlightCount.toLocaleString()}</Text>
-      <Text style={styles.name}>Backed-up flights</Text>
-      <Text style={[styles.helper, styles.centered]}>Finished flights synced to their account. Flights saved only on a phone are not included.</Text>
+    <Card variant="dark"><View style={profileStyles.summary}>
+      <Text style={profileStyles.count} numberOfLines={1} adjustsFontSizeToFit>{read.profile.backedUpFlightCount.toLocaleString()}</Text>
+      <Text style={profileStyles.countLabel}>Backed-up flights</Text>
+      <View style={profileStyles.definition}>
+        <Text style={profileStyles.summaryText}>Finished flights synced to their account. Flights saved only on a phone are not included.</Text>
+      </View>
     </View></Card>
     <Button label="Refresh profile" onPress={() => setRetry(value => value + 1)} />
+    <LinkButton label="Manage friends" onPress={() => router.push('/friends/manage')} />
   </>;
 }
+
+const profileStyles = StyleSheet.create({
+  identity: { flexDirection: 'row', alignItems: 'center', gap: 15, paddingVertical: 8 },
+  identityText: { flex: 1, gap: 5 },
+  name: { fontFamily: fonts.sansBold, fontSize: 26, lineHeight: 32, color: paper.ink, letterSpacing: -0.6 },
+  username: { fontFamily: fonts.mono, fontSize: 12, lineHeight: 18, color: paper.muted },
+  summary: { padding: 20, gap: 8 },
+  count: { fontFamily: fonts.monoSemi, fontSize: 42, lineHeight: 50, color: paper.onDark, letterSpacing: -1 },
+  countLabel: { fontFamily: fonts.sansSemi, fontSize: 16, lineHeight: 22, color: paper.onDark },
+  definition: { borderTopWidth: 1, borderTopColor: paper.onDarkHairline, paddingTop: 12, marginTop: 6 },
+  summaryText: { fontFamily: fonts.sans, fontSize: 12, lineHeight: 18, color: paper.onDarkMuted },
+});

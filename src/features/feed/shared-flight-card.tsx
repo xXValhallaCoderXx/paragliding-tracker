@@ -6,28 +6,30 @@ import { formatAirtimeShort, formatDistance, formatLongDate, formatMetres } from
 import type { SharedFlightSummary } from '@/social/feed-types';
 import { sharedHeadline, sharedStatus } from './presentation';
 import { KudosControls } from './kudos-controls';
+import { feedLayout } from './feed-layout';
 import { feedStyles as styles } from './styles';
 
 export function SharedFlightCard({ flight, own, onOpen, onAuthor }: {
   flight: SharedFlightSummary; own: boolean; onOpen(): void; onAuthor(): void;
 }) {
   const status = sharedStatus(flight);
-  return <Card><View style={styles.card}>
+  return <Card><View style={feedLayout.card}>
     <Pressable accessibilityRole="button" accessibilityLabel={`View ${own ? 'your Friends profile' : flight.author.displayName + '’s profile'}`}
-      onPress={onAuthor} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-      <Avatar initials={friendInitials(flight.author.displayName)} />
+      onPress={onAuthor} style={({ pressed }) => [feedLayout.identity, pressed && styles.pressed]}>
+      <Avatar initials={friendInitials(flight.author.displayName)} size={40} />
       <View style={styles.grow}><Text style={styles.name}>{flight.author.displayName}</Text>
-        <Text style={styles.helper}>{own ? 'Your shared flight' : 'Shared with friends'}</Text></View>
+        <Text style={styles.helper}>{flight.site?.trim() || (own ? 'Your shared flight' : 'Shared with friends')}</Text></View>
     </Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={`Open shared flight: ${sharedHeadline(flight)}`}
-      onPress={onOpen} style={({ pressed }) => [styles.section, pressed && styles.pressed]}>
-      <Text style={styles.date}>{formatLongDate(flight.startedAt, flight.timezoneOffsetMinutes)}</Text>
-      <Text style={styles.heading}>{sharedHeadline(flight)}</Text>
-      {flight.site?.trim() && flight.site.trim() !== sharedHeadline(flight) ? <Text style={styles.helper}>{flight.site}</Text> : null}
-      <Text style={styles.metrics}>{formatAirtimeShort(flight.metrics.durationMs)} · {flight.metrics.quality === 'no_track' ? '—' : formatDistance(flight.metrics.trackDistanceMetres)} · {formatMetres(flight.metrics.maxGpsAltitude)}</Text>
-      <Chip label={status.label} tone={status.tone} />
+      onPress={onOpen} style={({ pressed }) => pressed && styles.pressed}>
       <TrackPlate segments={flight.routePreview} variant="hero" state={flight.routePreview.length ? 'ready' : 'no_track'} takeoffLabel="Start" landingLabel="Stop" />
+      <View style={feedLayout.summary}>
+        <Text style={styles.heading}>{sharedHeadline(flight)}</Text>
+        <Text style={styles.date}>Flight on {formatLongDate(flight.startedAt, flight.timezoneOffsetMinutes)}</Text>
+        <Text style={styles.metrics}>{formatAirtimeShort(flight.metrics.durationMs)} · {flight.metrics.quality === 'no_track' ? '—' : formatDistance(flight.metrics.trackDistanceMetres)} · {formatMetres(flight.metrics.maxGpsAltitude)}</Text>
+        {status.tone === 'warning' ? <Chip label={status.label} tone={status.tone} /> : null}
+      </View>
     </Pressable>
-    <KudosControls activityId={flight.activityId} summary={flight.kudos} own={own} />
+    <View style={feedLayout.cardFooter}><KudosControls activityId={flight.activityId} summary={flight.kudos} own={own} /></View>
   </View></Card>;
 }

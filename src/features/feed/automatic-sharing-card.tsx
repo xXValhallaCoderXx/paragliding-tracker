@@ -1,36 +1,51 @@
-import { useState } from 'react';
-import { Text, View } from 'react-native';
-import { Button, Card, LinkButton, Notice, SectionLabel } from '@/components/ui';
-import { errorMessage } from '@/lib/format/error-message';
+import { useCallback, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { Button, LinkButton, Notice } from '@/components/ui';
+import { paper, radii } from '@/ui/theme';
 import { useFeed } from './feed-provider';
 import { SharingConsent } from './sharing-consent';
+import { SharingSheet } from './sharing-sheet';
+import { useSharingAction } from './use-sharing-action';
 import { feedStyles as styles } from './styles';
 
 export function AutomaticSharingCard() {
   const feed = useFeed();
-  const [confirming, setConfirming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const disabled = !feed.available || feed.busy || feed.preferences === null;
-  const enabled = feed.preferences?.enabled === true;
-  const save = async (next: boolean) => {
-    if (disabled) return;
-    setError(null);
-    try { await feed.setAutoShare(next); setConfirming(false); }
-    catch (problem) { setError(errorMessage(problem)); }
-  };
-  return <Card><View style={styles.card}>
-    <SectionLabel>Your flight sharing</SectionLabel>
-    <Text style={styles.name}>{feed.preferences === null ? 'Loading your sharing preference…' : enabled ? 'Future flights are shared' : 'Future flights are private'}</Text>
-    {error ? <Notice tone="danger" title="Sharing preference unchanged">{error}</Notice> : null}
-    {confirming ? <>
-      <SharingConsent automatic />
-      <Button label="Turn on automatic sharing" variant="primary" disabled={disabled} onPress={() => void save(true)} />
-      <LinkButton label="Keep future flights private" disabled={feed.busy} onPress={() => setConfirming(false)} />
-    </> : <>
-      <Text style={styles.helper}>{enabled ? 'New recordings are posted after saving and syncing. Turning this off leaves existing posts visible; you can hide each flight from its details.'
-        : 'You choose whether to share new recordings automatically. You can also share an older flight from your logbook.'}</Text>
-      <Button label={enabled ? 'Stop sharing future flights' : 'Choose automatic sharing'} disabled={disabled}
-        onPress={() => enabled ? void save(false) : setConfirming(true)} />
-    </>}
-  </View></Card>;
+  return <SharingPreference key={feed.identityKey} />;
 }
+
+function SharingPreference() {
+  const feed = useFeed();
+  const [open, setOpen] = useState(false);
+  const action = useSharingAction();
+  const close = useCallback(() => setOpen(false), []);
+  const disabled = !feed.available || feed.busy || feed.preferences === null || action.pending;
+  const enabled = feed.preferences?.enabled === true;
+  const save = (next: boolean) => {
+    if (!disabled) void action.run(() => feed.setAutoShare(next), close);
+  };
+  return <>
+    <View style={local.status}>
+      <View style={[local.dot, { backgroundColor: enabled ? paper.thermal : paper.muted }]} />
+      <Text style={[styles.body, styles.grow]}>{feed.preferences === null
+        ? feed.loading ? 'Loading sharing preference…' : 'Sharing preference unavailable'
+        : enabled ? 'New flights go to your friends' : 'New flights stay private'}</Text>
+      <LinkButton label="Change" disabled={disabled} onPress={() => { action.clearError(); setOpen(true); }} />
+    </View>
+    {open && feed.available && feed.preferences !== null ? <SharingSheet title="Future flight sharing"
+      busy={action.pending || feed.busy} onClose={close}>
+      <Text style={styles.name}>{enabled ? 'Automatic sharing is on' : 'Automatic sharing is off'}</Text>
+      <SharingConsent automatic />
+      {action.error ? <Notice tone="danger" title="Sharing preference unchanged">{action.error}</Notice> : null}
+      <Button label={enabled ? 'Stop sharing future flights' : 'Turn on automatic sharing'}
+        variant={enabled ? 'secondary' : 'primary'} size="lg" busy={action.pending} disabled={disabled}
+        onPress={() => save(!enabled)} />
+      <LinkButton label="Not now" disabled={action.pending || feed.busy} onPress={close} className="items-center" />
+    </SharingSheet> : null}
+  </>;
+}
+
+const local = StyleSheet.create({
+  status: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: paper.cardAlt,
+    borderRadius: radii.control, paddingHorizontal: 14, paddingVertical: 4 },
+  dot: { width: 6, height: 6, borderRadius: radii.pill },
+});

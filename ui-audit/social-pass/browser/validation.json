@@ -1,0 +1,566 @@
+{
+  "capturedAt": "2026-09-21T11:08:11.174Z",
+  "method": "Real changed React Native source bundled with existing React Native Web, React DOM and NativeWind web styled adapter. Fixture providers and navigation, zero safe area insets. Browser-only layout evidence. Font scaling simulated, not Android font/layout acceptance.",
+  "pages": [
+    {
+      "scenario": "feed",
+      "width": 320,
+      "scale": 1,
+      "file": "feed-320-1x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nSHARED TODAY\nRefresh\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nStart\nStop\nCHART PLATE · 500 M GRID\nEvening ridge above Bukit Jugra\nFlight on Sun 20 Sep 2026\n0:52 · 14.2 km · 612 m\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nSHARED 19 SEPT 2026\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nNO TRACK RECORDED\nLanding practice\nFlight on Sun 20 Sep 2026\n0:52 · — · 612 m\nNO TRACK\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.",
+      "scrolling": [
+        {
+          "height": 844,
+          "scrollHeight": 1422
+        }
+      ]
+    },
+    {
+      "scenario": "empty",
+      "width": 320,
+      "scale": 1,
+      "file": "empty-320-1x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nRefresh\nNobody here yet.\nAdd the pilots you fly with and their flights land here. Your logbook stays private until you choose to share.\nFind pilots\nOpen logbook",
+      "scrolling": []
+    },
+    {
+      "scenario": "empty-friends",
+      "width": 320,
+      "scale": 1,
+      "file": "empty-friends-320-1x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nRefresh\nNo shared flights yet.\nWhen you or your friends share a flight, it will appear here. Your logbook stays private until you choose to share.\nOpen logbook\nFind pilots",
+      "scrolling": []
+    },
+    {
+      "scenario": "manual",
+      "width": 320,
+      "scale": 1,
+      "file": "manual-320-1x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "SHARE WITH FRIENDS\nPrivate flight\nShare flight…\nRefresh sharing status\nShare this flight\nEvening ridge above Bukit Jugra\nSun 20 Sep 2026\n0:52 · 14.2 km\nWHO SEES IT\nYour accepted friends\nTHEY SEE\nYour flight title, site, date and times, full route including its start and end locations, flight statistics and replay are shared.\nSTAYS YOURS\nYour notes, private pilot details, registration, original files and recorder diagnostics stay private.\nCurrent accepted friends can see your shared flights, including friends you add later.\nYou can hide this flight later. Changes to its title or site appear after backup sync without moving it to the top of the feed.\nShare this flight with friends\nNot now",
+      "scrolling": [
+        {
+          "height": 820,
+          "scrollHeight": 839
+        }
+      ],
+      "cancelBounds": {
+        "x": 22,
+        "y": 797,
+        "width": 276,
+        "height": 44
+      },
+      "cancelDismissed": true
+    },
+    {
+      "scenario": "auto",
+      "width": 320,
+      "scale": 1,
+      "file": "auto-320-1x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nSHARED TODAY\nRefresh\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nStart\nStop\nCHART PLATE · 500 M GRID\nEvening ridge above Bukit Jugra\nFlight on Sun 20 Sep 2026\n0:52 · 14.2 km · 612 m\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nSHARED 19 SEPT 2026\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nNO TRACK RECORDED\nLanding practice\nFlight on Sun 20 Sep 2026\n0:52 · — · 612 m\nNO TRACK\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nFuture flight sharing\nAutomatic sharing is off\nWHO SEES IT\nYour accepted friends\nTHEY SEE\nYour flight title, site, date and times, full route including its start and end locations, flight statistics and replay are shared.\nSTAYS YOURS\nYour notes, private pilot details, registration, original files and recorder diagnostics stay private.\nCurrent accepted friends can see your shared flights, including friends you add later.\nFlights recorded after you turn this on will be shared after saving and syncing. Existing flights stay private until you share them. Turning it off stops future posts; flights already shared stay visible until you hide them.\nTurn on automatic sharing\nNot now",
+      "scrolling": [
+        {
+          "height": 844,
+          "scrollHeight": 1422
+        }
+      ],
+      "cancelBounds": {
+        "x": 22,
+        "y": 778,
+        "width": 276,
+        "height": 44
+      },
+      "cancelDismissed": true
+    },
+    {
+      "scenario": "profile",
+      "width": 320,
+      "scale": 1,
+      "file": "profile-320-1x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "‹\nFriend profile\nAW\nAlexandria Watanabe-Sundström\n@alexandria_watanabe\nYour friend on Flight Log Alpha\n124\nBacked-up flights\nFinished flights synced to their account. Flights saved only on a phone are not included.\nRefresh profile\nManage friends",
+      "scrolling": []
+    },
+    {
+      "scenario": "detail",
+      "width": 320,
+      "scale": 1,
+      "file": "detail-320-1x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "‹\nShared flight\nAW\nAlexandria Watanabe-Sundström\nShared with accepted friends\n›\nSUNDAY AFTERNOON · BUKIT JUGRA, SELANGOR\nEvening ridge above Bukit Jugra\n14.2\nkm\n52 min in the air · 612 m max altitude\nSun 20 Sep 2026 · 15:22–16:14\nSHARED FLIGHT\nStart\nStop\nCHART PLATE · 500 M GRID\nAIRTIME\n0:52:00\nSTRAIGHT LINE\n1.6\nkm\nMAX ALTITUDE\n612 m\nMIN ALTITUDE\n90 m\nMAX GROUND SPEED\n54 km/h\nGPS FIXES\n3 121\nReplay shared flight\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nReplay uses the saved GPS route and available telemetry. Missing measurements and recording gaps remain unavailable.\nShared with accepted friends. Private journal notes, pilot details and original recorder files are not included.",
+      "scrolling": [
+        {
+          "height": 794,
+          "scrollHeight": 1193
+        }
+      ]
+    },
+    {
+      "scenario": "error",
+      "width": 320,
+      "scale": 1,
+      "file": "error-320-1x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nCould not refresh shared flights\nUnable to refresh shared flights.\nSHARED TODAY\nRefresh\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nStart\nStop\nCHART PLATE · 500 M GRID\nEvening ridge above Bukit Jugra\nFlight on Sun 20 Sep 2026\n0:52 · 14.2 km · 612 m\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nSHARED 19 SEPT 2026\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nNO TRACK RECORDED\nLanding practice\nFlight on Sun 20 Sep 2026\n0:52 · — · 612 m\nNO TRACK\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.",
+      "scrolling": [
+        {
+          "height": 844,
+          "scrollHeight": 1488
+        }
+      ]
+    },
+    {
+      "scenario": "offline",
+      "width": 320,
+      "scale": 1,
+      "file": "offline-320-1x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nConnect to see shared flights\nThe feed and shared replays are available while you are online.\nRefresh",
+      "scrolling": []
+    },
+    {
+      "scenario": "feed",
+      "width": 320,
+      "scale": 1.5,
+      "file": "feed-320-1.5x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nSHARED TODAY\nRefresh\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nStart\nStop\nCHART PLATE · 500 M GRID\nEvening ridge above Bukit Jugra\nFlight on Sun 20 Sep 2026\n0:52 · 14.2 km · 612 m\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nSHARED 19 SEPT 2026\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nNO TRACK RECORDED\nLanding practice\nFlight on Sun 20 Sep 2026\n0:52 · — · 612 m\nNO TRACK\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.",
+      "scrolling": [
+        {
+          "height": 844,
+          "scrollHeight": 1775
+        }
+      ]
+    },
+    {
+      "scenario": "empty",
+      "width": 320,
+      "scale": 1.5,
+      "file": "empty-320-1.5x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nRefresh\nNobody here yet.\nAdd the pilots you fly with and their flights land here. Your logbook stays private until you choose to share.\nFind pilots\nOpen logbook",
+      "scrolling": []
+    },
+    {
+      "scenario": "empty-friends",
+      "width": 320,
+      "scale": 1.5,
+      "file": "empty-friends-320-1.5x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nRefresh\nNo shared flights yet.\nWhen you or your friends share a flight, it will appear here. Your logbook stays private until you choose to share.\nOpen logbook\nFind pilots",
+      "scrolling": [
+        {
+          "height": 844,
+          "scrollHeight": 858
+        }
+      ]
+    },
+    {
+      "scenario": "manual",
+      "width": 320,
+      "scale": 1.5,
+      "file": "manual-320-1.5x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "SHARE WITH FRIENDS\nPrivate flight\nShare flight…\nRefresh sharing status\nShare this flight\nEvening ridge above Bukit Jugra\nSun 20 Sep 2026\n0:52 · 14.2 km\nWHO SEES IT\nYour accepted friends\nTHEY SEE\nYour flight title, site, date and times, full route including its start and end locations, flight statistics and replay are shared.\nSTAYS YOURS\nYour notes, private pilot details, registration, original files and recorder diagnostics stay private.\nCurrent accepted friends can see your shared flights, including friends you add later.\nYou can hide this flight later. Changes to its title or site appear after backup sync without moving it to the top of the feed.\nShare this flight with friends\nNot now",
+      "scrolling": [
+        {
+          "height": 820,
+          "scrollHeight": 1280
+        }
+      ],
+      "cancelBounds": {
+        "x": 22,
+        "y": 778,
+        "width": 276,
+        "height": 44
+      },
+      "cancelDismissed": true
+    },
+    {
+      "scenario": "auto",
+      "width": 320,
+      "scale": 1.5,
+      "file": "auto-320-1.5x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nSHARED TODAY\nRefresh\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nStart\nStop\nCHART PLATE · 500 M GRID\nEvening ridge above Bukit Jugra\nFlight on Sun 20 Sep 2026\n0:52 · 14.2 km · 612 m\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nSHARED 19 SEPT 2026\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nNO TRACK RECORDED\nLanding practice\nFlight on Sun 20 Sep 2026\n0:52 · — · 612 m\nNO TRACK\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nFuture flight sharing\nAutomatic sharing is off\nWHO SEES IT\nYour accepted friends\nTHEY SEE\nYour flight title, site, date and times, full route including its start and end locations, flight statistics and replay are shared.\nSTAYS YOURS\nYour notes, private pilot details, registration, original files and recorder diagnostics stay private.\nCurrent accepted friends can see your shared flights, including friends you add later.\nFlights recorded after you turn this on will be shared after saving and syncing. Existing flights stay private until you share them. Turning it off stops future posts; flights already shared stay visible until you hide them.\nTurn on automatic sharing\nNot now",
+      "scrolling": [
+        {
+          "height": 844,
+          "scrollHeight": 1775
+        },
+        {
+          "height": 820,
+          "scrollHeight": 1208
+        }
+      ],
+      "cancelBounds": {
+        "x": 22,
+        "y": 777.5,
+        "width": 276,
+        "height": 44
+      },
+      "cancelDismissed": true
+    },
+    {
+      "scenario": "profile",
+      "width": 320,
+      "scale": 1.5,
+      "file": "profile-320-1.5x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "‹\nFriend profile\nAW\nAlexandria Watanabe-Sundström\n@alexandria_watanabe\nYour friend on Flight Log Alpha\n124\nBacked-up flights\nFinished flights synced to their account. Flights saved only on a phone are not included.\nRefresh profile\nManage friends",
+      "scrolling": []
+    },
+    {
+      "scenario": "detail",
+      "width": 320,
+      "scale": 1.5,
+      "file": "detail-320-1.5x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "‹\nShared flight\nAW\nAlexandria Watanabe-Sundström\nShared with accepted friends\n›\nSUNDAY AFTERNOON · BUKIT JUGRA, SELANGOR\nEvening ridge above Bukit Jugra\n14.2\nkm\n52 min in the air · 612 m max altitude\nSun 20 Sep 2026 · 15:22–16:14\nSHARED FLIGHT\nStart\nStop\nCHART PLATE · 500 M GRID\nAIRTIME\n0:52:00\nSTRAIGHT LINE\n1.6\nkm\nMAX ALTITUDE\n612 m\nMIN ALTITUDE\n90 m\nMAX GROUND SPEED\n54 km/h\nGPS FIXES\n3 121\nReplay shared flight\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nReplay uses the saved GPS route and available telemetry. Missing measurements and recording gaps remain unavailable.\nShared with accepted friends. Private journal notes, pilot details and original recorder files are not included.",
+      "scrolling": [
+        {
+          "height": 794,
+          "scrollHeight": 1684
+        }
+      ]
+    },
+    {
+      "scenario": "error",
+      "width": 320,
+      "scale": 1.5,
+      "file": "error-320-1.5x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nCould not refresh shared flights\nUnable to refresh shared flights.\nSHARED TODAY\nRefresh\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nStart\nStop\nCHART PLATE · 500 M GRID\nEvening ridge above Bukit Jugra\nFlight on Sun 20 Sep 2026\n0:52 · 14.2 km · 612 m\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nSHARED 19 SEPT 2026\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nNO TRACK RECORDED\nLanding practice\nFlight on Sun 20 Sep 2026\n0:52 · — · 612 m\nNO TRACK\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.",
+      "scrolling": [
+        {
+          "height": 844,
+          "scrollHeight": 1856
+        }
+      ]
+    },
+    {
+      "scenario": "offline",
+      "width": 320,
+      "scale": 1.5,
+      "file": "offline-320-1.5x.png",
+      "errors": [],
+      "scrollWidth": 320,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nConnect to see shared flights\nThe feed and shared replays are available while you are online.\nRefresh",
+      "scrolling": []
+    },
+    {
+      "scenario": "feed",
+      "width": 390,
+      "scale": 1,
+      "file": "feed-390-1x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nSHARED TODAY\nRefresh\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nStart\nStop\nCHART PLATE · 500 M GRID\nEvening ridge above Bukit Jugra\nFlight on Sun 20 Sep 2026\n0:52 · 14.2 km · 612 m\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nSHARED 19 SEPT 2026\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nNO TRACK RECORDED\nLanding practice\nFlight on Sun 20 Sep 2026\n0:52 · — · 612 m\nNO TRACK\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.",
+      "scrolling": [
+        {
+          "height": 844,
+          "scrollHeight": 1493
+        }
+      ]
+    },
+    {
+      "scenario": "empty",
+      "width": 390,
+      "scale": 1,
+      "file": "empty-390-1x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nRefresh\nNobody here yet.\nAdd the pilots you fly with and their flights land here. Your logbook stays private until you choose to share.\nFind pilots\nOpen logbook",
+      "scrolling": []
+    },
+    {
+      "scenario": "empty-friends",
+      "width": 390,
+      "scale": 1,
+      "file": "empty-friends-390-1x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nRefresh\nNo shared flights yet.\nWhen you or your friends share a flight, it will appear here. Your logbook stays private until you choose to share.\nOpen logbook\nFind pilots",
+      "scrolling": []
+    },
+    {
+      "scenario": "manual",
+      "width": 390,
+      "scale": 1,
+      "file": "manual-390-1x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "SHARE WITH FRIENDS\nPrivate flight\nShare flight…\nRefresh sharing status\nShare this flight\nEvening ridge above Bukit Jugra\nSun 20 Sep 2026\n0:52 · 14.2 km\nWHO SEES IT\nYour accepted friends\nTHEY SEE\nYour flight title, site, date and times, full route including its start and end locations, flight statistics and replay are shared.\nSTAYS YOURS\nYour notes, private pilot details, registration, original files and recorder diagnostics stay private.\nCurrent accepted friends can see your shared flights, including friends you add later.\nYou can hide this flight later. Changes to its title or site appear after backup sync without moving it to the top of the feed.\nShare this flight with friends\nNot now",
+      "scrolling": [],
+      "cancelBounds": {
+        "x": 22,
+        "y": 778,
+        "width": 346,
+        "height": 44
+      },
+      "cancelDismissed": true
+    },
+    {
+      "scenario": "auto",
+      "width": 390,
+      "scale": 1,
+      "file": "auto-390-1x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nSHARED TODAY\nRefresh\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nStart\nStop\nCHART PLATE · 500 M GRID\nEvening ridge above Bukit Jugra\nFlight on Sun 20 Sep 2026\n0:52 · 14.2 km · 612 m\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nSHARED 19 SEPT 2026\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nNO TRACK RECORDED\nLanding practice\nFlight on Sun 20 Sep 2026\n0:52 · — · 612 m\nNO TRACK\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nFuture flight sharing\nAutomatic sharing is off\nWHO SEES IT\nYour accepted friends\nTHEY SEE\nYour flight title, site, date and times, full route including its start and end locations, flight statistics and replay are shared.\nSTAYS YOURS\nYour notes, private pilot details, registration, original files and recorder diagnostics stay private.\nCurrent accepted friends can see your shared flights, including friends you add later.\nFlights recorded after you turn this on will be shared after saving and syncing. Existing flights stay private until you share them. Turning it off stops future posts; flights already shared stay visible until you hide them.\nTurn on automatic sharing\nNot now",
+      "scrolling": [
+        {
+          "height": 844,
+          "scrollHeight": 1493
+        }
+      ],
+      "cancelBounds": {
+        "x": 22,
+        "y": 778,
+        "width": 346,
+        "height": 44
+      },
+      "cancelDismissed": true
+    },
+    {
+      "scenario": "profile",
+      "width": 390,
+      "scale": 1,
+      "file": "profile-390-1x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "‹\nFriend profile\nAW\nAlexandria Watanabe-Sundström\n@alexandria_watanabe\nYour friend on Flight Log Alpha\n124\nBacked-up flights\nFinished flights synced to their account. Flights saved only on a phone are not included.\nRefresh profile\nManage friends",
+      "scrolling": []
+    },
+    {
+      "scenario": "detail",
+      "width": 390,
+      "scale": 1,
+      "file": "detail-390-1x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "‹\nShared flight\nAW\nAlexandria Watanabe-Sundström\nShared with accepted friends\n›\nSUNDAY AFTERNOON · BUKIT JUGRA, SELANGOR\nEvening ridge above Bukit Jugra\n14.2\nkm\n52 min in the air · 612 m max altitude\nSun 20 Sep 2026 · 15:22–16:14\nSHARED FLIGHT\nStart\nStop\nCHART PLATE · 500 M GRID\nAIRTIME\n0:52:00\nSTRAIGHT LINE\n1.6\nkm\nMAX ALTITUDE\n612 m\nMIN ALTITUDE\n90 m\nMAX GROUND SPEED\n54 km/h\nGPS FIXES\n3 121\nReplay shared flight\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nReplay uses the saved GPS route and available telemetry. Missing measurements and recording gaps remain unavailable.\nShared with accepted friends. Private journal notes, pilot details and original recorder files are not included.",
+      "scrolling": [
+        {
+          "height": 794,
+          "scrollHeight": 1194
+        }
+      ]
+    },
+    {
+      "scenario": "error",
+      "width": 390,
+      "scale": 1,
+      "file": "error-390-1x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nCould not refresh shared flights\nUnable to refresh shared flights.\nSHARED TODAY\nRefresh\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nStart\nStop\nCHART PLATE · 500 M GRID\nEvening ridge above Bukit Jugra\nFlight on Sun 20 Sep 2026\n0:52 · 14.2 km · 612 m\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nSHARED 19 SEPT 2026\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nNO TRACK RECORDED\nLanding practice\nFlight on Sun 20 Sep 2026\n0:52 · — · 612 m\nNO TRACK\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.",
+      "scrolling": [
+        {
+          "height": 844,
+          "scrollHeight": 1559
+        }
+      ]
+    },
+    {
+      "scenario": "offline",
+      "width": 390,
+      "scale": 1,
+      "file": "offline-390-1x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nConnect to see shared flights\nThe feed and shared replays are available while you are online.\nRefresh",
+      "scrolling": []
+    },
+    {
+      "scenario": "feed",
+      "width": 390,
+      "scale": 1.5,
+      "file": "feed-390-1.5x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nSHARED TODAY\nRefresh\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nStart\nStop\nCHART PLATE · 500 M GRID\nEvening ridge above Bukit Jugra\nFlight on Sun 20 Sep 2026\n0:52 · 14.2 km · 612 m\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nSHARED 19 SEPT 2026\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nNO TRACK RECORDED\nLanding practice\nFlight on Sun 20 Sep 2026\n0:52 · — · 612 m\nNO TRACK\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.",
+      "scrolling": [
+        {
+          "height": 844,
+          "scrollHeight": 1794
+        }
+      ]
+    },
+    {
+      "scenario": "empty",
+      "width": 390,
+      "scale": 1.5,
+      "file": "empty-390-1.5x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nRefresh\nNobody here yet.\nAdd the pilots you fly with and their flights land here. Your logbook stays private until you choose to share.\nFind pilots\nOpen logbook",
+      "scrolling": []
+    },
+    {
+      "scenario": "empty-friends",
+      "width": 390,
+      "scale": 1.5,
+      "file": "empty-friends-390-1.5x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nRefresh\nNo shared flights yet.\nWhen you or your friends share a flight, it will appear here. Your logbook stays private until you choose to share.\nOpen logbook\nFind pilots",
+      "scrolling": []
+    },
+    {
+      "scenario": "manual",
+      "width": 390,
+      "scale": 1.5,
+      "file": "manual-390-1.5x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "SHARE WITH FRIENDS\nPrivate flight\nShare flight…\nRefresh sharing status\nShare this flight\nEvening ridge above Bukit Jugra\nSun 20 Sep 2026\n0:52 · 14.2 km\nWHO SEES IT\nYour accepted friends\nTHEY SEE\nYour flight title, site, date and times, full route including its start and end locations, flight statistics and replay are shared.\nSTAYS YOURS\nYour notes, private pilot details, registration, original files and recorder diagnostics stay private.\nCurrent accepted friends can see your shared flights, including friends you add later.\nYou can hide this flight later. Changes to its title or site appear after backup sync without moving it to the top of the feed.\nShare this flight with friends\nNot now",
+      "scrolling": [
+        {
+          "height": 820,
+          "scrollHeight": 1069
+        }
+      ],
+      "cancelBounds": {
+        "x": 22,
+        "y": 777.5,
+        "width": 346,
+        "height": 44
+      },
+      "cancelDismissed": true
+    },
+    {
+      "scenario": "auto",
+      "width": 390,
+      "scale": 1.5,
+      "file": "auto-390-1.5x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nSHARED TODAY\nRefresh\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nStart\nStop\nCHART PLATE · 500 M GRID\nEvening ridge above Bukit Jugra\nFlight on Sun 20 Sep 2026\n0:52 · 14.2 km · 612 m\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nSHARED 19 SEPT 2026\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nNO TRACK RECORDED\nLanding practice\nFlight on Sun 20 Sep 2026\n0:52 · — · 612 m\nNO TRACK\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nFuture flight sharing\nAutomatic sharing is off\nWHO SEES IT\nYour accepted friends\nTHEY SEE\nYour flight title, site, date and times, full route including its start and end locations, flight statistics and replay are shared.\nSTAYS YOURS\nYour notes, private pilot details, registration, original files and recorder diagnostics stay private.\nCurrent accepted friends can see your shared flights, including friends you add later.\nFlights recorded after you turn this on will be shared after saving and syncing. Existing flights stay private until you share them. Turning it off stops future posts; flights already shared stay visible until you hide them.\nTurn on automatic sharing\nNot now",
+      "scrolling": [
+        {
+          "height": 844,
+          "scrollHeight": 1794
+        },
+        {
+          "height": 820,
+          "scrollHeight": 1070
+        }
+      ],
+      "cancelBounds": {
+        "x": 22,
+        "y": 778,
+        "width": 346,
+        "height": 44
+      },
+      "cancelDismissed": true
+    },
+    {
+      "scenario": "profile",
+      "width": 390,
+      "scale": 1.5,
+      "file": "profile-390-1.5x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "‹\nFriend profile\nAW\nAlexandria Watanabe-Sundström\n@alexandria_watanabe\nYour friend on Flight Log Alpha\n124\nBacked-up flights\nFinished flights synced to their account. Flights saved only on a phone are not included.\nRefresh profile\nManage friends",
+      "scrolling": []
+    },
+    {
+      "scenario": "detail",
+      "width": 390,
+      "scale": 1.5,
+      "file": "detail-390-1.5x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "‹\nShared flight\nAW\nAlexandria Watanabe-Sundström\nShared with accepted friends\n›\nSUNDAY AFTERNOON · BUKIT JUGRA, SELANGOR\nEvening ridge above Bukit Jugra\n14.2\nkm\n52 min in the air · 612 m max altitude\nSun 20 Sep 2026 · 15:22–16:14\nSHARED FLIGHT\nStart\nStop\nCHART PLATE · 500 M GRID\nAIRTIME\n0:52:00\nSTRAIGHT LINE\n1.6\nkm\nMAX ALTITUDE\n612 m\nMIN ALTITUDE\n90 m\nMAX GROUND SPEED\n54 km/h\nGPS FIXES\n3 121\nReplay shared flight\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nReplay uses the saved GPS route and available telemetry. Missing measurements and recording gaps remain unavailable.\nShared with accepted friends. Private journal notes, pilot details and original recorder files are not included.",
+      "scrolling": [
+        {
+          "height": 794,
+          "scrollHeight": 1614
+        }
+      ]
+    },
+    {
+      "scenario": "error",
+      "width": 390,
+      "scale": 1.5,
+      "file": "error-390-1.5x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nNew flights stay private\nChange\nCould not refresh shared flights\nUnable to refresh shared flights.\nSHARED TODAY\nRefresh\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nStart\nStop\nCHART PLATE · 500 M GRID\nEvening ridge above Bukit Jugra\nFlight on Sun 20 Sep 2026\n0:52 · 14.2 km · 612 m\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.\nSHARED 19 SEPT 2026\nAW\nAlexandria Watanabe-Sundström\nBukit Jugra, Selangor\nNO TRACK RECORDED\nLanding practice\nFlight on Sun 20 Sep 2026\n0:52 · — · 612 m\nNO TRACK\nKudos\n24 kudos\nKudos shows your name and initials to all viewers, including people outside your friends.",
+      "scrolling": [
+        {
+          "height": 844,
+          "scrollHeight": 1875
+        }
+      ]
+    },
+    {
+      "scenario": "offline",
+      "width": 390,
+      "scale": 1.5,
+      "file": "offline-390-1.5x.png",
+      "errors": [],
+      "scrollWidth": 390,
+      "fonts": "loaded",
+      "bodyText": "A SMALL CIRCLE\nFriends\nConnect to see shared flights\nThe feed and shared replays are available while you are online.\nRefresh",
+      "scrolling": []
+    }
+  ]
+}

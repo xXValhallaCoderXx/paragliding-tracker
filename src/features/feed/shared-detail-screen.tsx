@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { Avatar, BusyRow, Button, Notice, Screen, TopBar } from '@/components/ui';
 import { FlightHero } from '@/features/flights/components/hero';
@@ -10,6 +10,7 @@ import { friendInitials } from '@/features/friends/presentation';
 import { useFriends } from '@/features/friends/friends-provider';
 import { errorMessage } from '@/lib/format/error-message';
 import type { SharedFlightDetail } from '@/social/feed-types';
+import { fonts, paper, radii } from '@/ui/theme';
 import { useFeed } from './feed-provider';
 import { KudosControls } from './kudos-controls';
 import { sharedHeroSummary, sharedStats, sharedStatus } from './presentation';
@@ -59,32 +60,54 @@ function SharedDetailContent({ activityId }: { activityId: string }) {
   const attribution = siteAttribution(flight.siteSource);
   return <ScrollView contentContainerStyle={styles.detailContent}>
     <View style={styles.detailSection}>
-      <View style={styles.row}><Avatar initials={friendInitials(flight.author.displayName)} />
-        <View style={styles.grow}><Text style={styles.name}>{flight.author.displayName}</Text><Text style={styles.helper}>{own ? 'Your shared flight' : 'Shared with accepted friends'}</Text></View></View>
-      <Button label={own ? 'Your Friends profile' : 'View pilot profile'} onPress={() => own ? router.push('/friends/manage')
-        : router.push({ pathname: '/friends/[id]', params: { id: flight.author.userId } })} />
+      <Pressable accessibilityRole="button" accessibilityLabel={own ? 'Your Friends profile' : `View ${flight.author.displayName}’s profile`}
+        onPress={() => own ? router.push('/friends/manage')
+          : router.push({ pathname: '/friends/[id]', params: { id: flight.author.userId } })}
+        style={({ pressed }) => [detailStyles.pilot, pressed && styles.pressed]}>
+        <Avatar initials={friendInitials(flight.author.displayName)} size={42} />
+        <View style={detailStyles.pilotText}>
+          <Text style={styles.name}>{flight.author.displayName}</Text>
+          <Text style={styles.helper}>{own ? 'Your shared flight' : 'Shared with accepted friends'}</Text>
+        </View>
+        <Text accessible={false} style={detailStyles.chevron}>›</Text>
+      </Pressable>
     </View>
     <FlightHero flight={sharedHeroSummary(flight)} status={sharedStatus(flight)} saved={null} insight={null} />
     <View style={styles.detailSection}>
       <FlightMapPreview segments={flight.routePreview} variant="hero" cachePolicy="none"
         state={flight.routePreview.length ? 'ready' : 'no_track'} takeoffLabel="Start" landingLabel="Stop"
         describe={() => 'Shared flight route. Circle marks the first fix and square marks the last. Recording gaps stay open.'} />
-      {flight.replayAvailable ? <Button label="Replay shared flight" variant="primary" size="xl" disabled={feed.recorderBusy}
-        onPress={() => router.push({ pathname: '/shared-flights/[id]/replay', params: { id: activityId } })} />
-        : <Notice title="Replay unavailable">This shared flight does not contain enough usable GPS fixes for replay. Its summary remains available.</Notice>}
-      {feed.recorderBusy && flight.replayAvailable ? <Text style={styles.helper}>Finish recording before opening a shared replay.</Text> : null}
       {flight.status === 'partial' || flight.metrics.quality === 'partial' ? <Notice tone="warning" title="Partial flight">Statistics and replay cover only the saved portion of this flight.</Notice> : null}
       {flight.metrics.quality === 'gaps' ? <Notice tone="warning" title="Track has timing gaps">Distance and maximum values may be incomplete. Recording gaps stay open in the replay.</Notice> : null}
       {flight.metrics.quality === 'no_track' ? <Notice title="No usable GPS track">No usable route was recorded for this flight.</Notice> : null}
     </View>
     <StatGrid cells={sharedStats(flight)} />
+    <View style={styles.detailSection}>
+      {flight.replayAvailable ? <Button label="Replay shared flight" variant="primary" size="xl" disabled={feed.recorderBusy}
+        onPress={() => router.push({ pathname: '/shared-flights/[id]/replay', params: { id: activityId } })} />
+        : <Notice title="Replay unavailable">This shared flight does not contain enough usable GPS fixes for replay. Its summary remains available.</Notice>}
+      {feed.recorderBusy && flight.replayAvailable ? <Text style={styles.helper}>Finish recording before opening a shared replay.</Text> : null}
+    </View>
     <View style={styles.detailSection}><KudosControls activityId={activityId} summary={flight.kudos} own={own} /></View>
     <View style={styles.detailSection}>
-      {attribution ? <Text style={styles.helper}>{attribution}</Text> : null}
-      <Notice title="About this shared flight">{flight.provenance === 'igc'
-        ? 'Replay comes from the archived IGC and keeps its saved time and coordinate precision. Replay ground speed is unavailable; the summary keeps the original saved statistics.'
-        : 'Replay uses the saved GPS route and available telemetry. Missing measurements and recording gaps remain unavailable.'}</Notice>
-      <Text style={styles.helper}>Private journal notes, pilot details and original recorder files are not included.</Text>
+      <View style={detailStyles.about}>
+        {attribution ? <Text style={styles.helper}>{attribution}</Text> : null}
+        <Text style={styles.helper}>{flight.provenance === 'igc'
+          ? 'Replay comes from the archived IGC and keeps its saved time and coordinate precision. Replay ground speed is unavailable; the summary keeps the original saved statistics.'
+          : 'Replay uses the saved GPS route and available telemetry. Missing measurements and recording gaps remain unavailable.'}</Text>
+        <Text style={styles.helper}>Shared with accepted friends. Private journal notes, pilot details and original recorder files are not included.</Text>
+      </View>
     </View>
   </ScrollView>;
 }
+
+const detailStyles = StyleSheet.create({
+  pilot: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68,
+    paddingHorizontal: 14, paddingVertical: 12, borderRadius: radii.controlLarge,
+    borderWidth: 1, borderColor: paper.border, backgroundColor: paper.card,
+  },
+  pilotText: { flex: 1, gap: 3 },
+  chevron: { fontFamily: fonts.sansMedium, fontSize: 24, color: paper.muted },
+  about: { borderTopWidth: 1, borderTopColor: paper.hairline, paddingTop: 16, gap: 8 },
+});
