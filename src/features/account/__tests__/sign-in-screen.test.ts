@@ -3,7 +3,7 @@ import { BackHandler, KeyboardAvoidingView, ScrollView, Text } from 'react-nativ
 import { Button, Input, LinkButton, ListRow, TopBar } from '@/components/ui';
 import type { AuthSnapshot, SyncSnapshot } from '@/cloud/types';
 import SignInScreen from '../sign-in-screen';
-import FriendsScreen from '@/features/friends/friends-screen';
+import ManageFriendsScreen from '@/app/friends/manage';
 import { feedContext, friendsContext } from '@/features/feed/__tests__/fixtures';
 import { act, create } from '../../../../tests/support/renderer';
 
@@ -103,8 +103,8 @@ it.each([false, true])('hands off to the explicit Friends flow and preserves exi
   if (existing) mockFriends = friendsContext({ profile: { userId: 'qa', displayName: 'Existing Name', username: 'qa_pilot', discoverable: false, backedUpFlightCount: 2 } });
   const previousProfile = mockFriends.profile; const previousPreferences = mockFeed.preferences;
   await mount(); expect(mockFriends.saveProfile).not.toHaveBeenCalled();
-  await press('Set up Friends'); expect(mockRouter.dismissTo).toHaveBeenCalledWith('/friends');
-  await run(() => rendered.update(React.createElement(FriendsScreen)));
+  await press('Set up Friends'); expect(mockRouter.dismissTo).toHaveBeenCalledWith('/friends/manage');
+  await run(() => rendered.update(React.createElement(ManageFriendsScreen)));
   expect(mockFriends.saveProfile).not.toHaveBeenCalled(); expect(mockFeed.setAutoShare).not.toHaveBeenCalled();
   expect(mockFriends.profile).toBe(previousProfile); expect(mockFeed.preferences).toBe(previousPreferences);
   if (!existing) {

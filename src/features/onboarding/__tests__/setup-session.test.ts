@@ -177,7 +177,7 @@ it('Review preloads saved values, dismisses with Android Back or Close, and pres
 async function backupStep() {
   await nameStep(); await press('Skip for now'); await run(() => session.navigate('continue'));
 }
-const destinations: [SetupDestination, string | null][] = [['home', '/'], ['friends', '/friends'], ['pilot', '/account'], ['return', null]];
+const destinations: [SetupDestination, string | null][] = [['home', '/'], ['friends', '/friends/manage'], ['pilot', '/account'], ['return', null]];
 
 it.each(destinations)('persists before navigating to %s, consumes it once, and preserves existing history', async (destination, route) => {
   mockSettings.onboardingCompletedAt = 100; mockSettings.disclaimerAckAt = 90;
@@ -230,7 +230,7 @@ it('keeps all auth stages at 3/3; Back resets the form and ignores a late verifi
   await run(() => { mockAuth = { ...mockAuth, status: 'signed_in', userId: 'qa', email: 'qa@example.test' }; verify.resolve(); rendered.update(React.createElement(App)); });
   expect(mockSaveSettings).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled(); expect(session.wizard.step).toBe('location');
   await run(() => session.navigate('continue')); expect(rendered.root.findByType(StepChrome).props).toMatchObject({ current: 3, total: 3 });
-  await press('Set up Friends'); expect(mockRouter.replace).toHaveBeenCalledWith('/friends');
+  await press('Set up Friends'); expect(mockRouter.replace).toHaveBeenCalledWith('/friends/manage');
 });
 
 it('starts a fresh email form when returning to Backup after Android Back', async () => {

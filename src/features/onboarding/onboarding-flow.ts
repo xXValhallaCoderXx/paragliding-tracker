@@ -17,7 +17,7 @@ export type OnboardingStep = 'welcome' | 'pilot' | 'location' | 'backup';
 export type StepOutcome = 'continue' | 'skip' | 'back';
 
 export type SetupDestination = 'home' | 'friends' | 'pilot' | 'return';
-export const SETUP_DESTINATIONS = { home: '/', friends: '/friends', pilot: '/account' } as const;
+export const SETUP_DESTINATIONS = { home: '/', friends: '/friends/manage', pilot: '/account' } as const;
 
 export interface OnboardingState {
   step: OnboardingStep;
