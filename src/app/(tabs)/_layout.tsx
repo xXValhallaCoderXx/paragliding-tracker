@@ -1,4 +1,6 @@
 import { Tabs } from 'expo-router';
+import { useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabGlyph } from '@/components/ui';
 import { fonts, paper } from '@/ui/theme';
@@ -14,6 +16,12 @@ import { fonts, paper } from '@/ui/theme';
  * is optional, and the recorder has to work with no account and no signal.
  */
 export default function TabsLayout() {
+  const { fontScale } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  // BottomTabItem needs its 28px icon, 10px vertical padding, border and a scaled label.
+  // A custom bar height includes the bottom inset; BottomTabBar still supplies that padding.
+  const tabBarHeight = 40 + Math.ceil(16 * Math.max(1, fontScale)) + insets.bottom;
+
   return (
     <Tabs
       screenOptions={{
@@ -24,11 +32,12 @@ export default function TabsLayout() {
         // The navigator reserves the bar and its bottom safe area below each tab scene.
         // Tab screens only need top/side safe areas and padding for their own controls.
         tabBarStyle: {
+          height: tabBarHeight,
           backgroundColor: paper.card,
           borderTopColor: paper.border,
           borderTopWidth: 1,
         },
-        tabBarLabelStyle: { fontFamily: fonts.sansSemi, fontSize: 12, letterSpacing: 0.6 },
+        tabBarLabelStyle: { fontFamily: fonts.sansSemi, fontSize: 12, lineHeight: 16, letterSpacing: 0.6 },
       }}>
       <Tabs.Screen
         name="index"
