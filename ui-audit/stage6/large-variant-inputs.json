@@ -1,0 +1,29 @@
+{
+  "scope": "QA application resources only; no system settings written",
+  "fontScale": 1.5,
+  "densityDpi": 720,
+  "expectedWidthDpOn1440px": 320,
+  "package": "com.xxvalhallacoderxx.xcmvp.stage6qa.large",
+  "nativeInputs": [
+    {
+      "path": "android/app/build.gradle",
+      "sha256": "d08638f89fb4e649d74bef8542c9a377a5200b322446f450ab217a0c08e3f4b1"
+    },
+    {
+      "path": "android/app/src/main/AndroidManifest.xml",
+      "sha256": "f52ca3e65246e8edefe9eb755dec84891a6a3667cddbc54dbb660b19698ee9b0"
+    },
+    {
+      "path": "android/app/src/main/res/values/strings.xml",
+      "sha256": "3ded328afca3286f5e076aea398a45474eb21088f39bf1746130eca7e1696f8c"
+    },
+    {
+      "path": "android/app/src/main/java/com/xxvalhallacoderxx/xcmvp/stage6qa/MainApplication.kt",
+      "sha256": "90af650b9bdf1da2deab5abdce037e498d3460d5327db5a0b996666e14e8e710"
+    },
+    {
+      "path": "android/app/src/main/java/com/xxvalhallacoderxx/xcmvp/stage6qa/MainActivity.kt",
+      "sha256": "a910e18a1b9cae5a40d23db1fdeb6cb761c83bc4e4c97f754c866d37361b20cd"
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "recordedAt": "2026-09-27T20:31:34.691541+00:00",
+  "branch": "feature/ui-revamp-beta",
+  "baseCommit": "117d6da55ef3a5a9fc7b0477f576a5a4d0152d92",
+  "implementationCommit": "4490f0d47e946861f70b540e32e0035722aa9674",
+  "sourceCommits": [
+    "4490f0d47e946861f70b540e32e0035722aa9674"
+  ],
+  "build": {
+    "name": "Flight Log Stage 6 QA",
+    "package": "com.xxvalhallacoderxx.xcmvp.stage6qa",
+    "scheme": "xcmvp-stage6qa",
+    "version": "1.0.0-stage6-qa",
+    "target": "Android release arm64-v8a",
+    "internetPermission": true,
+    "allowBackup": false,
+    "apk": {
+      "path": ".artifacts/stage6/build-a/flight-log-stage6-20260928.apk",
+      "bytes": 80229378,
+      "sha256": "5ab174360acd7fd0eec250ac57ac5ce1d41fa686b0663a9c85152b8c08e4b421"
+    },
+    "bundle": {
+      "path": ".artifacts/stage6/build-a/index.android.bundle",
+      "bytes": 5899212,
+      "sha256": "6ddff49c2b71978f53c7b3949c37e0542dde21cb2ce8ef8410cd81406a593440"
+    },
+    "apkMatchesGeneratedOutput": true,
+    "apkBundleMatchesGeneratedOutput": true,
+    "sourceMaps": [
+      {
+        "path": ".artifacts/stage6/build-a/index.android.bundle.map",
+        "bytes": 15714054,
+        "sha256": "fee7a7e8df3be180b667ed92c1f0aa977a69c931ab3ff01cd0c7bdd539db52b5",
+        "mappedRuntimeSourcesMatchingCommit": 275,
+        "changedRuntimeSourcesMatchingCommit": 16,
+        "changedFilesNotInRuntimeMap": [
+          "src/social/feed-types.ts"
+        ],
+        "changedRuntimeSources": {
+          "src/features/feed/automatic-sharing-card.tsx": "d8fc175f671ab1bf69d34705b0daf61f50220e2717a87dc6e7d7b9944db52c12",
+          "src/features/feed/feed-layout.ts": "dcdebf3ef964d2385371d7536a92af7a93620b690461e358e469529cabbaa9bc",
+          "src/features/feed/feed-provider.tsx": "920189c015a77e1287874bb05882feeffc51116cf98354e34da3312b3ecd3e47",
+          "src/features/feed/feed-screen.tsx": "434ead146d813134150574c1bc3aac297ba6796840b74fd5915a4fe226e83bd9",
+          "src/features/feed/flight-sharing-section.tsx": "599e9c48cc4827803e93921bc3c4eda05d6ee1f2b0a89987e3ab4de8771b3d19",
+          "src/features/feed/kudos-controls.tsx": "e870660c85a1f1c82c0d06ecddbb24de1bbaba57836a5cce27fb08d188a0b564",
+          "src/features/feed/kudos-screen.tsx": "f3c99692ff5ad4a9d6a48d553ac539d1614334f5368f4e95aa4f36a25520bb39",
+          "src/features/feed/presentation.ts": "a55947c2204accd342c33b3a031878f52d59a3769d83fdcef6557e21e4f3fdba",
+          "src/features/feed/shared-detail-screen.tsx": "2950a1a7ccab8d662d8e48663bdd9b6746266b703afd0482f0c69735417c59d6",
+          "src/features/feed/shared-flight-card.tsx": "343914a947f1b2c9890dd42ff554c0ee3aee6309134f408a7470b677b7d6924c",
+          "src/features/feed/shared-flight-presentation.tsx": "bec997a8de913a70dd988fcf4b4265e9c369b69c389f8c6ffb24f401f31d6b6b",
+          "src/features/feed/sharing-consent.tsx": "6a79a3827cdbdbd2e4944667dc3fcbfc6eabcf78c22ae2445695e699f52ac3e2",
+          "src/features/feed/sharing-sheet.tsx": "c9abfd20c2a1e3d7f8f3ccd99ae726e26ae4e795267ff8f902f6835580a36a24",
+          "src/features/feed/styles.ts": "1a1d284f05bcfe1eb01c913b781c02a42a6d9dbd2f4e9606e4d3b974c2b7f336",
+          "src/features/feed/use-flight-publication.ts": "cded9d3e67cd70a5a2953011f26fd87dd39df5c9f1a5198f53508425bb5c0b71",
+          "src/features/feed/use-sharing-action.ts": "2567947dfaeefc8ce0954c26f05fff0e4c9dd2b740dd561c9e85d7793a2aeb94"
+        }
+      },
+      {
+        "path": ".artifacts/stage6/build-a/index.android.bundle.packager.map",
+        "bytes": 20682533,
+        "sha256": "14e3558709c43f4ed4b2edfd1f135f7a044a421635625954801cf647e42b212d",
+        "mappedRuntimeSourcesMatchingCommit": 275,
+        "changedRuntimeSourcesMatchingCommit": 16,
+        "changedFilesNotInRuntimeMap": [
+          "src/social/feed-types.ts"
+        ],
+        "changedRuntimeSources": {
+          "src/features/feed/automatic-sharing-card.tsx": "d8fc175f671ab1bf69d34705b0daf61f50220e2717a87dc6e7d7b9944db52c12",
+          "src/features/feed/feed-layout.ts": "dcdebf3ef964d2385371d7536a92af7a93620b690461e358e469529cabbaa9bc",
+          "src/features/feed/feed-provider.tsx": "920189c015a77e1287874bb05882feeffc51116cf98354e34da3312b3ecd3e47",
+          "src/features/feed/feed-screen.tsx": "434ead146d813134150574c1bc3aac297ba6796840b74fd5915a4fe226e83bd9",
+          "src/features/feed/flight-sharing-section.tsx": "599e9c48cc4827803e93921bc3c4eda05d6ee1f2b0a89987e3ab4de8771b3d19",
+          "src/features/feed/kudos-controls.tsx": "e870660c85a1f1c82c0d06ecddbb24de1bbaba57836a5cce27fb08d188a0b564",
+          "src/features/feed/kudos-screen.tsx": "f3c99692ff5ad4a9d6a48d553ac539d1614334f5368f4e95aa4f36a25520bb39",
+          "src/features/feed/presentation.ts": "a55947c2204accd342c33b3a031878f52d59a3769d83fdcef6557e21e4f3fdba",
+          "src/features/feed/shared-detail-screen.tsx": "2950a1a7ccab8d662d8e48663bdd9b6746266b703afd0482f0c69735417c59d6",
+          "src/features/feed/shared-flight-card.tsx": "343914a947f1b2c9890dd42ff554c0ee3aee6309134f408a7470b677b7d6924c",
+          "src/features/feed/shared-flight-presentation.tsx": "bec997a8de913a70dd988fcf4b4265e9c369b69c389f8c6ffb24f401f31d6b6b",
+          "src/features/feed/sharing-consent.tsx": "6a79a3827cdbdbd2e4944667dc3fcbfc6eabcf78c22ae2445695e699f52ac3e2",
+          "src/features/feed/sharing-sheet.tsx": "c9abfd20c2a1e3d7f8f3ccd99ae726e26ae4e795267ff8f902f6835580a36a24",
+          "src/features/feed/styles.ts": "1a1d284f05bcfe1eb01c913b781c02a42a6d9dbd2f4e9606e4d3b974c2b7f336",
+          "src/features/feed/use-flight-publication.ts": "cded9d3e67cd70a5a2953011f26fd87dd39df5c9f1a5198f53508425bb5c0b71",
+          "src/features/feed/use-sharing-action.ts": "2567947dfaeefc8ce0954c26f05fff0e4c9dd2b740dd561c9e85d7793a2aeb94"
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "path": "app.config.ts",
+        "bytes": 1040,
+        "sha256": "0b29f3d34d2516043d71769aea338224f58fcb498f05aeb5e1bed69e9e9767df"
+      },
+      {
+        "path": "app.json",
+        "bytes": 2015,
+        "sha256": "703df1cc76a8770626ed8346b1956059489167503e2d90472556caf42f5f1804"
+      },
+      {
+        "path": "package.json",
+        "bytes": 3709,
+        "sha256": "287e8d425e86e6d58f165bebaef13ca4299a78fd59e28990ff66c5ca5dcb963a"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "bytes": 469669,
+        "sha256": "4fc15aae44da8dd5ecf27ab2bce9e1b0bb4102ad804186196fa8ce878dd11cd0"
+      },
+      {
+        "path": "metro.config.js",
+        "bytes": 883,
+        "sha256": "899b27a316df197f68dddc3c34f5a1688aa2e9bed245499e65a23b7e9c3354d4"
+      }
+    ]
+  },
+  "deviceAcceptance": {
+    "status": "pending",
+    "reason": "Waiting for Sheetless QA to release the Samsung. No Stage 6 phone interaction yet; automated and build checks are separate. No hosted changes in this stage."
+  }
+}

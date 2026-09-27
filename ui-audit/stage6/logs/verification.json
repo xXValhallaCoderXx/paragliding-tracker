@@ -1,0 +1,53 @@
+{
+  "recordedAt": "2026-09-27T20:31:03.023945+00:00",
+  "sourceCommit": "4490f0d47e946861f70b540e32e0035722aa9674",
+  "node": "v24.16.0",
+  "fullTests": {
+    "jestSuites": 149,
+    "jestTests": 1510,
+    "denoTests": 71,
+    "sqlSuites": 15,
+    "sqlAssertions": 522,
+    "architectureChecks": 3,
+    "seconds": 187.1
+  },
+  "checks": [
+    {
+      "command": "Node 24 pnpm test",
+      "result": "passed",
+      "log": "ui-audit/stage6/logs/full-test-final.log",
+      "sha256": "27604dfa510e47a6fedb32b2ba6ee574ea2127e8a042c8bd067aea538bfe30ec"
+    },
+    {
+      "command": "pnpm test:unit src/features/feed/__tests__/sharing-controls.test.ts --silent",
+      "result": "passed",
+      "log": "ui-audit/stage6/logs/return-focus.log",
+      "sha256": "f44391df09f1c69fa43573859d63b84768384d5d15643bceb7589058bc591318"
+    },
+    {
+      "command": "expo export --platform android --max-workers 2",
+      "result": "passed",
+      "log": "ui-audit/stage6/logs/android-export-final.log",
+      "sha256": "60c850898cdaabccfc8290524d05f96f6148fcfbcefb7f59091f4972046b7832"
+    },
+    {
+      "command": "node scripts/test-kudos-http.mjs",
+      "result": "passed; isolated disposable stack; 31 checks",
+      "log": "ui-audit/stage6/logs/kudos-http.log",
+      "sha256": "58d255ecda2453ba52949a9b5cffa8b933a1704b584bed117756034098be2b0f"
+    },
+    {
+      "command": "node scripts/test-shared-flights-http.mjs",
+      "result": "passed; isolated disposable stack; 44 checks",
+      "log": "ui-audit/stage6/logs/shared-flights-http.log",
+      "sha256": "58645df28427d5d54312af799e8a0db59b913e2fa376dbc39e4776ee465c243e"
+    },
+    {
+      "command": "pnpm validate:deps",
+      "result": "exit 1; 27 pre-existing patch recommendations; versions unchanged",
+      "log": "ui-audit/stage6/logs/dependencies.log",
+      "sha256": "f38e7f038d19a5291e653fc0cf5ecd870a4af49fb341da4740a1c386cfce2fbc"
+    }
+  ],
+  "scope": "Host, component, isolated Auth/PostgREST/Edge and bundle checks. No Stage 6 physical or hosted acceptance claimed."
+}

@@ -1,0 +1,34 @@
+Starting isolated kudos HTTP stack: xc-kudos-http-af720df7
+PASS 1: three independent disposable accounts authenticate
+PASS 2: existing detail includes an explicit zero kudos state
+PASS 3: anonymous names and mutations are denied
+PASS 4: author cannot give self-kudos
+PASS 5: unrelated account cannot list or react
+PASS 6: pending friendship cannot list or react
+PASS 7: accepted friend gives one canonical kudos
+PASS 8: concurrent desired-state retries retain one reaction and its identity
+PASS 9: existing feed projects viewer-specific kudos without a new endpoint
+PASS 10: authorized viewer sees a reactor name without being that reactor’s friend
+PASS 11: kudos name visibility grants no profile lookup access
+PASS 12: supporter rows expose only random reaction IDs and chosen names
+PASS 13: duplicate display names remain distinct supporters
+PASS 14: first names page reports full count and bounded cursor
+PASS 15: renaming a supporter does not change page ordering or duplicate entries
+PASS 16: next page survives deletion of its cursor reaction
+PASS 17: repeated undo is idempotent
+PASS 18: either-direction viewer/reactor blocks filter both count and names
+PASS 19: card/detail counts are viewer-specific and agree with the names list
+PASS 20: unblocking reveals eligible names without restoring friendship or profile access
+PASS 21: Hide denies names and reaction mutations
+PASS 22: explicit re-share retains the original reaction identities and count
+PASS 23: private metadata updates preserve reactions and the approved shared summary
+PASS 24: kudos leave private flight and profile access unchanged
+PASS 25: reactor removing the author deletes their contribution and revokes names access
+PASS 26: reactor blocking the author deletes their contribution and denies stale writes
+PASS 27: friend removal deletes the pair’s reactions and denies stale writes
+PASS 28: re-accepting friendship does not resurrect old kudos
+PASS 29: author blocking a reactor deletes their contribution and revokes names access
+PASS 30: reactor account deletion cascades their reaction and name
+PASS 31: private flight deletion removes reactions and prevents resurrection
+Disposable kudos accounts and objects cleaned up.
+Kudos HTTP acceptance: 31 checks passed.

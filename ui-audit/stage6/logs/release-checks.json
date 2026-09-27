@@ -1,0 +1,35 @@
+{
+  "recordedAt": "2026-09-27T20:34:13.450873+00:00",
+  "checks": [
+    {
+      "variant": "normal",
+      "apk": {
+        "path": ".artifacts/stage6/build-a/flight-log-stage6-20260928.apk",
+        "bytes": 80229378,
+        "sha256": "5ab174360acd7fd0eec250ac57ac5ce1d41fa686b0663a9c85152b8c08e4b421"
+      },
+      "nonDebuggable": true,
+      "arm64Only": true,
+      "signatureVerified": true,
+      "signingScope": "Release build with local Android debug certificate; not owner-release acceptance",
+      "zipAlignment16KiBVerified": true,
+      "sourceCommit": "4490f0d47e946861f70b540e32e0035722aa9674"
+    },
+    {
+      "variant": "large",
+      "apk": {
+        "path": ".artifacts/stage6/build-large/flight-log-stage6-large-20260928.apk",
+        "bytes": 80229390,
+        "sha256": "c939a4e36b0d6e33e0cd4ef94ed917881a7c2f415522dd85a343b18110e2b5c9"
+      },
+      "nonDebuggable": true,
+      "arm64Only": true,
+      "signatureVerified": true,
+      "signingScope": "Release build with local Android debug certificate; not owner-release acceptance",
+      "zipAlignment16KiBVerified": true,
+      "sourceCommit": "4490f0d47e946861f70b540e32e0035722aa9674"
+    }
+  ],
+  "sameJavaScriptBundle": true,
+  "noDeviceInteraction": true
+}

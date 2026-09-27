@@ -1,0 +1,47 @@
+Starting isolated shared-flight HTTP stack: xc-shared-http-aae39778
+PASS 1: three disposable Auth sessions are independent
+PASS 2: automatic sharing defaults off
+PASS 3: anonymous feed reads are denied
+PASS 4: older backed-up flight stays private without a manual request
+PASS 5: prepared artifact is not visible before activation
+PASS 6: Edge rejects private artifact fields before any upload
+PASS 7: rejected artifact leaves Storage empty
+PASS 8: real Edge upload activates a publication
+PASS 9: detail is an exact safe projection without notes, IGC or recording identity
+PASS 10: read returns exact verified sanitized bytes
+PASS 11: original replay retains measured speed, missing altitude and millisecond precision
+PASS 12: route preview leaves the real recording gap open
+PASS 13: anonymous artifact reads are denied
+PASS 14: third account cannot read detail or artifact
+PASS 15: pending friend cannot read posts or routes
+PASS 16: newly accepted friend sees previously shared history
+PASS 17: accepted friend reads the same sanitized replay
+PASS 18: friend access does not widen private backup or profile policies
+PASS 19: friend cannot bypass Edge authorization using a Storage object path
+PASS 20: service activation bridge cannot be called by authenticated clients
+PASS 21: metadata edits update only the approved shared projection and preserve replay
+PASS 22: disabling auto invalidates queued automatic publication
+PASS 23: disabling automatic posting preserves existing shared history
+PASS 24: old consent cannot be reused after disabling and re-enabling
+PASS 25: current automatic consent publishes a newly queued flight
+PASS 26: hide immediately revokes detail and artifact reads
+PASS 27: late upload retry cannot undo hide
+PASS 28: stale manual preparation cannot undo hide
+PASS 29: hidden artifact is physically removed by durable cleanup
+PASS 30: explicit re-share creates a new artifact generation without duplicating publication history
+PASS 31: old artifact generation remains inaccessible after re-share
+PASS 32: saved partial flight remains explicitly partial
+PASS 33: manual restored replay retains IGC provenance, second precision and unavailable speed
+PASS 34: restored IGC-derived replay round-trips exact sanitized bytes
+PASS 35: no-GPS summary remains available without fake route or replay
+PASS 36: feed pagination crosses the cursor without duplicate rows
+PASS 37: friend removal revokes feed and route reads
+PASS 38: reader-side block also revokes all shared access
+PASS 39: private flight deletion immediately removes its social publication
+PASS 40: private deletion artifact cleanup removes the actual object
+PASS 41: friend cannot download original private IGC
+PASS 42: account deletion fixture contains both private and shared objects
+PASS 43: account deletion physically drains both Storage buckets
+PASS 44: account deletion removes Auth identity and revokes social reads
+Disposable shared-flight accounts and stored objects cleaned up.
+Shared-flight HTTP acceptance: 44 checks passed.

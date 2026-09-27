@@ -1,0 +1,9 @@
+{
+  "package": "com.xxvalhallacoderxx.xcmvp",
+  "label": "Flight Log Alpha",
+  "internetPermission": true,
+  "allowBackup": false,
+  "largeQaOverridesAbsent": true,
+  "packageAndLockfileMatchSourceCommit": true,
+  "noInstallationOrDeviceInteraction": true
+}

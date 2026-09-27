@@ -1,0 +1,9 @@
+$ node scripts/test.mjs unit src/features/feed/__tests__/sharing-controls.test.ts --silent
+PASS src/features/feed/__tests__/sharing-controls.test.ts
+
+Test Suites: 1 passed, 1 total
+Tests:       26 passed, 26 total
+Snapshots:   0 total
+Time:        1.83 s
+test:unit: 3.5s
+Total verification: 3.5s
