@@ -113,12 +113,16 @@ function PublicationControls({ flightId, preview, extraActions, beforeOpen, bloc
         onPress={() => { if (canConfirmShare) void run(publication.share, true); }} />
       <LinkButton label="Not now" disabled={disabled} onPress={close} className="items-center" />
     </SharingSheet> : null}
-  </View></Card>{extraActions?.({
+  </View></Card>{extraActions ? <ExtraActions render={extraActions} entry={{
     label: publication.pendingHide ? 'Hide awaiting confirmation' : hideAction ? 'Hide from friends…' : 'Share with friends…',
     reason: disabled ? 'Checking or updating sharing. Please wait.' : publication.pendingHide ? 'Friends may still see this flight until the server confirms Hide.'
       : !hideAction && !publication.online ? 'Connect to check sharing and share this flight.' : null,
     onPress: () => open(hideAction ? 'hide' : 'share'),
-  })}</>;
+  }} /> : null}</>;
+}
+
+function ExtraActions({ render, entry }: { render: (entry: FlightSharingEntry) => ReactNode; entry: FlightSharingEntry }) {
+  return render(entry);
 }
 
 const local = StyleSheet.create({
