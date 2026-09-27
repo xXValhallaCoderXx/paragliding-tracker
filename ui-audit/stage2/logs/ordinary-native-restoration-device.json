@@ -1,0 +1,9 @@
+{
+  "package": "com.xxvalhallacoderxx.xcmvp",
+  "scheme": "xcmvp",
+  "name": "Flight Log Alpha",
+  "internetPermission": true,
+  "allowBackup": false,
+  "iosScriptPreserved": true,
+  "normalApkBuiltOrInstalled": false
+}

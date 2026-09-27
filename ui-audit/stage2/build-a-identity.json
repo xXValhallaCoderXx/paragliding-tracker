@@ -1,13 +1,11 @@
 {
-  "recordedAt": "2026-09-27T14:31:03.667709+00:00",
+  "recordedAt": "2026-09-27T13:04:15.815979+00:00",
   "branch": "feature/ui-revamp-beta",
   "baseCommit": "39d9e717f7421e87db76e87697cad5b750a459e6",
-  "implementationCommit": "28890f2ff56f4e4247ff09888b6c16bfc7de8f13",
+  "implementationCommit": "9933e723ce745d7ae1c9bbd475a820f0903c79f7",
   "sourceCommits": [
     "6450e7e397ebbf51026f57c6f03bbfb6d535a2ba",
-    "9933e723ce745d7ae1c9bbd475a820f0903c79f7",
-    "6a206393926b0d7a25d6ebe3eabbcf01015648fe",
-    "28890f2ff56f4e4247ff09888b6c16bfc7de8f13"
+    "9933e723ce745d7ae1c9bbd475a820f0903c79f7"
   ],
   "build": {
     "name": "Flight Log Stage 2 QA",
@@ -18,22 +16,22 @@
     "internetPermission": true,
     "allowBackup": false,
     "apk": {
-      "path": ".artifacts/stage2/build-c/flight-log-stage2-20260927.apk",
-      "bytes": 80060966,
-      "sha256": "8151839485aab2e5259450e4046fd41ca95405c5dc07e754eafb27311bd614f0"
+      "path": ".artifacts/stage2/flight-log-stage2-20260927.apk",
+      "bytes": 80060914,
+      "sha256": "c83b30373824e2b5139e4fb941857e60f3845d1452315fd8d7b98a1e72a19bbd"
     },
     "bundle": {
-      "path": ".artifacts/stage2/build-c/index.android.bundle",
-      "bytes": 5730800,
-      "sha256": "cd7a97a5c03aaf92e52ba71d6baa7cb169bb6373e1461d6ee32e6b611f059bba"
+      "path": ".artifacts/stage2/index.android.bundle",
+      "bytes": 5730748,
+      "sha256": "70f36831099114afe9688a178629f9df28a8c2bb10774b68ef140fd7b5144f1c"
     },
     "apkMatchesGeneratedOutput": true,
     "apkBundleMatchesGeneratedOutput": true,
     "sourceMaps": [
       {
-        "path": ".artifacts/stage2/build-c/index.android.bundle.map",
-        "bytes": 15414135,
-        "sha256": "38f852f36ae3efa4986ae5e938d3fe92db69bc8d658229325ba3959dd3bf74c6",
+        "path": ".artifacts/stage2/index.android.bundle.map",
+        "bytes": 15413870,
+        "sha256": "7aaad75eb771186be8b4330602b900bd754b79928b19445296a3e2a371efe745",
         "mappedRuntimeSourcesMatchingCommit": 242,
         "changedRuntimeSourcesMatchingCommit": 12,
         "changedRuntimeSources": {
@@ -42,19 +40,19 @@
           "src/cloud/auth-service.native.ts": "2ee52adbd097d31d731f2ae19e4319aa1045af3ac7288920a166eab2aea4f85c",
           "src/cloud/otp-policy.ts": "b66a406422de7dda1aa08b644627a58c6145f1d114b6079588ba18a6ac96d007",
           "src/components/ui/input.tsx": "058028c6367fe104d17b650cbc8a15de25c7208f79498289d4f16c273f9c9dfd",
-          "src/features/account/components/backup-sign-in.tsx": "30d3e82fa99055a658644082d4f3aa400f6803afde29ef82dba969c8700b5e17",
+          "src/features/account/components/backup-sign-in.tsx": "94e6b5f239230e20f2e979a34803a928bb327b80901d67f896299a0b8f79f53c",
           "src/features/account/components/sign-in-card.tsx": "353551edb8083d380f18c832dbe3248aabad242c3c6957b5b573dfe538d0df79",
           "src/features/account/sign-in-screen.tsx": "0eaa77028b7e59827af7cf96264ba1434c1050affee32cb58865f2e59775a535",
-          "src/features/onboarding/components/first-run-gate.tsx": "7c95ede5e27c7d7a760a53d62386aa57285f6cbea2e52adc7a66ede0aef1ac16",
+          "src/features/onboarding/components/first-run-gate.tsx": "aca32161b73475edcd7c80b3cd9f9f00954e4c46c2f2f9dafe53b3212b5dc0a6",
           "src/features/onboarding/components/onboarding-overlay.tsx": "2117a1f953e4f777f1b26038fbe6ac85ff3ad6d09f12c77dceb21cff784a7084",
           "src/features/onboarding/first-run-provider.tsx": "604687d3d0990621694bada272bded853bb392fcd1c81a0a562321d58085070b",
           "src/features/onboarding/onboarding-flow.ts": "2d3649c146e31c749c0935f554d4da1f29980480829da892f192b5a85c5f52fa"
         }
       },
       {
-        "path": ".artifacts/stage2/build-c/index.android.bundle.packager.map",
-        "bytes": 20288539,
-        "sha256": "c0a81777e54586916863c505d66a157849f45fe2debb89995d4a0d14d2b92447",
+        "path": ".artifacts/stage2/index.android.bundle.packager.map",
+        "bytes": 20288218,
+        "sha256": "b9eeb7af222faabead9095287c66b1946a20a38754098c320745570ba3f8a066",
         "mappedRuntimeSourcesMatchingCommit": 242,
         "changedRuntimeSourcesMatchingCommit": 12,
         "changedRuntimeSources": {
@@ -63,10 +61,10 @@
           "src/cloud/auth-service.native.ts": "2ee52adbd097d31d731f2ae19e4319aa1045af3ac7288920a166eab2aea4f85c",
           "src/cloud/otp-policy.ts": "b66a406422de7dda1aa08b644627a58c6145f1d114b6079588ba18a6ac96d007",
           "src/components/ui/input.tsx": "058028c6367fe104d17b650cbc8a15de25c7208f79498289d4f16c273f9c9dfd",
-          "src/features/account/components/backup-sign-in.tsx": "30d3e82fa99055a658644082d4f3aa400f6803afde29ef82dba969c8700b5e17",
+          "src/features/account/components/backup-sign-in.tsx": "94e6b5f239230e20f2e979a34803a928bb327b80901d67f896299a0b8f79f53c",
           "src/features/account/components/sign-in-card.tsx": "353551edb8083d380f18c832dbe3248aabad242c3c6957b5b573dfe538d0df79",
           "src/features/account/sign-in-screen.tsx": "0eaa77028b7e59827af7cf96264ba1434c1050affee32cb58865f2e59775a535",
-          "src/features/onboarding/components/first-run-gate.tsx": "7c95ede5e27c7d7a760a53d62386aa57285f6cbea2e52adc7a66ede0aef1ac16",
+          "src/features/onboarding/components/first-run-gate.tsx": "aca32161b73475edcd7c80b3cd9f9f00954e4c46c2f2f9dafe53b3212b5dc0a6",
           "src/features/onboarding/components/onboarding-overlay.tsx": "2117a1f953e4f777f1b26038fbe6ac85ff3ad6d09f12c77dceb21cff784a7084",
           "src/features/onboarding/first-run-provider.tsx": "604687d3d0990621694bada272bded853bb392fcd1c81a0a562321d58085070b",
           "src/features/onboarding/onboarding-flow.ts": "2d3649c146e31c749c0935f554d4da1f29980480829da892f192b5a85c5f52fa"
@@ -102,10 +100,8 @@
     ]
   },
   "deviceAcceptance": {
-    "status": "accepted-bounded-stage2",
-    "device": "SM-S938B / Android 16",
-    "results": "device-results.json",
-    "reason": "Automated verification and bounded native checks complete, including user-confirmed fresh/returning email sign-in, wrong-code recovery, email-app round trip and TalkBack announcements."
+    "status": "pending",
+    "reason": "User explicitly deferred ADB and device work while away. No Stage 2 install or screenshots."
   },
   "ordinaryNativeRestoration": {
     "package": "com.xxvalhallacoderxx.xcmvp",

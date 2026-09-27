@@ -1,0 +1,164 @@
+{
+  "updatedAt": "2026-09-27T14:49:37.994974+00:00",
+  "status": "accepted-bounded-stage2",
+  "buildA": {
+    "sourceCommit": "9933e723ce745d7ae1c9bbd475a820f0903c79f7",
+    "apkSha256": "c83b30373824e2b5139e4fb941857e60f3845d1452315fd8d7b98a1e72a19bbd",
+    "checks": [
+      {
+        "result": "pass",
+        "check": "Fresh setup reaches optional Backup at 3/3 with no location or notification grant",
+        "evidence": [
+          "screens/02-backup-intro.png"
+        ]
+      },
+      {
+        "result": "pass",
+        "check": "Leaving Backup and returning shows an empty email form",
+        "evidence": [
+          "screens/05-backup-reentry-cleared.png"
+        ]
+      },
+      {
+        "result": "pass",
+        "check": "Local-only completion opens Home without an account; synthetic private name saved",
+        "evidence": [
+          "screens/06-local-only-home.png"
+        ]
+      },
+      {
+        "result": "pass",
+        "check": "Pilot opens dedicated Sign in; email and primary action remain reachable above keyboard",
+        "evidence": [
+          "screens/07-pilot-sign-in.png",
+          "screens/08-pilot-email-keyboard.png"
+        ]
+      },
+      {
+        "result": "pass",
+        "check": "Pilot sign-in Android Back first dismisses keyboard and preserves draft, then returns to Pilot; re-entry is blank"
+      },
+      {
+        "result": "fail",
+        "check": "Setup Modal Android Back navigates to Permissions while keyboard is visible; reproduced in fresh setup and Review",
+        "evidence": [
+          "screens/09-build-a-review-keyboard.png",
+          "screens/10-build-a-back-left-step.png"
+        ],
+        "fixCommit": "6a20639",
+        "retest": "Passed in build B; first Back dismisses keyboard, second Back returns to Permissions."
+      }
+    ]
+  },
+  "data": "Synthetic private name and local layout-test drafts. Dedicated email alias authorized for hosted sign-in; no real codes retained in evidence.",
+  "excludedEvidence": [
+    "screens/04-backup-email-action.png: harness swipe began inside keyboard; not evidence of app action visibility"
+  ],
+  "pending": [],
+  "buildB": {
+    "sourceCommit": "6a206393926b0d7a25d6ebe3eabbcf01015648fe",
+    "apkSha256": "daef8b5a9b641bccfe26bc086386ae0e69973d91ae6c8191c1ca67c3e9451589",
+    "checks": [
+      {
+        "result": "pass",
+        "check": "Review Backup first Android Back dismisses keyboard, retains email and remains 3/3; second Back returns to Permissions 2/3",
+        "evidence": [
+          "screens/11-build-b-keyboard-before-back.png",
+          "screens/12-build-b-first-back.png"
+        ]
+      },
+      {
+        "result": "pass",
+        "check": "Re-entering Backup after leaving resets email; Close review returns to Settings",
+        "evidence": [
+          "screens/13-build-b-reentry-blank.png"
+        ]
+      },
+      {
+        "result": "pass",
+        "check": "Installing updated Stage 2 package preserves synthetic private name and completed setup; app opens Home"
+      }
+    ]
+  },
+  "buildC": {
+    "sourceCommit": "28890f2ff56f4e4247ff09888b6c16bfc7de8f13",
+    "apkSha256": "8151839485aab2e5259450e4046fd41ca95405c5dc07e754eafb27311bd614f0",
+    "checks": [
+      {
+        "result": "pass",
+        "check": "At font scale 1.3, intro text wraps and long email input plus send action are reachable above keyboard by scrolling; first Android Back preserves the draft",
+        "evidence": [
+          "screens/14-build-c-enlarged-intro.png",
+          "screens/15-build-c-enlarged-email-keyboard.png"
+        ]
+      },
+      {
+        "result": "partial",
+        "check": "Enlarged-text automation did not complete its re-entry assertion after focus changed input bounds; baseline-size blank re-entry was verified separately."
+      },
+      {
+        "result": "pass",
+        "check": "User confirmed real email delivery and successful explicit Continue; signed-in confirmation remained on screen",
+        "evidence": [
+          "../../.artifacts/stage2/device-private/17-build-c-signed-in.png"
+        ],
+        "source": "User confirmation plus device UI"
+      },
+      {
+        "result": "pass",
+        "check": "Set up Friends opens existing explicit profile form; display name and username are blank; Create disabled. Private Stage Two QA name was not copied. No profile was created or preference control changed.",
+        "evidence": [
+          "screens/18-build-c-friends-opt-in.png"
+        ]
+      },
+      {
+        "result": "pass",
+        "check": "Force-stop and cold launch restored the saved QA account session; Pilot displays Signed in and the same account. No OTP entered by automation.",
+        "evidence": [
+          "../../.artifacts/stage2/device-private/19-build-c-session-restored.png"
+        ]
+      },
+      {
+        "result": "pass",
+        "check": "Already-signed-in Review stays at 3/3 until an explicit action; Open Home completes it and opens Home",
+        "evidence": [
+          "../../.artifacts/stage2/device-private/20-build-c-signed-in-review.png",
+          "screens/23-build-c-open-home.png"
+        ]
+      },
+      {
+        "result": "pass",
+        "check": "Samsung TalkBack focus reached the setup Back control, and the user confirmed spoken announcements were clear. Existing accessibility settings restored. Cross-app acceptance remains PAR-6.",
+        "evidence": [
+          "../../.artifacts/stage2/device-private/22-build-c-talkback-focus.png"
+        ]
+      },
+      {
+        "result": "pass",
+        "check": "User confirmed returning-account code delivery, wrong-code rejection, preservation of the code form through an email-app round trip, and successful retry at setup step 3/3",
+        "source": "User confirmation plus signed-in device UI",
+        "evidence": [
+          "../../.artifacts/stage2/device-private/24-build-c-returning-email-step-three.png",
+          "../../.artifacts/stage2/device-private/25-build-c-returning-signed-in.png"
+        ]
+      },
+      {
+        "result": "pass",
+        "check": "Final Finish review action returned to the original Settings caller; QA app left on Home",
+        "evidence": [
+          "screens/26-build-c-finish-review-settings.png"
+        ]
+      }
+    ]
+  },
+  "deviceSettingsRestored": {
+    "fontScale": "0.9",
+    "accessibilityServices": true
+  },
+  "outsideThisAcceptance": [
+    "Cross-app accessibility (PAR-6)",
+    "Hosted backup/restoration/deletion and release acceptance (PAR-10/PAR-66)",
+    "Recorder field reliability",
+    "Postcard issue (PAR-65)"
+  ]
+}

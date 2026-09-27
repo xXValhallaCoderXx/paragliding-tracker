@@ -1,38 +1,67 @@
 {
+  "recordedAt": "2026-09-27T14:53:04.670Z",
+  "sourceCommit": "28890f2ff56f4e4247ff09888b6c16bfc7de8f13",
+  "evidence": {
+    "path": "ui-audit/stage2/stage2-device-evidence.pdf",
+    "sha256": "024c338e0146dd279c6bbecbcdb284ddd21ebc23223d75ebb98604a6a461d4ff",
+    "bytes": 2109137,
+    "pages": 7
+  },
+  "initialImplementationComments": {
+    "PAR-47": "c8008419-2a50-4aac-a97d-09ce19ae27ec",
+    "PAR-66": "10956e4a-79ec-4a0e-bca4-6449ccdcd841"
+  },
   "issues": [
     {
       "id": "PAR-47",
       "url": "https://linear.app/sentiment-hound/issue/PAR-47/uiux-optional-backup-and-friends-onboarding",
-      "status": "In Progress",
+      "status": "Done",
+      "completedAt": "2026-09-27T14:51:05.941Z",
       "parentId": "PAR-40",
       "labels": [
         "Design"
       ],
       "cycleId": null,
-      "completedAt": null,
-      "commentId": "c8008419-2a50-4aac-a97d-09ce19ae27ec",
+      "checkedItems": 3,
+      "commentId": "edd6ad55-184a-4816-8e69-89040e9118be",
       "commentReadBack": true,
-      "designAttachmentIds": [
-        "8e0d49ae-cf89-4048-a385-b079d1a5ed99"
+      "attachments": [
+        {
+          "id": "16218b8f-c760-46d9-b229-9c78c5f65bbf",
+          "title": "Stage 2 Android acceptance — 27 September 2026"
+        },
+        {
+          "id": "8e0d49ae-cf89-4048-a385-b079d1a5ed99",
+          "title": "Design screens — PAR-47 — 27 September 2026"
+        }
       ],
-      "acceptance": "Pending physical-device checks at user request"
+      "acceptance": "Bounded Stage 2 Android acceptance passed",
+      "automaticCycleAssignmentReversed": true
     },
     {
       "id": "PAR-66",
       "url": "https://linear.app/sentiment-hound/issue/PAR-66/uiux-account-sign-in-backup-restoration-and-deletion",
       "status": "In Progress",
+      "completedAt": null,
       "parentId": "PAR-40",
       "labels": [
         "Design"
       ],
       "cycleId": null,
-      "completedAt": null,
-      "commentId": "10956e4a-79ec-4a0e-bca4-6449ccdcd841",
+      "checkedItems": 0,
+      "commentId": "cd8d1fee-5e7b-454a-a08a-08feda52d12a",
       "commentReadBack": true,
-      "designAttachmentIds": [
-        "f618d397-1f09-4cd0-b6dc-676a70c0e4b3"
+      "attachments": [
+        {
+          "id": "567dc38e-cfdf-4c5b-a89e-098646c51e1f",
+          "title": "Stage 2 shared sign-in acceptance — 27 September 2026"
+        },
+        {
+          "id": "f618d397-1f09-4cd0-b6dc-676a70c0e4b3",
+          "title": "Design screens — PAR-66 — 27 September 2026"
+        }
       ],
-      "acceptance": "Pending physical-device checks at user request"
+      "acceptance": "Shared sign-in slice accepted; wider PAR-66 scope remains open"
     }
   ]
 }

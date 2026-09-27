@@ -1,0 +1,40 @@
+{
+  "reason": "Account-email screenshots retained locally under the ignored artifacts directory; omitted from git and the shared PDF. No verification codes captured.",
+  "screenshots": [
+    {
+      "path": ".artifacts/stage2/device-private/17-build-c-signed-in.png",
+      "sha256": "1e46314c659638f68c53b570b081686179127c82b98a07eddfcd19e9494cdeb2",
+      "bytes": 810793
+    },
+    {
+      "path": ".artifacts/stage2/device-private/19-build-c-session-restored.png",
+      "sha256": "b33262e7f549ad32efce1aee4f1fa92aaa636c7caa529f011e99a668951f48bc",
+      "bytes": 283379
+    },
+    {
+      "path": ".artifacts/stage2/device-private/20-build-c-signed-in-review.png",
+      "sha256": "d2ec33e0aeeaaf3d2ab5ffeb139305c51ae84e785e37acc3018779fe6a1e4980",
+      "bytes": 764800
+    },
+    {
+      "path": ".artifacts/stage2/device-private/21-build-c-talkback-initial.png",
+      "sha256": "ff4d55f8fe49e665da6de5c0acf310eaa50d9936c6f8a3804ff9d50de8035188",
+      "bytes": 1193069
+    },
+    {
+      "path": ".artifacts/stage2/device-private/22-build-c-talkback-focus.png",
+      "sha256": "e0bfcbbcde321b173fa0b084b4c042e47981f7051601c91873fdbc8a7e50f59a",
+      "bytes": 765193
+    },
+    {
+      "path": ".artifacts/stage2/device-private/24-build-c-returning-email-step-three.png",
+      "sha256": "21e75c4b5856e78bab5d268a6af249cd3ff3c1b73acc2b9681d8c058f899b77b",
+      "bytes": 293905
+    },
+    {
+      "path": ".artifacts/stage2/device-private/25-build-c-returning-signed-in.png",
+      "sha256": "f1b61d80183a901a7d248f2651b18b837b777732d2d1bc517aa9bb683b6f9824",
+      "bytes": 765048
+    }
+  ]
+}

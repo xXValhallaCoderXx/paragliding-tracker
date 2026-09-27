@@ -1,0 +1,8 @@
+{
+  "service": "com.samsung.android.accessibility.talkback/com.samsung.android.marvin.talkback.TalkBackService",
+  "baselineServicesPreserved": true,
+  "settingsRestored": true,
+  "spokenAnnouncements": "User confirmed they were clear during the brief check",
+  "focusObserved": "Setup Back control",
+  "scope": "Bounded Stage 2 check; cross-app accessibility remains PAR-6"
+}
