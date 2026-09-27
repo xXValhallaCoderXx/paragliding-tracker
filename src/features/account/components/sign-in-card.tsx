@@ -12,7 +12,7 @@ import { errorMessage } from '@/lib/format/error-message';
 import { paper, spacing, typography } from '@/ui/theme';
 
 export function BackupDisclosure() {
-  return <Disclaimer align="left">Backup stores your email, private pilot details, flight summaries including notes, and IGC files containing GPS coordinates. Raw sensor and diagnostic samples stay on this phone.</Disclaimer>;
+  return <Disclaimer align="left">Backup stores your email, private pilot details, aircraft and sport identifiers, flight summaries including notes and recorded equipment, and IGC files containing GPS coordinates. Raw sensor and diagnostic samples stay on this phone.</Disclaimer>;
 }
 
 /** All unfinished input and errors belong to this mounted form. A trip to the email

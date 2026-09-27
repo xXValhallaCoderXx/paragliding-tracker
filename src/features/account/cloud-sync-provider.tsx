@@ -14,6 +14,7 @@ import { recorderService } from '@/recorder/recorder-service';
 import { downloadNetwork } from '@/offline-maps/network';
 import { EMPTY_RESTORE, type RestoreSnapshot } from '@/cloud/restore-plan';
 import { subscribeJournal } from '@/journal/context';
+import { subscribeEquipment } from '@/equipment/events';
 import { store } from '@/store';
 import { api } from '@/store/api';
 
@@ -90,6 +91,10 @@ export function CloudSyncProvider({ children }: { children: ReactNode }) {
         ? [{ type: 'FlightTrack' as const, id: 'LIST' }, { type: 'FlightTrack' as const, id: change.flightId }, { type: 'FlightReplay' as const, id: change.flightId }]
         : []),
     ]));
+  }), []);
+
+  useEffect(() => subscribeEquipment(() => {
+    store.dispatch(api.util.invalidateTags(['Equipment']));
   }), []);
 
   useEffect(() => {

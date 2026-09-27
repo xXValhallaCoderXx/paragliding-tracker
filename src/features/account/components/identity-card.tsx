@@ -3,7 +3,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '@/components/ui';
 import {
   identityName,
-  identitySubtitle,
   pilotInitials,
   type AccountStats,
 } from '@/features/account/account-identity';
@@ -27,7 +26,6 @@ export function IdentityCard({
   stats: AccountStats;
   onEdit: () => void;
 }) {
-  const subtitle = identitySubtitle(profile);
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
@@ -36,15 +34,7 @@ export function IdentityCard({
           <Text style={styles.name} numberOfLines={2}>
             {identityName(profile)}
           </Text>
-          {subtitle ? (
-            <Text style={styles.subtitle} numberOfLines={2}>
-              {subtitle}
-            </Text>
-          ) : (
-            <Text style={styles.subtitlePrompt} numberOfLines={2}>
-              No glider set
-            </Text>
-          )}
+          <Text style={styles.subtitle}>Private pilot details</Text>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -58,7 +48,7 @@ export function IdentityCard({
 
       <View style={styles.stats}>
         <Stat label="FLIGHTS" value={String(stats.flightCount)} />
-        <Stat label="AIRTIME" value={formatAirtimeShort(stats.airtimeMs)} />
+        <Stat label="RECORDED TIME" value={formatAirtimeShort(stats.airtimeMs)} />
         <Stat label="SINCE" value={stats.sinceLabel ?? '—'} />
       </View>
     </View>

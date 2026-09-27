@@ -2,6 +2,7 @@ import { archiveRepository } from '@/archives/repository';
 import { notifyJournal, setJournalOwner } from '@/journal/context';
 import { deleteRemoteFlight, mergeRemoteFlight, pullArchiveCatalogue, pullFlightDeletions, pushArchiveChanges } from './archive-sync.native';
 import { downloadArchiveIgc } from './archive-download.native';
+import { equipmentPending, syncEquipment } from './equipment-sync';
 import { RestoreTransfer } from './restore-transfer';
 import { INITIAL_RESTORE_ENVIRONMENT, type RestoreEnvironment } from './restore-plan';
 import * as Crypto from 'expo-crypto';
@@ -14,9 +15,7 @@ import {
   classifySyncError,
   evaluateSyncGate,
   hasUsableTrack,
-  igcObjectPath,
   nextBackoff,
-  shouldUploadIgc,
 } from './sync-plan';
 import { getSupabase } from './supabase';
 import type { CloudSyncEngine, SyncSnapshot, SyncTrigger } from './types';
@@ -43,6 +42,11 @@ import {
   markFlightCloudOwner,
 } from '@/recorder/database.native';
 import { buildUnsignedIgc } from '@/recorder/igc';
+import { equipmentExportHeaders } from '@/recorder/equipment-export';
+import { readVerifiedSessionIgc } from '@/recorder/exports-repository.native';
+import { existingIgcManifest } from './igc-manifest';
+import { publishFirstIgc } from './igc-upload.native';
+import type { ArchiveRemoteFlight } from '@/archives/types';
 import type { FlightSyncCandidate } from '@/recorder/types';
 
 /**
@@ -57,6 +61,8 @@ const INITIAL_SNAPSHOT: SyncSnapshot = {
   lastSyncAt: null,
   pendingFlights: 0,
   pendingDeletions: 0,
+  pendingEquipment: 0,
+  equipmentConflicts: 0,
   cloudOnlyFlights: 0,
   linkedUserId: null,
   lastError: null,
@@ -91,13 +97,15 @@ async function refreshCounts(): Promise<void> {
   const current = () => generation === authGeneration && revision === countRefreshRevision;
   try {
     const now = Date.now();
-    const [pending, metadata, deletions] = await Promise.all([
+    const [pending, metadata, deletions, equipment] = await Promise.all([
       countPendingSync(owner ?? undefined),
       owner ? archiveRepository.listDirtyMetadata(owner, Number.MAX_SAFE_INTEGER, now, true) : [],
       owner ? archiveRepository.listPendingDeletions(owner, Number.MAX_SAFE_INTEGER, now, true) : [],
+      equipmentPending(),
     ]);
     if (!current()) return;
-    publish({ pendingFlights: pending.flights + metadata.length, pendingDeletions: pending.deletions + deletions.length });
+    publish({ pendingFlights: pending.flights + metadata.length, pendingDeletions: pending.deletions + deletions.length,
+      pendingEquipment: equipment.pending, equipmentConflicts: equipment.conflicts });
   } catch {
     // Counts are cosmetic; never let them fail a cycle.
   }
@@ -165,46 +173,39 @@ async function pushDeletions(userId: string, now: number, ignoreBackoff: boolean
   return failures;
 }
 
-async function pushIgc(flight: FlightSyncCandidate, userId: string, guard: () => void): Promise<void> {
+async function pushIgc(flight: FlightSyncCandidate, userId: string, guard: () => void, canonical: ArchiveRemoteFlight): Promise<void> {
   guard();
   if (!hasUsableTrack(flight)) return;
 
+  const existing = existingIgcManifest(canonical, userId);
+  if (existing) {
+    // A matching successful upload receipt already attests these exact bytes. On a
+    // recovered/new receipt, verify the remote original before acknowledging it.
+    if (flight.igcSha256 !== existing.sha256 || flight.igcObjectPath !== existing.objectPath) {
+      const bytes = await downloadArchiveIgc(existing, new AbortController().signal, () => {});
+      guard();
+      const digest = Array.from(new Uint8Array(await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, new Uint8Array(bytes))))
+        .map(value => value.toString(16).padStart(2, '0')).join('');
+      if (bytes.byteLength !== existing.byteCount || digest !== existing.sha256.toLowerCase()) {
+        throw new Error('The existing track backup failed its integrity check. Retry restoration; its original file was not replaced.');
+      }
+      guard();
+      await markFlightIgcPushed({ flightId: flight.id, sha256: existing.sha256, objectPath: existing.objectPath, pushedAt: Date.now() });
+    }
+    return;
+  }
+  if (flight.igcSha256 || flight.igcObjectPath) {
+    throw new Error('The existing track backup is missing its file reference. Retry backup to recover it.');
+  }
+
   const data = await getSessionExportData(flight.recordingSessionId);
   const profile = await getPilotProfile();
-  const igc = buildUnsignedIgc(data.session, data.locations, {
-    pilotName: profile.pilotName,
-    gliderType: profile.gliderType,
-    gliderId: profile.gliderId,
-  });
-  const sha256 = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, igc.content);
-  if (!shouldUploadIgc(flight, sha256)) return;
-
+  const saved = await readVerifiedSessionIgc(flight.recordingSessionId);
+  const igc = saved ?? buildUnsignedIgc(data.session, data.locations, equipmentExportHeaders(data.equipmentSnapshot, profile));
+  const manifest = await publishFirstIgc(canonical, userId,
+    { content: igc.content, artifactVersion: saved?.artifactVersion ?? RECORDER_CONFIG.igcArtifactVersion }, guard);
   guard();
-  const objectPath = igcObjectPath(userId, flight.id);
-  const { error: uploadError } = await getSupabase()
-    .storage.from(CLOUD_CONFIG.igcBucket)
-    .upload(objectPath, igc.content, {
-      contentType: 'application/vnd.fai.igc',
-      upsert: true,
-    });
-  if (uploadError) throw uploadError;
-
-  guard();
-  const byteCount = new TextEncoder().encode(igc.content).byteLength;
-  const { error } = await getSupabase()
-    .from('flights')
-    .update({
-      igc_object_path: objectPath,
-      igc_sha256: sha256,
-      igc_byte_count: byteCount,
-      igc_artifact_version: RECORDER_CONFIG.igcArtifactVersion,
-    })
-    .eq('id', flight.id)
-    .eq('user_id', userId);
-  if (error) throw error;
-
-  guard();
-  await markFlightIgcPushed({ flightId: flight.id, sha256, objectPath, pushedAt: Date.now() });
+  await markFlightIgcPushed({ flightId: flight.id, sha256: manifest.sha256, objectPath: manifest.objectPath, pushedAt: Date.now() });
 }
 
 async function pushFlights(userId: string, now: number, ignoreBackoff: boolean, guard: () => void): Promise<unknown[]> {
@@ -228,7 +229,7 @@ async function pushFlights(userId: string, now: number, ignoreBackoff: boolean, 
       if (!await getFlightDetail(flight.id)) continue;
       // Only acknowledge the flight after its required IGC has reached the server.
       // An upload failure must leave the flight pending for the next attempt.
-      await pushIgc(flight, userId, guard);
+      await pushIgc(flight, userId, guard, canonical);
       guard();
 
       await markFlightPushed({
@@ -360,7 +361,7 @@ function authChanged(): Promise<void> {
   mutationRevision = 0;
   scheduleRetry();
   if (next || auth.status === 'restoring') setJournalOwner(next);
-  publish({ phase: 'idle', lastError: null, cloudOnlyFlights: 0, pendingFlights: 0, pendingDeletions: 0 });
+  publish({ phase: 'idle', lastError: null, cloudOnlyFlights: 0, pendingFlights: 0, pendingDeletions: 0, pendingEquipment: 0, equipmentConflicts: 0 });
   const initialization = (async () => {
     await restore.setOwner(next);
     if (generation !== authGeneration) return;
@@ -383,7 +384,10 @@ async function runCycle(trigger: SyncTrigger, recorderRecovering: boolean): Prom
   const auth = cloudAuthService.getSnapshot();
   const generation = authGeneration;
   const userId = auth.status === 'signed_in' ? auth.userId : null;
-  const current = () => generation === authGeneration && activeOwner === userId;
+  const current = () => {
+    const live = cloudAuthService.getSnapshot();
+    return generation === authGeneration && activeOwner === userId && live.status === auth.status && live.userId === userId;
+  };
   const guard = () => {
     if (!current() || !environment.foreground || environment.recorderBusy || !environment.recorderReady) throw new StaleSyncError();
   };
@@ -409,7 +413,7 @@ async function runCycle(trigger: SyncTrigger, recorderRecovering: boolean): Prom
       await refreshCounts();
       guard();
       if (gate.reason === 'throttled') {
-        throttleRetryAt = snapshot.pendingFlights + snapshot.pendingDeletions > 0
+        throttleRetryAt = snapshot.pendingFlights + snapshot.pendingDeletions + (snapshot.pendingEquipment ?? 0) > 0
           ? link.lastSyncAt! + CLOUD_CONFIG.minimumSyncIntervalMs : 0;
       }
       await restore.run(current);
@@ -421,7 +425,7 @@ async function runCycle(trigger: SyncTrigger, recorderRecovering: boolean): Prom
     if (retryTimer) clearTimeout(retryTimer);
     retryTimer = null;
     publish({ phase: 'syncing', blockedBy: null, lastError: null });
-    if (gate.run && gate.bindTo) await bindCloudLink(gate.bindTo, now);
+    if (gate.run && gate.bindTo) await bindCloudLink(gate.bindTo, now, guard);
     const ignoreBackoff = trigger === 'manual';
     const failures: unknown[] = [];
     // Owner archive queues do not require rebinding the captured logbook.
@@ -430,6 +434,8 @@ async function runCycle(trigger: SyncTrigger, recorderRecovering: boolean): Prom
     failures.push(...await pullFlightDeletions(userId, guard));
     await pullArchiveCatalogue(userId, guard, true);
     if (gate.run) {
+      try { await syncEquipment(userId, guard); }
+      catch (error) { guard(); failures.push(error); }
       await pullProfile(userId, guard);
       await pushProfile(userId, guard);
       failures.push(...await pushFlights(userId, now, ignoreBackoff, guard));
@@ -444,7 +450,7 @@ async function runCycle(trigger: SyncTrigger, recorderRecovering: boolean): Prom
     if (gate.run && failures.length === 0) await setCloudCursors({ lastSyncAt: now, lastSyncError: null });
     await refreshCounts();
     guard();
-    if (gate.run && failures.length === 0 && snapshot.pendingFlights + snapshot.pendingDeletions > 0) {
+    if (gate.run && failures.length === 0 && snapshot.pendingFlights + snapshot.pendingDeletions + (snapshot.pendingEquipment ?? 0) > 0) {
       throttleRetryAt = now + CLOUD_CONFIG.minimumSyncIntervalMs;
     }
     scheduleRetry();
@@ -489,7 +495,17 @@ export const cloudSyncEngine: CloudSyncEngine = {
   resumeRestore: (options) => { void restore.resume(options.allowMobileData).then(() => cloudSyncEngine.requestSync('manual')).catch((error) => publish({ lastError: messageOf(error) })); },
   retryRestore: (options) => { void restore.resume(options.allowMobileData).then(() => cloudSyncEngine.requestSync('manual')).catch((error) => publish({ lastError: messageOf(error) })); },
   rebindTo: async (userId) => {
-    await resetCloudLink(userId);
+    const auth = cloudAuthService.getSnapshot();
+    if (auth.status !== 'signed_in' || auth.userId !== userId) throw new Error('Sign in again before changing the backup account.');
+    const generation = ++authGeneration;
+    const guard = () => {
+      const current = cloudAuthService.getSnapshot();
+      if (generation !== authGeneration || current.status !== 'signed_in' || current.userId !== userId) {
+        throw new Error('The account changed. Reopen Pilot before changing the backup account.');
+      }
+    };
+    await resetCloudLink(userId, Date.now(), guard);
+    guard();
     publish({ blockedBy: null, lastError: null, cloudOnlyFlights: 0, linkedUserId: userId });
     await refreshCounts();
   },

@@ -48,6 +48,7 @@ jest.mock('expo-router', () => ({
   useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]),
 }));
 jest.mock('expo-web-browser', () => ({ openBrowserAsync: jest.fn() }));
+jest.mock('@/features/equipment/equipment-section', () => ({ EquipmentSection: () => null }));
 jest.mock('@/components/ui/journal-art', () => ({ JournalArt: () => null }));
 jest.mock('../components/identity-card', () => ({ IdentityCard: () => null }));
 jest.mock('../components/pilot-details-sheet', () => ({ PilotDetailsSheet: () => null }));

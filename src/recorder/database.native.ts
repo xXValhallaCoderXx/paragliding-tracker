@@ -3,6 +3,10 @@ import { readLiveMapPage } from './live-map-repository-core';
 import type { LiveMapRead } from '../lib/live/types';
 import * as SQLite from 'expo-sqlite';
 import { cancelDeletedPublication, enqueueFinalizedPublication, stampCapture, type CaptureSharingStamp } from './publication-repository-core';
+import { captureEquipmentSnapshot, claimGuestEquipment, readEquipmentOwner, rememberEquipmentOwner } from './equipment-repository-core';
+import { notifyEquipment } from '../lib/equipment-events';
+import { parseEquipmentSnapshot } from './equipment-validation';
+import type { EquipmentCaptureIntent } from '../equipment/types';
 
 import {
   EXPECTED_V1_TABLE_COLUMNS,
@@ -22,6 +26,8 @@ import {
   EXPECTED_V9_TABLE_COLUMNS,
   EXPECTED_V10_INDEX_NAMES,
   EXPECTED_V10_TABLE_COLUMNS,
+  EXPECTED_V11_TABLE_COLUMNS,
+  EXPECTED_V11_INDEX_NAMES,
   LATEST_DATABASE_VERSION,
   flightStatusForSession,
   getSchemaMigrationSteps,
@@ -334,6 +340,10 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
     await validateExpectedSchema(database, EXPECTED_V10_TABLE_COLUMNS);
     await validateExpectedIndexes(database, EXPECTED_V10_INDEX_NAMES);
   }
+  if (currentVersion >= 11) {
+    await validateExpectedSchema(database, EXPECTED_V11_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V11_INDEX_NAMES);
+  }
   if (currentVersion === LATEST_DATABASE_VERSION) {
     await assertDatabaseIntegrity(database);
     return;
@@ -381,6 +391,8 @@ export async function migrateDatabase(database: SQLite.SQLiteDatabase): Promise<
     await validateExpectedIndexes(database, EXPECTED_V9_INDEX_NAMES);
     await validateExpectedSchema(database, EXPECTED_V10_TABLE_COLUMNS);
     await validateExpectedIndexes(database, EXPECTED_V10_INDEX_NAMES);
+    await validateExpectedSchema(database, EXPECTED_V11_TABLE_COLUMNS);
+    await validateExpectedIndexes(database, EXPECTED_V11_INDEX_NAMES);
     await assertDatabaseIntegrity(database);
     if (backupName) await SQLite.deleteDatabaseAsync(backupName);
   } catch (error) {
@@ -485,6 +497,7 @@ function mapSession(row: SessionRow): SessionRecord {
 
 interface FlightRow {
   id: string;
+  equipment_snapshot_json?: string | null;
   cloud_owner_user_id?: string | null;
   recording_session_id: string;
   status: FlightStatus;
@@ -524,6 +537,7 @@ interface FlightMetricsRow {
 function mapFlight(row: FlightRow): FlightRecord {
   return {
     id: row.id,
+    equipmentSnapshot: parseEquipmentSnapshot(row.equipment_snapshot_json),
     cloudOwnerUserId: row.cloud_owner_user_id ?? null,
     recordingSessionId: row.recording_session_id,
     status: row.status,
@@ -570,6 +584,7 @@ export async function createSession(input: {
   startPower: PowerReading;
   sharingConsent?: CaptureSharingStamp;
   sharingConsentCurrent?: () => boolean;
+  equipment?: EquipmentCaptureIntent;
 }): Promise<void> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
@@ -580,6 +595,7 @@ export async function createSession(input: {
       if (unfinished) {
         throw new Error(`Session ${unfinished.id} must be resumed or finalized first.`);
       }
+      const equipment = await captureEquipmentSnapshot(transaction, input.startedAt, input.equipment);
       await transaction.runAsync(
         `INSERT INTO sessions (
           id, status, started_at, updated_at, platform, device_metadata_json,
@@ -596,14 +612,15 @@ export async function createSession(input: {
       await transaction.runAsync(
         `INSERT INTO flights (
           id, recording_session_id, status, started_at, ended_at,
-          timezone_offset_minutes, title, site, notes, created_at, updated_at
-        ) VALUES (?, ?, 'recording', ?, NULL, ?, NULL, NULL, NULL, ?, ?)`,
+          timezone_offset_minutes, title, site, notes, created_at, updated_at, equipment_snapshot_json
+        ) VALUES (?, ?, 'recording', ?, NULL, ?, NULL, NULL, NULL, ?, ?, ?)`,
         input.flightId ?? input.id,
         input.id,
         input.startedAt,
         input.timezoneOffsetMinutes ?? null,
         input.startedAt,
         input.startedAt,
+        JSON.stringify(equipment),
       );
       await transaction.runAsync(
         `INSERT INTO events (session_id, event_type, occurred_at, dedupe_key, payload_json)
@@ -1666,7 +1683,7 @@ function mapEvent(row: EventRow): RecorderEventRecord {
 
 export async function getSessionExportData(sessionId: string): Promise<SessionExportData> {
   const database = await openDatabase();
-  const [session, locations, pressureSamples, events] = await Promise.all([
+  const [session, locations, pressureSamples, events, equipment] = await Promise.all([
     getSession(sessionId),
     database.getAllAsync<LocationRow>(
       `SELECT * FROM location_fixes
@@ -1682,10 +1699,14 @@ export async function getSessionExportData(sessionId: string): Promise<SessionEx
       `SELECT * FROM events WHERE session_id = ? ORDER BY occurred_at, id`,
       sessionId,
     ),
+    database.getFirstAsync<{ equipment_snapshot_json: string | null }>(
+      'SELECT equipment_snapshot_json FROM flights WHERE recording_session_id = ?', sessionId,
+    ),
   ]);
   if (!session) throw new Error(`Session ${sessionId} was not found.`);
   return {
     session,
+    equipmentSnapshot: parseEquipmentSnapshot(equipment?.equipment_snapshot_json),
     locations: locations.map(mapLocation),
     pressureSamples: pressureSamples.map(mapPressure),
     events: events.map(mapEvent),
@@ -1786,11 +1807,24 @@ export async function getCloudLink(): Promise<CloudLink> {
  * already bound elsewhere is left alone so the caller can surface the mismatch rather
  * than silently uploading one pilot's flights into another pilot's account.
  */
-export async function bindCloudLink(userId: string, linkedAt = Date.now()): Promise<CloudLink> {
+export async function bindCloudLink(userId: string, linkedAt = Date.now(), guard: () => void = () => {}): Promise<CloudLink> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
-    await database.runAsync(BIND_CLOUD_LINK_SQL, userId, linkedAt);
+    await database.withExclusiveTransactionAsync(async transaction => {
+      guard();
+      const previous = await transaction.getFirstAsync<CloudLinkRow>(CLOUD_LINK_SQL);
+      guard();
+      await transaction.runAsync(BIND_CLOUD_LINK_SQL, userId, linkedAt);
+      guard();
+      if (!previous?.user_id) {
+        await claimGuestEquipment(transaction, userId);
+        guard();
+        await rememberEquipmentOwner(transaction, userId);
+      }
+      guard();
+    });
     const row = await database.getFirstAsync<CloudLinkRow>(CLOUD_LINK_SQL);
+    notifyEquipment();
     return row ? mapCloudLink(row) : EMPTY_CLOUD_LINK;
   });
 }
@@ -1799,13 +1833,21 @@ export async function bindCloudLink(userId: string, linkedAt = Date.now()): Prom
 export async function resetCloudLink(
   userId: string | null,
   resetAt = Date.now(),
+  guard: () => void = () => {},
 ): Promise<CloudLink> {
   return enqueueWrite(async () => {
     const database = await openDatabase();
     await database.withExclusiveTransactionAsync(async (transaction) => {
+      guard();
+      const retainedOwner = await readEquipmentOwner(transaction);
+      guard();
       await resetCloudLinkTransaction(transaction, userId, resetAt);
+      guard();
+      await rememberEquipmentOwner(transaction, userId ?? retainedOwner);
+      guard();
     });
     const row = await database.getFirstAsync<CloudLinkRow>(CLOUD_LINK_SQL);
+    notifyEquipment();
     return row ? mapCloudLink(row) : EMPTY_CLOUD_LINK;
   });
 }

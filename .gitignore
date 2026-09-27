@@ -45,3 +45,4 @@ example
 
 # Supabase CLI scratch metadata
 supabase/.temp/
+.artifacts/stage3/

@@ -7,6 +7,9 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 
 import RecordFlightScreen from '@/app/record';
+import { PreflightView } from '../components/preflight';
+import { equipmentRepository } from '@/equipment/repository';
+import type { EquipmentInventory } from '@/equipment/types';
 import { FlightMap } from '@/components/flight-map';
 import { Button } from '@/components/ui';
 import { flightRepository } from '@/recorder/flight-repository';
@@ -31,6 +34,7 @@ jest.mock('@/recorder/recorder-service', () => ({ recorderService: {
 jest.mock('@/recorder/flight-repository', () => ({
   flightRepository: { getLiveMapPage: jest.fn() }, appSettingsRepository: {}, pilotProfileRepository: {},
 }));
+jest.mock('@/equipment/repository', () => ({ equipmentRepository: { getInventory: jest.fn(), subscribe: () => jest.fn() } }));
 jest.mock('@/sites/site-service', () => ({ fetchNearbySites: jest.fn(), searchSitesByName: jest.fn() }));
 jest.mock('@/lib/system-settings', () => ({ openSystemScreen: jest.fn() }));
 jest.mock('../components/preflight', () => ({ PreflightView: () => null }));
@@ -84,6 +88,8 @@ beforeEach(() => {
   jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, callback) => {
     appListeners.add(callback); return { remove: () => appListeners.delete(callback) };
   });
+  jest.mocked(equipmentRepository.getInventory).mockResolvedValue({ owner: 'guest', aircraft: [], identities: [],
+    selection: { kind: 'selection', id: 'current', value: { aircraftId: null }, generation: 0, serverRevision: 0, pending: false, conflict: null } });
   snapshot = {
     capturedAt: Date.now(), state: 'recording', sessionId: 's1', flightId: 'f1',
     startedAt: Date.now() - 20_000, endedAt: null, lastFixAt: Date.now(), lastFixReceivedAt: Date.now(),
@@ -182,4 +188,34 @@ it('keeps fixed Stop usable through map failure, releases map work while stoppin
   expect(recorderService.stop).toHaveBeenCalledTimes(2);
   expect(recorderService.arm).not.toHaveBeenCalled();
   expect(mockReplace).toHaveBeenCalledWith({ pathname: '/flights/[id]', params: { id: 'f1', saved: 'stopped' } });
+});
+
+it('captures the current aircraft revision on start and supports a per-flight explicit none without changing the inventory', async () => {
+  snapshot = { ...snapshot, state: 'idle', sessionId: null, flightId: null };
+  const inventory: EquipmentInventory = { owner: 'guest', identities: [], aircraft: [{ kind: 'aircraft', id: 'wing',
+    value: { id: 'wing', sport: 'paragliding', model: 'Synthetic wing', size: null, registrationId: null, archived: false },
+    generation: 7, serverRevision: 0, pending: true, conflict: null }], selection: { kind: 'selection', id: 'current',
+    value: { aircraftId: 'wing' }, generation: 2, serverRevision: 0, pending: true, conflict: null } };
+  jest.mocked(equipmentRepository.getInventory).mockResolvedValue(inventory);
+  jest.mocked(recorderService.arm).mockResolvedValue({ sessionId: 's2', flightId: 'f2' });
+  await act(async () => { root = create(tree()); }); await advance();
+  await act(async () => { const start = root.root.findByType(PreflightView).props.onStart; start(); start(); });
+  expect(recorderService.arm).toHaveBeenCalledTimes(1);
+  expect(recorderService.arm).toHaveBeenLastCalledWith({ owner: 'guest', aircraftId: 'wing', expectedGeneration: 7 });
+  await act(async () => root.root.findByType(PreflightView).props.aircraft.props.onSelect({ owner: 'guest', aircraftId: null }));
+  await act(async () => root.root.findByType(PreflightView).props.onStart());
+  expect(recorderService.arm).toHaveBeenLastCalledWith({ owner: 'guest', aircraftId: null });
+  expect(inventory.selection.value.aircraftId).toBe('wing');
+});
+
+it('allows an explicit no-aircraft start after the local inventory read fails', async () => {
+  snapshot = { ...snapshot, state: 'idle', sessionId: null, flightId: null };
+  jest.mocked(equipmentRepository.getInventory).mockRejectedValue(new Error('Inventory temporarily unavailable'));
+  jest.mocked(recorderService.arm).mockResolvedValue({ sessionId: 's2', flightId: 'f2' });
+  await act(async () => { root = create(tree()); }); await advance();
+  expect(root.root.findByType(PreflightView).props.aircraft.props.error).toBe(true);
+  await act(async () => root.root.findByType(PreflightView).props.aircraft.props.onSelect({ aircraftId: null }));
+  expect(recorderService.arm).not.toHaveBeenCalled();
+  await act(async () => root.root.findByType(PreflightView).props.onStart());
+  expect(recorderService.arm).toHaveBeenCalledWith({ aircraftId: null });
 });

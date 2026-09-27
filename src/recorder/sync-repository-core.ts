@@ -1,4 +1,5 @@
 import type { SqlExecutor } from './repository-core';
+import { parseEquipmentSnapshot } from './equipment-validation';
 import type {
   CloudLink,
   FlightDeletionRecord,
@@ -242,6 +243,7 @@ export async function resetCloudLinkTransaction(
 // ---------------------------------------------------------------------------
 
 export interface FlightSyncCandidateRow {
+  equipment_snapshot_json?: string | null;
   cloud_owner_user_id?: string | null;
   id: string;
   recording_session_id: string;
@@ -345,6 +347,7 @@ function mapCandidateMetrics(row: FlightSyncCandidateRow): FlightMetricsRecord |
 
 export function mapFlightSyncCandidate(row: FlightSyncCandidateRow): FlightSyncCandidate {
   return {
+    equipmentSnapshot: parseEquipmentSnapshot(row.equipment_snapshot_json),
     cloudOwnerUserId: row.cloud_owner_user_id ?? null,
     id: row.id,
     recordingSessionId: row.recording_session_id,

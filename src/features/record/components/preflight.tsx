@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { JournalArt } from '@/components/ui/journal-art';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -34,6 +35,7 @@ export interface PreflightViewProps {
   onStart: () => void;
   onOpenLastFlight: (flightId: string) => void;
   onReadinessAction: (action: ReadinessAction) => void;
+  aircraft?: ReactNode;
 }
 
 const ACTION_LABELS: Record<ReadinessAction, string> = {
@@ -55,6 +57,7 @@ export function PreflightView({
   onStart,
   onOpenLastFlight,
   onReadinessAction,
+  aircraft,
 }: PreflightViewProps) {
   const rows = readinessRows(snapshot);
   const summary = readinessSummary(rows);
@@ -109,6 +112,8 @@ export function PreflightView({
             />
           ))}
         </Card>
+
+        {aircraft}
 
         {errorMessage || recoveryError || snapshot.lastError ? (
           <View style={styles.notices}>

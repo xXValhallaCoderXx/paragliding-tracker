@@ -20,6 +20,15 @@ const IDLE: SyncSnapshot = {
 const NOW = 1_760_000_000_000;
 
 describe('backup status', () => {
+  it('does not report complete backup while inventory changes or conflicts remain', () => {
+    const pending = describeSync({ ...IDLE, lastSyncAt: NOW, pendingEquipment: 2 }, NOW);
+    expect(pending.tone).toBe('neutral');
+    expect(pending.detail).toContain('2 aircraft or sport changes');
+    for (const phase of ['idle', 'blocked'] as const) {
+      expect(describeSync({ ...IDLE, phase, blockedBy: phase === 'blocked' ? 'throttled' : null,
+        lastSyncAt: NOW, equipmentConflicts: 1 }, NOW)).toMatchObject({ label: 'Needs review', tone: 'warning' });
+    }
+  });
   it('explains a pause during recording rather than looking broken', () => {
     // A pilot who opens the account screen mid-flight must see a reason, not silence.
     expect(describeSync({ ...IDLE, phase: 'blocked', blockedBy: 'recording' }, NOW)).toMatchObject({

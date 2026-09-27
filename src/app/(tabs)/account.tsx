@@ -26,6 +26,7 @@ import {
 import { AccountDangerZone } from '@/features/account/components/account-danger-zone';
 import { IdentityCard } from '@/features/account/components/identity-card';
 import { PilotDetailsSheet } from '@/features/account/components/pilot-details-sheet';
+import { EquipmentSection } from '@/features/equipment/equipment-section';
 import {
   CloudUnconfiguredNotice,
 } from '@/features/account/components/sign-in-card';
@@ -33,7 +34,6 @@ import { SyncCard } from '@/features/account/components/sync-card';
 import { RestoreCard } from '@/features/account/components/restore-card';
 import { PRIVACY_POLICY_URL, privacyPolicyReady } from '@/features/account/legal';
 import { backupSummary } from '@/features/logbook/backup-summary';
-import { JournalArt } from '@/components/ui/journal-art';
 import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import type { FlightSummary, PilotProfilePatch } from '@/recorder/types';
 import { useGetFlightsQuery, useGetProfileQuery, useUpdateProfileMutation } from '@/store/endpoints';
@@ -43,9 +43,8 @@ import { fonts, paper } from '@/ui/theme';
  * The pilot's account: who they are, whether their flights have a second copy, and the
  * details that end up in an IGC file.
  *
- * A summary, not a form. First-run setup asks for these details with the reason each one
- * matters attached; this screen's job is to show the answers back and let them be changed,
- * which is why every row is a link into one sheet rather than four permanently-open fields.
+ * Private identity and equipment stay separate from Friends. Each editor owns a fresh
+ * local draft; summaries continue to use the shared local database cache.
  */
 /** Stable identity, so the memos downstream are not invalidated by a fresh `[]`. */
 const EMPTY_FLIGHTS: FlightSummary[] = [];
@@ -56,7 +55,6 @@ export default function AccountScreen() {
   const auth = useCloudAuth();
   const sync = useCloudSync();
   const [editing, setEditing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -110,19 +108,7 @@ export default function AccountScreen() {
     }
   };
 
-  const save = async (patch: PilotProfilePatch) => {
-    setError(null);
-    try {
-      // Invalidates the Profile tag, so the logbook's setup checklist and its greeting
-      // refresh too — they used to stay stale until the logbook was focused again.
-      await updateProfile(patch).unwrap();
-      setEditing(false);
-    } catch (saveError) {
-      // `.unwrap()` rethrows the serialized `{ message }`, not an Error — an
-      // `instanceof` check here printed "[object Object]" over a real SQLite message.
-      setError(errorMessage(saveError));
-    }
-  };
+  const save = (patch: PilotProfilePatch) => updateProfile(patch).unwrap();
 
   const stats = accountStats(flights);
   const backup = backupSummary(auth.status, sync.linkedUserId);
@@ -136,18 +122,6 @@ export default function AccountScreen() {
           <Text style={styles.title}>Your pilot page</Text>
         </View>
 
-        <View style={styles.block}>
-          <JournalArt scene="landing" height={160} />
-        </View>
-
-        {error ? (
-          <View style={styles.block}>
-            <Notice tone="danger" title="That did not work">
-              {error}
-            </Notice>
-          </View>
-        ) : null}
-
         {loading || !profile ? (
           <View style={styles.block}>
             <BusyRow label="Loading your details…" />
@@ -159,26 +133,12 @@ export default function AccountScreen() {
         )}
 
         <View style={styles.block}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-            accessibilityHint="Opens recorder, storage and app settings"
-            onPress={() => router.push('/settings')}
-            style={({ pressed }) => [styles.settingsRow, pressed && styles.pressed]}>
-            <View style={styles.settingsText}>
-              <Text style={styles.settingsTitle}>Settings</Text>
-              <Text style={styles.settingsDetail}>Recorder, storage and app details</Text>
-            </View>
-            <Text style={styles.settingsChevron}>›</Text>
-          </Pressable>
+          <EquipmentSection ready={recorderLifecycle.ready} profile={profile} />
         </View>
 
         {profile && !loading ? (
           <View style={styles.block}>
             <SectionLabel>Pilot</SectionLabel>
-            {/* Whole rows are the affordance, with a chevron, rather than a "Change"
-                link under each one: four link buttons in a row reads as four different
-                destinations when they all open the same sheet. */}
             <Card className="px-[16px] py-[4px]">
               <PilotRow
                 label="Pilot name"
@@ -186,20 +146,16 @@ export default function AccountScreen() {
                 onPress={() => setEditing(true)}
               />
               <PilotRow
-                label="Registration ID"
+                label="General pilot reference"
                 value={profile.registrationId}
-                onPress={() => setEditing(true)}
-              />
-              <PilotRow
-                label="Glider"
-                value={profile.gliderType}
                 onPress={() => setEditing(true)}
                 last
               />
+
             </Card>
             <Disclaimer align="left">
-              IGC exports from recordings on this phone use your current name and glider.
-              Restored archives and files you have already shared keep their original headers.
+              Your name is used for newly generated IGC exports. Equipment is saved when
+              recording starts. Existing files and restored originals keep their headers.
             </Disclaimer>
           </View>
         ) : null}
@@ -265,6 +221,21 @@ export default function AccountScreen() {
           )}
         </View>
 
+        <View style={styles.block}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            accessibilityHint="Opens recorder, storage and app settings"
+            onPress={() => router.push('/settings')}
+            style={({ pressed }) => [styles.settingsRow, pressed && styles.pressed]}>
+            <View style={styles.settingsText}>
+              <Text style={styles.settingsTitle}>Settings</Text>
+              <Text style={styles.settingsDetail}>Recorder, storage and app details</Text>
+            </View>
+            <Text style={styles.settingsChevron}>›</Text>
+          </Pressable>
+        </View>
+
         {privacyPolicyReady ? (
           <View style={styles.block}>
             {/* Reachable while signed out on purpose: App Review taps it before signing in. */}
@@ -284,13 +255,12 @@ export default function AccountScreen() {
         ) : null}
       </ScrollView>
 
-      {profile ? (
+      {profile && editing ? (
         <PilotDetailsSheet
-          visible={editing}
           profile={profile}
           saving={saving}
           onCancel={() => setEditing(false)}
-          onSave={(patch) => void save(patch)}
+          onSave={save}
         />
       ) : null}
     </Screen>

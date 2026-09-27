@@ -1,201 +1,59 @@
-import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, Input } from '@/components/ui';
-import { igcHeaderPreview } from '@/features/account/account-identity';
-import { useReducedMotion } from '@/lib/use-reduced-motion';
+import { Card, Input, Notice, SectionLabel } from '@/components/ui';
+import { FormSheet } from '@/features/equipment/form-sheet';
+import { errorMessage } from '@/lib/format/error-message';
+import { sanitizeIgcHeaderValue } from '@/recorder/igc';
 import type { PilotProfile, PilotProfilePatch } from '@/recorder/types';
 import { fonts, paper } from '@/ui/theme';
 
-export interface PilotDetailsValues {
-  pilotName: string;
-  registrationId: string;
-  gliderType: string;
-}
-
+export interface PilotDetailsValues { pilotName: string; registrationId: string }
 export function valuesFromProfile(profile: PilotProfile): PilotDetailsValues {
-  return {
-    pilotName: profile.pilotName ?? '',
-    registrationId: profile.registrationId ?? '',
-    gliderType: profile.gliderType ?? '',
-  };
+  return { pilotName: profile.pilotName ?? '', registrationId: profile.registrationId ?? '' };
 }
 
-/**
- * Edits the pilot's details, and shows what they will do to an exported file.
- *
- * A `Modal` rather than a route: there is nothing to deep-link into and nothing to
- * intercept, which is the same reasoning that keeps the sign-in card and the first-run
- * wizard off the router.
- *
- * Draft state lives here and dies with the sheet, so cancelling is genuinely free — the
- * profile is only touched when Save is pressed.
- */
-export function PilotDetailsSheet({
-  visible,
-  profile,
-  saving,
-  onCancel,
-  onSave,
-}: {
-  visible: boolean;
-  profile: PilotProfile;
-  saving: boolean;
-  onCancel: () => void;
-  onSave: (patch: PilotProfilePatch) => void;
+/** Mount per visit, keeping unfinished private details entirely local to the sheet. */
+export function PilotDetailsSheet({ profile, saving, onCancel, onSave }: {
+  profile: PilotProfile; saving: boolean; onCancel: () => void;
+  onSave: (patch: PilotProfilePatch) => Promise<unknown>;
 }) {
-  const reducedMotion = useReducedMotion();
-  const [values, setValues] = useState<PilotDetailsValues>(() => valuesFromProfile(profile));
-
-  // Re-seed whenever the sheet opens, so a cancelled edit never leaks into the next one.
-  const [seededFor, setSeededFor] = useState(profile.updatedAt);
-  if (visible && seededFor !== profile.updatedAt) {
-    setSeededFor(profile.updatedAt);
-    setValues(valuesFromProfile(profile));
-  }
-
-  const preview = igcHeaderPreview({
-    ...profile,
-    pilotName: values.pilotName.trim() || null,
-    gliderType: values.gliderType.trim() || null,
-  });
-
-  const save = () => {
-    onSave({
-      pilotName: values.pilotName,
-      registrationId: values.registrationId,
-      gliderType: values.gliderType,
-    });
+  const [values, setValues] = useState(() => valuesFromProfile(profile));
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const dirty = values.pilotName !== (profile.pilotName ?? '') || values.registrationId !== (profile.registrationId ?? '');
+  const save = async () => {
+    if (inFlight.current || saving) return;
+    inFlight.current = true; setBusy(true); setError(null);
+    try {
+      await onSave({ pilotName: values.pilotName.trim(), registrationId: values.registrationId.trim() });
+      if (mounted.current) onCancel();
+    } catch (failure) { if (mounted.current) setError(errorMessage(failure)); }
+    finally { inFlight.current = false; if (mounted.current) setBusy(false); }
   };
-
-  return (
-    <Modal
-      visible={visible}
-      animationType={reducedMotion ? 'none' : 'slide'}
-      presentationStyle="pageSheet"
-      onRequestClose={onCancel}>
-      <View style={styles.sheet}>
-        <View style={styles.grabber} />
-        <View style={styles.header}>
-          <Pressable accessibilityRole="button" hitSlop={10} onPress={onCancel}>
-            <Text style={styles.cancel}>Cancel</Text>
-          </Pressable>
-          <Text style={styles.title}>Pilot details</Text>
-          <Pressable accessibilityRole="button" hitSlop={10} disabled={saving} onPress={save}>
-            <Text style={[styles.save, saving && styles.saveBusy]}>
-              {saving ? 'Saving…' : 'Save'}
-            </Text>
-          </Pressable>
-        </View>
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.flex}>
-          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-            <Card className="px-[16px] pt-[4px] pb-[4px]">
-              <Input
-                label="Pilot name"
-                value={values.pilotName}
-                placeholder="As it should appear in your IGC files"
-                maxLength={60}
-                autoCapitalize="words"
-                autoComplete="name"
-                editable={!saving}
-                onChangeText={(pilotName) => setValues({ ...values, pilotName })}
-              />
-              <Input
-                label="Pilot registration ID — optional"
-                value={values.registrationId}
-                placeholder="Licence or federation number"
-                maxLength={30}
-                autoCapitalize="characters"
-                editable={!saving}
-                onChangeText={(registrationId) => setValues({ ...values, registrationId })}
-                hint="Your APPI, FAI or club number. Kept for your own reference — it is not written into IGC files."
-              />
-              <Input
-                label="Glider"
-                value={values.gliderType}
-                placeholder="Ozone Rush 6"
-                maxLength={60}
-                editable={!saving}
-                onChangeText={(gliderType) => setValues({ ...values, gliderType })}
-                last
-              />
-
-            </Card>
-
-            <View style={styles.previewBlock}>
-              <Text style={styles.previewLabel}>HOW IT LANDS IN THE FILE</Text>
-              <View style={styles.preview}>
-                {preview.map((line) => (
-                  <Text key={line} style={styles.previewLine}>
-                    {line}
-                  </Text>
-                ))}
-              </View>
-              <Text style={styles.previewNote}>
-                New exports use these details, including exports of older flights. Files you
-                have already shared keep their original headers.
-              </Text>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
-  );
+  return <FormSheet title="Pilot details" dirty={dirty} busy={busy || saving} onClose={onCancel} onSave={() => void save()}>
+    <Text style={styles.body}>Your private pilot details are separate from your Friends profile.</Text>
+    {error ? <Notice tone="danger" title="Could not save">{error}</Notice> : null}
+    <Card className="px-[16px] py-[4px]">
+      <Input label="Pilot name" value={values.pilotName} placeholder="Name for new IGC exports" maxLength={60}
+        autoCapitalize="words" autoComplete="name" editable={!busy && !saving}
+        onChangeText={(pilotName) => setValues({ ...values, pilotName })} />
+      <Input label="General pilot reference — optional" value={values.registrationId} placeholder="Your own reference"
+        maxLength={30} editable={!busy && !saving} onChangeText={(registrationId) => setValues({ ...values, registrationId })}
+        hint="Kept for your own reference. Not written into IGC files. Sport identifiers are managed with your aircraft." last />
+    </Card>
+    <View style={styles.preview}>
+      <SectionLabel>Pilot header in new IGC exports</SectionLabel>
+      <Text style={styles.mono}>HFPLTPILOTINCHARGE:{sanitizeIgcHeaderValue(values.pilotName) ?? 'UNSPECIFIED'}</Text>
+      <Text style={styles.hint}>Newly generated exports use your current pilot name. Existing files and restored originals keep their headers. Aircraft headers use the equipment saved when recording began.</Text>
+    </View>
+  </FormSheet>;
 }
-
 const styles = StyleSheet.create({
-  sheet: { flex: 1, backgroundColor: paper.sheet },
-  flex: { flex: 1 },
-  grabber: {
-    alignSelf: 'center',
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: paper.border,
-    marginTop: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 14,
-    gap: 12,
-  },
-  cancel: { fontFamily: fonts.sans, fontSize: 14, color: paper.muted },
-  title: { fontFamily: fonts.sansSemi, fontSize: 14, color: paper.ink },
-  save: { fontFamily: fonts.sansSemi, fontSize: 14, color: paper.thermal },
-  saveBusy: { color: paper.muted },
-  content: { paddingHorizontal: 18, paddingBottom: 40, gap: 16 },
-  previewBlock: { gap: 8 },
-  previewLabel: {
-    fontFamily: fonts.monoSemi,
-    fontSize: 9.5,
-    letterSpacing: 1.2,
-    color: paper.muted,
-  },
-  preview: {
-    backgroundColor: paper.cardAlt,
-    borderColor: paper.border,
-    borderWidth: 1,
-    borderRadius: 11,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    gap: 3,
-  },
-  previewLine: { fontFamily: fonts.mono, fontSize: 11, lineHeight: 16, color: paper.text },
-  previewNote: { fontFamily: fonts.sans, fontSize: 11, lineHeight: 16, color: paper.muted },
+  preview: { gap: 10 }, body: { fontFamily: fonts.sans, fontSize: 14, lineHeight: 21, color: paper.text },
+  mono: { fontFamily: fonts.mono, fontSize: 12, lineHeight: 18, color: paper.text },
+  hint: { fontFamily: fonts.sans, fontSize: 12, lineHeight: 18, color: paper.muted },
 });

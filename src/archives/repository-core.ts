@@ -1,4 +1,5 @@
 import { normalizeFlightMetadataPatch } from '../recorder/flight-repository-core';
+import { parseEquipmentSnapshot } from '../equipment/validation';
 import type { ArchivedFlightDetail, ArchivedFlightSummary, ArchiveTrackState, FlightMetadataPatch } from '../recorder/types';
 import { decodeTrackSegments, encodeTrackSegments } from '../lib/track/encoding';
 import type { TrackSegments } from '../lib/track/types';
@@ -47,6 +48,7 @@ function remoteSummary(owner: string, row: ArchiveRemoteFlight): ArchivedFlightS
     title: row.title, site: row.site, notes: row.notes, takeoffLatitude: null, takeoffLongitude: null,
     siteSource: row.site && (row.site_source === 'manual' || row.site_source === 'osm' || row.site_source === 'paraglidingearth') ? row.site_source : null,
     createdAt: row.client_created_at, updatedAt: row.client_updated_at,
+    equipmentSnapshot: parseEquipmentSnapshot(row.equipment_snapshot),
     sessionStatus: null, metrics, archive: { trackState: 'pending', error: null, downloadedAt: null } };
 }
 function downloadable(row: Pick<ArchiveRow, 'owner_user_id' | 'flight_id' | 'igc_object_path' | 'igc_sha256' | 'igc_byte_count' | 'igc_artifact_version' | 'summary_json'>): boolean {

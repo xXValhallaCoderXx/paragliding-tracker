@@ -21,10 +21,12 @@ import { recorderService } from '@/recorder/recorder-service';
 import type { FlightSummary, RecorderCapabilities } from '@/recorder/types';
 import {
   useGetAppSettingsQuery,
+  useGetEquipmentInventoryQuery,
   useGetFlightsQuery,
   useGetFlightTracksQuery,
   useGetProfileQuery,
 } from '@/store/endpoints';
+import { aircraftName, currentAircraft } from '@/features/equipment/presentation';
 import { errorMessage } from '@/lib/format/error-message';
 import type { TrackSegments } from '@/lib/track/types';
 import { setupChecklist, type ChecklistKey } from '@/features/logbook/setup-checklist';
@@ -68,6 +70,8 @@ export default function LogbookScreen() {
     refetch,
   } = useGetFlightsQuery(undefined, { skip });
   const { data: profile = null } = useGetProfileQuery(undefined, { skip });
+  const { data: equipment } = useGetEquipmentInventoryQuery(undefined, { skip });
+  const current = equipment ? currentAircraft(equipment) : null;
   // Only to decide whether the setup card is owed at all — see `setupChecklist`.
   const { data: appSettings = null } = useGetAppSettingsQuery(undefined, { skip });
   // One read for the whole list rather than a hook per card, and its own cache entry so
@@ -128,14 +132,15 @@ export default function LogbookScreen() {
   const season = useMemo(() => seasonSummary(flights), [flights]);
   const checklist = useMemo(
     () =>
-      profile && capabilities
+      profile && capabilities && equipment
         ? setupChecklist({
             profile,
             capabilities,
+            hasAircraft: equipment.aircraft.some((item) => !item.value.archived),
             onboardingState: appSettings?.onboardingState ?? null,
           })
         : null,
-    [profile, capabilities, appSettings],
+    [profile, capabilities, appSettings, equipment],
   );
 
   const recorderBusy = !recorderLifecycle.ready || recorderLifecycle.recovering;
@@ -267,7 +272,7 @@ export default function LogbookScreen() {
         ListEmptyComponent={isEmpty ? (
           <EmptyLogbook
             pilotName={profile?.pilotName ?? null}
-            gliderType={profile?.gliderType ?? null}
+            gliderType={current ? aircraftName(current.value) : null}
             locationReady={
               capabilities?.foregroundPermission === 'granted' &&
               capabilities?.backgroundPermission === 'granted'

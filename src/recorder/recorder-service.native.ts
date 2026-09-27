@@ -36,6 +36,9 @@ import {
 import { buildDiagnosticJson } from './diagnostics';
 import { finalizeFlightForSession } from './flight-repository.native';
 import { buildUnsignedIgc, selectExportEligibleFixes, type IgcPilotHeaders } from './igc';
+import { equipmentExportHeaders, exportFilename } from './equipment-export';
+import { readVerifiedSessionIgc } from './exports-repository.native';
+import type { EquipmentCaptureIntent, FlightEquipmentSnapshot } from '@/equipment/types';
 import { locationTaskOptionsMatch } from './location-task-options';
 import { LifecycleCoordinator } from './operation-queue';
 import {
@@ -234,11 +237,11 @@ class NativeRecorderService implements RecorderService {
     return this.capabilitiesCache;
   }
 
-  arm(): Promise<{ flightId: string; sessionId: string }> {
-    return this.runLifecycleOperation(() => this.armInternal());
+  arm(equipment?: EquipmentCaptureIntent): Promise<{ flightId: string; sessionId: string }> {
+    return this.runLifecycleOperation(() => this.armInternal(equipment));
   }
 
-  private async armInternal(): Promise<{ flightId: string; sessionId: string }> {
+  private async armInternal(equipment?: EquipmentCaptureIntent): Promise<{ flightId: string; sessionId: string }> {
     await this.recoverInternal();
     this.state = transitionRecorderState(this.state, 'arm');
     this.captureHealthOverride = 'starting';
@@ -254,6 +257,7 @@ class NativeRecorderService implements RecorderService {
       const sharingConsent = captureSharingConsent(() => Crypto.randomUUID());
       await createSession({
         id: sessionId,
+        equipment,
         flightId,
         startedAt,
         timezoneOffsetMinutes: new Date(startedAt).getTimezoneOffset(),
@@ -755,22 +759,15 @@ class NativeRecorderService implements RecorderService {
   }
 
   /**
-   * The local pilot profile, or nothing if it has never been filled in.
-   *
-   * Read at export time rather than cached: the pilot may edit it between flights, and
-   * a stale name in an IGC file is worse than an extra single-row query. A failure here
-   * must never block an export, so it degrades to the historical placeholders.
+   * The private name remains editable for new exports. Equipment always comes from
+   * the recording's snapshot, including explicit unknown for pre-snapshot flights.
    */
-  private async pilotHeaders(): Promise<IgcPilotHeaders | undefined> {
+  private async pilotHeaders(equipment: FlightEquipmentSnapshot | null | undefined): Promise<IgcPilotHeaders> {
     try {
       const profile = await getPilotProfile();
-      return {
-        pilotName: profile.pilotName,
-        gliderType: profile.gliderType,
-        gliderId: profile.gliderId,
-      };
+      return equipmentExportHeaders(equipment, profile);
     } catch {
-      return undefined;
+      return equipmentExportHeaders(equipment, null);
     }
   }
 
@@ -780,7 +777,11 @@ class NativeRecorderService implements RecorderService {
       if (data.session.status === 'recording') {
         throw new RecorderError('export_error', 'Stop or finalize the session before exporting.');
       }
-      const igc = buildUnsignedIgc(data.session, data.locations, await this.pilotHeaders());
+      if (!data.equipmentSnapshot) {
+        const existing = await readVerifiedSessionIgc(sessionId);
+        if (existing) return existing.artifact;
+      }
+      const igc = buildUnsignedIgc(data.session, data.locations, await this.pilotHeaders(data.equipmentSnapshot));
       return await this.writeArtifact(
         sessionId,
         'igc',
@@ -802,13 +803,21 @@ class NativeRecorderService implements RecorderService {
         throw new RecorderError('export_error', 'Stop or finalize the session before exporting.');
       }
       const eligibleFixes = selectExportEligibleFixes(data.locations, data.session);
+      const existing = !data.equipmentSnapshot ? await readVerifiedSessionIgc(sessionId) : null;
       const igc =
         eligibleFixes.length > 0
-          ? buildUnsignedIgc(data.session, data.locations, await this.pilotHeaders())
+          ? buildUnsignedIgc(data.session, data.locations, await this.pilotHeaders(data.equipmentSnapshot))
           : null;
       const content = buildDiagnosticJson(
         data,
-        igc
+        existing
+          ? {
+              available: true,
+              sha256: existing.artifact.sha256,
+              byteCount: existing.artifact.byteCount,
+              bRecordCount: existing.artifact.eligibleFixCount,
+            }
+          : igc
           ? {
               available: true,
               sha256: await this.sha256(igc.content),
@@ -1231,8 +1240,8 @@ class NativeRecorderService implements RecorderService {
   ): Promise<ExportArtifact> {
     const directory = new Directory(Paths.document, 'xc-recorder-exports');
     directory.create({ idempotent: true, intermediates: true });
-    const safeSessionId = sessionId.replace(/[^a-z0-9-]/gi, '');
-    const filename = `${safeSessionId}-v${artifactVersion}.${extension}`;
+    const sha256 = await this.sha256(content);
+    const filename = exportFilename(sessionId, artifactVersion, sha256, extension);
     const file = new File(directory, filename);
     file.create({ overwrite: true, intermediates: true });
     file.write(content);
@@ -1240,7 +1249,7 @@ class NativeRecorderService implements RecorderService {
       sessionId,
       kind,
       uri: file.uri,
-      sha256: await this.sha256(content),
+      sha256,
       byteCount: new TextEncoder().encode(content).byteLength,
       eligibleFixCount,
     };

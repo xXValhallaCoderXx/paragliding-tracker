@@ -5,7 +5,11 @@ import type { SqlExecutor } from '../recorder/repository-core';
 export const MAX_ARCHIVE_IGC_BYTES = 25 * 1024 * 1024;
 export const ARCHIVE_FREE_SPACE_RESERVE = 512 * 1024 * 1024;
 
-export type ArchiveRemoteFlight = Tables<'flights'> & { deleted_at?: string | null; site_source?: string | null };
+export type ArchiveRemoteFlight = Omit<Tables<'flights'>, 'equipment_snapshot'> & {
+  deleted_at?: string | null; site_source?: string | null;
+  /** Older servers/fixtures do not include the new immutable field. */
+  equipment_snapshot?: Tables<'flights'>['equipment_snapshot'];
+};
 export interface ArchiveCursor { updatedAt: string; flightId: string }
 export interface ArchiveDownloadCandidate {
   ownerUserId: string;

@@ -29,6 +29,15 @@ const makeRepository = (overrides: Partial<ArchiveRepositoryDependencies> = {}) 
 beforeEach(async () => { db = new TestDatabase(); await schemaAt(db, 9); repository = makeRepository(); });
 afterEach(async () => db.closeAsync());
 
+it('restores the frozen equipment snapshot independently of inventory and preserves it through metadata editing', async () => {
+  const equipment = { version: 1, capturedAt: 1000, aircraftId: 'aircraft', sport: 'speedflying', model: 'Wing', size: '12', registrationId: null };
+  await repository.upsertRemote('owner-a', remote({ equipment_snapshot: equipment }));
+  expect((await repository.get('owner-a', 'flight-1'))?.equipmentSnapshot).toEqual(equipment);
+  await repository.updateMetadata('owner-a', 'flight-1', { title: 'New title' });
+  expect((await repository.get('owner-a', 'flight-1'))?.equipmentSnapshot).toEqual(equipment);
+  await expect(repository.upsertRemote('owner-a', remote({ equipment_snapshot: { ...equipment, version: 9 } }))).rejects.toThrow('snapshot');
+});
+
 it('restores summaries without inventing sessions or raw capture evidence and isolates owners', async () => {
   await repository.upsertRemote('owner-a', remote());
   expect(await repository.get('owner-a', 'flight-1')).toMatchObject({ source: 'archive', session: null, sessionStatus: null,

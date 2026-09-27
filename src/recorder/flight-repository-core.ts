@@ -7,8 +7,9 @@ import type {
   SessionRecord,
 } from './types';
 import { PUBLICATION_COLUMNS, PUBLICATION_SCHEMA_SQL } from './publication-repository-core';
+import { EQUIPMENT_COLUMNS, EQUIPMENT_INDEXES, EQUIPMENT_SCHEMA_SQL } from './equipment-schema';
 
-export const LATEST_DATABASE_VERSION = 10;
+export const LATEST_DATABASE_VERSION = 11;
 
 export const EXPECTED_V1_TABLE_COLUMNS = Object.freeze({
   sessions: [
@@ -214,6 +215,8 @@ export const EXPECTED_V9_TABLE_COLUMNS = Object.freeze({
 export const EXPECTED_V9_INDEX_NAMES = Object.freeze(['archive_flights_owner_order', 'archive_deletions_retry_order'] as const);
 export const EXPECTED_V10_TABLE_COLUMNS = Object.freeze(PUBLICATION_COLUMNS);
 export const EXPECTED_V10_INDEX_NAMES = Object.freeze(['social_publication_retry_order'] as const);
+export const EXPECTED_V11_TABLE_COLUMNS = Object.freeze(EQUIPMENT_COLUMNS);
+export const EXPECTED_V11_INDEX_NAMES = Object.freeze(EQUIPMENT_INDEXES);
 
 export const CREATE_V1_SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS sessions (
@@ -673,6 +676,9 @@ export function getSchemaMigrationSteps(
   }
   if (version < 10) {
     steps.push({ version: 10, statements: [PUBLICATION_SCHEMA_SQL] });
+  }
+  if (version < 11) {
+    steps.push({ version: 11, statements: [EQUIPMENT_SCHEMA_SQL] });
   }
   return steps;
 }

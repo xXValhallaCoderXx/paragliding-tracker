@@ -7,6 +7,9 @@ import { RecordingView } from '@/features/record/components/recording-view';
 import { clearRecordingViewIntent } from '@/features/record/recording-view-intent';
 import { InterruptedView } from '@/features/record/components/interrupted';
 import { PreflightView } from '@/features/record/components/preflight';
+import { PreflightAircraft } from '@/features/equipment/preflight-aircraft';
+import { captureIntent, currentAircraft } from '@/features/equipment/presentation';
+import type { EquipmentCaptureIntent } from '@/equipment/types';
 import { useRecorderLifecycle } from '@/features/record/recorder-lifecycle';
 import { recorderService } from '@/recorder/recorder-service';
 import type { RecorderSnapshot } from '@/recorder/types';
@@ -14,7 +17,7 @@ import { capturePresentation } from '@/features/record/capture-health';
 import { inFlightNotices, type ReadinessAction } from '@/features/record/recorder-presentation';
 import { errorMessage } from '@/lib/format/error-message';
 import { openSystemScreen } from '@/lib/system-settings';
-import { dataApi } from '@/store/endpoints';
+import { dataApi, useGetEquipmentInventoryQuery } from '@/store/endpoints';
 import { useAppDispatch } from '@/store/hooks';
 
 type RecorderIntent = 'resume' | 'finalize';
@@ -29,6 +32,8 @@ export default function RecordFlightScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const recorderLifecycle = useRecorderLifecycle();
+  const equipment = useGetEquipmentInventoryQuery(undefined, { skip: !recorderLifecycle.ready });
+  const [aircraftSelection, setAircraftSelection] = useState<EquipmentCaptureIntent | null>(null);
   const [snapshot, setSnapshot] = useState<RecorderSnapshot | null>(null);
   const [activeFlightId, setActiveFlightId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -89,12 +94,17 @@ export default function RecordFlightScreen() {
   const startRecording = useCallback(
     () =>
       runAction('Starting recorder…', async () => {
-        const result = await recorderService.arm();
+        if (!equipment.data && aircraftSelection?.aircraftId !== null) {
+          throw new Error('The local aircraft list is not ready. Retry it or choose Record without aircraft details, then start recording.');
+        }
+        const intent = aircraftSelection ?? captureIntent(equipment.data!, currentAircraft(equipment.data!));
+        const result = await recorderService.arm(intent);
+        setAircraftSelection(null);
         setActiveFlightId(result.flightId);
         // Arming inserts a flight row, which the logbook shows as its open-flight card.
         dispatch(dataApi.util.invalidateTags([{ type: 'Flight', id: 'LIST' }]));
       }),
-    [dispatch, runAction],
+    [dispatch, runAction, equipment.data, aircraftSelection],
   );
 
   const finishRecording = useCallback(
@@ -245,6 +255,9 @@ export default function RecordFlightScreen() {
   } else {
     content = (
       <PreflightView
+        aircraft={<PreflightAircraft inventory={equipment.data} selection={aircraftSelection}
+          loading={equipment.isLoading} error={equipment.isError} disabled={actionsDisabled}
+          onSelect={setAircraftSelection} onRetry={() => void equipment.refetch()} />}
         snapshot={snapshot}
         busyLabel={busy}
         actionsDisabled={actionsDisabled}

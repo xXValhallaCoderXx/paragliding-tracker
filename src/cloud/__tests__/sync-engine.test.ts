@@ -3,9 +3,15 @@ import type { AuthSnapshot, CloudSyncEngine } from '../types';
 import type { FlightSyncCandidate } from '@/recorder/types';
 import type { ArchiveDownloadCandidate } from '@/archives/types';
 
+jest.mock('@/recorder/exports-repository.native', () => ({ readVerifiedSessionIgc: async () => null }));
+jest.mock('../equipment-sync', () => ({
+  syncEquipment: jest.fn(async () => {}),
+  equipmentPending: jest.fn(async () => ({ pending: 0, conflicts: 0 })),
+}));
+
 jest.mock('../config', () => ({ ...jest.requireActual('../config'), cloudConfigured: true }));
-jest.mock('expo-crypto', () => ({ CryptoDigestAlgorithm: { SHA256: 'SHA256' }, digestStringAsync: async () => 'digest' }));
-jest.mock('@/recorder/igc', () => ({ buildUnsignedIgc: () => ({ content: 'IGC bytes' }) }));
+jest.mock('expo-crypto', () => ({ CryptoDigestAlgorithm: { SHA256: 'SHA256' }, digestStringAsync: async () => 'a'.repeat(64) }));
+jest.mock('@/recorder/igc', () => ({ ...jest.requireActual('@/recorder/igc'), buildUnsignedIgc: () => ({ content: 'IGC bytes' }) }));
 let mockRepository: Record<string, jest.Mock>;
 let mockArchives: Record<string, jest.Mock>;
 let mockActions: Record<string, jest.Mock>;
@@ -27,13 +33,14 @@ const mockRequest = jest.fn();
 const mockRpc = jest.fn();
 const mockUpload = jest.fn();
 jest.mock('../supabase', () => ({ getSupabase: () => ({
+  auth: { getSession: async () => ({ data: { session: { user: { id: mockAuth.userId }, access_token: 'fixture-token' } }, error: null }) },
   rpc: (...args: unknown[]) => mockRpc(...args),
   from: (table: string) => {
     const request: { table: string; operation: string; body?: unknown } = { table, operation: 'select' };
     const query = {
       upsert(body: unknown) { request.operation = 'upsert'; request.body = body; return query; },
       update(body: unknown) { request.operation = 'update'; request.body = body; return query; },
-      select: () => query, eq: () => query, single: () => query, maybeSingle: () => query,
+      select: () => query, eq: () => query, is: () => query, setHeader: () => query, single: () => query, maybeSingle: () => query,
       then: (resolve: (value: unknown) => unknown, reject: (error: unknown) => unknown) => Promise.resolve(mockRequest(request)).then(resolve, reject),
     };
     return query;
@@ -98,7 +105,9 @@ beforeEach(() => {
     deleteRemoteFlight: jest.fn(async () => {}), mergeRemoteFlight: jest.fn(async () => {}),
     pullArchiveCatalogue: jest.fn(async () => {}), pullFlightDeletions: jest.fn(async () => []), pushArchiveChanges: jest.fn(async () => []),
   };
-  mockRequest.mockReset().mockResolvedValue({ data: null, error: null });
+  mockRequest.mockReset().mockImplementation(async request => request.table === 'flights' && request.operation === 'update'
+    ? { data: { id: 'f', user_id: 'A', recording_session_id: 'f-session', started_at: 1000, ended_at: 2000, ...request.body }, error: null }
+    : { data: null, error: null });
   mockUpload.mockReset().mockResolvedValue({ error: null });
   mockRpc.mockReset().mockImplementation(async (_name, args) => ({ data: { ...args.p_flight, updated_at: '2026-09-20T00:00:00Z' }, error: null }));
   mockSignOut.mockReset().mockResolvedValue(undefined);
@@ -130,6 +139,28 @@ it('does not acknowledge a tracked flight until IGC upload succeeds on retry', a
   expect(mockRepository.recordFlightSyncFailure).toHaveBeenCalled();
   expect((await engine.requestSync('manual')).phase).toBe('idle');
   expect(mockRepository.markFlightIgcPushed.mock.invocationCallOrder[0]).toBeLessThan(mockRepository.markFlightPushed.mock.invocationCallOrder[0]);
+});
+it('preserves an existing verified IGC when ordinary metadata is backed up', async () => {
+  const sha256 = 'a'.repeat(64);
+  const tracked = { ...candidate('f', true), igcSha256: sha256, igcObjectPath: 'A/f.igc' };
+  mockRepository.listDirtyFlights.mockResolvedValue([tracked]);
+  mockRpc.mockImplementation(async (_name, args) => ({ data: {
+    ...args.p_flight, updated_at: '2026-09-20T00:00:00Z',
+    igc_object_path: 'A/f.igc', igc_sha256: sha256, igc_byte_count: 128, igc_artifact_version: 3,
+  }, error: null }));
+  expect((await engine.requestSync('manual')).phase).toBe('idle');
+  expect(mockUpload).not.toHaveBeenCalled();
+  expect(mockRepository.getSessionExportData).not.toHaveBeenCalled();
+  expect(mockRepository.markFlightPushed).toHaveBeenCalled();
+});
+it('does not replace an incomplete historical backup reference with regenerated headers', async () => {
+  mockRepository.listDirtyFlights.mockResolvedValue([candidate('f', true)]);
+  mockRpc.mockImplementation(async (_name, args) => ({ data: {
+    ...args.p_flight, updated_at: '2026-09-20T00:00:00Z', igc_sha256: 'a'.repeat(64),
+  }, error: null }));
+  expect((await engine.requestSync('manual')).phase).toBe('error');
+  expect(mockUpload).not.toHaveBeenCalled();
+  expect(mockRepository.markFlightPushed).not.toHaveBeenCalled();
 });
 it('restores B without rebinding or uploading the captured logbook linked to A', async () => {
   mockAuth.userId = 'B';
@@ -171,6 +202,18 @@ it('does not sign B out when an obsolete request from A fails authentication', a
   await oldCycle;
   expect(mockSignOut).not.toHaveBeenCalled();
   expect(engine.getSnapshot().lastError).toBeNull();
+});
+it('fences the old account immediately before the provider auth-change effect runs', async () => {
+  const pending = deferred<void>();
+  mockActions.pullArchiveCatalogue.mockReturnValueOnce(pending.promise);
+  const cycle = engine.requestSync('manual');
+  await until(() => mockActions.pullArchiveCatalogue.mock.calls.length === 1);
+  mockAuth = { ...mockAuth, userId: 'B' };
+  pending.resolve();
+  await cycle;
+  expect(mockRepository.listDirtyFlights).not.toHaveBeenCalled();
+  expect(mockRequest).not.toHaveBeenCalled();
+  expect(mockRepository.setCloudCursors).not.toHaveBeenCalled();
 });
 it('continues independent rows but never reports a successful sync over failed work', async () => {
   mockRepository.listDirtyFlights.mockResolvedValue([candidate('bad'), candidate('good')]);

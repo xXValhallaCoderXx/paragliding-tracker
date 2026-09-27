@@ -1,0 +1,22 @@
+PASS 1: new private inventory is empty without a Friends profile
+PASS 2: aircraft saves at its first server revision
+PASS 3: lost-response retry returns the same operation receipt
+PASS 4: a second device restores aircraft details
+PASS 5: stale device edit returns the canonical conflict without overwriting it
+PASS 6: reviewed changes can be explicitly reapplied
+PASS 7: independent aircraft, sport identifier and current selection restore together
+PASS 8: archiving the current aircraft clears selection in the same server mutation
+PASS 9: an archived aircraft cannot become current
+PASS 10: restoring an aircraft leaves current selection unchanged
+PASS 11: another account sees its own empty inventory
+PASS 12: row security hides another owner’s aircraft and identifiers
+PASS 13: anonymous inventory access is denied
+PASS 14: direct writes cannot bypass revision and archive rules
+PASS 15: private flight restores captured equipment independently of the aircraft list
+PASS 16: older clients omitting equipment preserve the snapshot
+PASS 17: captured equipment cannot be rewritten by an ordinary flight update
+PASS 18: equipment work does not create a Friends profile
+PASS 19: account deletion fences equipment reads
+PASS 20: account deletion fences new equipment writes
+Private equipment HTTP acceptance: 20 checks passed.
+Disposable equipment accounts and database fixtures cleaned up.

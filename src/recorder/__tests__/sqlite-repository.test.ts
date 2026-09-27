@@ -3,6 +3,8 @@ import * as database from '../database.native';
 import { TestDatabase, schemaAt, seedSession, seedEvidence, sqliteHarness } from '../../../tests/support/sqlite';
 import { BACKFILL_FLIGHTS_SQL } from '../flight-repository-core';
 import type { RawLocationFix } from '../repository-core';
+import { EquipmentRepositoryCore } from '../equipment-repository-core';
+import { finalizeFlightForSession } from '../flight-repository.native';
 
 jest.mock('expo-sqlite', () => ({ openDatabaseAsync: jest.fn(), backupDatabaseAsync: jest.fn(), deleteDatabaseAsync: jest.fn() }));
 let harness: ReturnType<typeof sqliteHarness>;
@@ -18,7 +20,7 @@ beforeEach(async () => {
   for (const { name } of await db.getAllAsync<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")) {
     await db.execAsync(`PRAGMA foreign_keys = OFF; DROP TABLE "${name}"; PRAGMA foreign_keys = ON`);
   }
-  await schemaAt(db, 10);
+  await schemaAt(db, 11);
   await seedSession(db); await db.execAsync(BACKFILL_FLIGHTS_SQL);
 });
 afterEach(() => jest.restoreAllMocks());
@@ -32,6 +34,98 @@ const attempt = (overrides = {}) => database.beginSessionRecoveryAttempt({
   deadlineAt: 20_000, maximumCachedFixAgeMs: 5000, ...overrides,
 });
 const power = { batteryLevel: null, batteryState: null, lowPowerMode: null, batteryOptimizationEnabled: null, recordedAt: 30_000 };
+const equipment = () => {
+  let id = 0;
+  return new EquipmentRepositoryCore({ uuid: () => `00000000-0000-4000-8000-${String(++id).padStart(12, '0')}`,
+    database: { read: async operation => operation(await database.getArchiveDatabase()), write: operation => database.withArchiveWrite(operation) } });
+};
+
+it('records aircraft alongside start, leaves legacy unknown, and rejects a stale selection before creating evidence', async () => {
+  const inventory = equipment();
+  const added = await inventory.saveAircraft({ owner: 'guest', sport: 'speedflying', model: 'Speedwing', size: '12', makeCurrent: true });
+  const aircraft = added.aircraft[0]!;
+  expect((await database.getFlightBySessionId('session-1'))?.equipmentSnapshot).toBeNull();
+  await database.completeSession('session-1', 2000, 'stopped', power);
+  const intent = { owner: 'guest', aircraftId: aircraft.id, expectedGeneration: aircraft.generation };
+  await inventory.saveAircraft({ owner: 'guest', id: aircraft.id, expectedGeneration: aircraft.generation,
+    sport: 'speedflying', model: 'Changed speedwing', size: '12' });
+  await expect(database.createSession({ id: 'stale-session', startedAt: 3000, platform: 'android', deviceMetadata: {}, appMetadata: {}, startPower: power,
+    equipment: intent })).rejects.toThrow('changed');
+  expect(await database.getSession('stale-session')).toBeNull();
+  await database.createSession({ id: 'new-session', startedAt: 3000, platform: 'android', deviceMetadata: {}, appMetadata: {}, startPower: power,
+    equipment: { ...intent, expectedGeneration: aircraft.generation + 1 } });
+  const snapshot = (await database.getSessionExportData('new-session')).equipmentSnapshot;
+  expect(snapshot).toMatchObject({ model: 'Changed speedwing', capturedAt: 3000, size: '12', sport: 'speedflying' });
+  await inventory.setArchived('guest', aircraft.id, true, aircraft.generation + 1);
+  expect((await database.getSessionExportData('new-session')).equipmentSnapshot).toEqual(snapshot);
+});
+
+it('records explicit no-aircraft even when a current aircraft exists', async () => {
+  await equipment().saveAircraft({ owner: 'guest', sport: 'hang_gliding', model: 'Falcon', makeCurrent: true });
+  await database.completeSession('session-1', 2000, 'stopped', power);
+  await database.createSession({ id: 'no-aircraft', startedAt: 3000, platform: 'android', deviceMetadata: {}, appMetadata: {}, startPower: power,
+    equipment: { owner: 'guest', aircraftId: null } });
+  expect((await database.getFlightBySessionId('no-aircraft'))?.equipmentSnapshot).toEqual({
+    version: 1, capturedAt: 3000, aircraftId: null, sport: null, model: null, size: null, registrationId: null,
+  });
+});
+
+it('retains start equipment through interrupted resume and partial finalization after the inventory changes', async () => {
+  const inventory = equipment();
+  const saved = await inventory.saveAircraft({ owner: 'guest', sport: 'hang_gliding', model: 'Original wing',
+    size: '155', registrationId: 'HG-ORIGINAL', makeCurrent: true });
+  const aircraft = saved.aircraft[0]!;
+  await database.completeSession('session-1', 2000, 'stopped', power);
+  await database.createSession({ id: 'resumed-session', startedAt: 3000, platform: 'android',
+    deviceMetadata: {}, appMetadata: {}, startPower: power,
+    equipment: { owner: 'guest', aircraftId: aircraft.id, expectedGeneration: aircraft.generation } });
+  const snapshot = (await database.getFlightBySessionId('resumed-session'))!.equipmentSnapshot;
+  expect(snapshot).toMatchObject({ capturedAt: 3000, aircraftId: aircraft.id, model: 'Original wing', registrationId: 'HG-ORIGINAL' });
+  await database.markSessionInterrupted('resumed-session', 9000, 'synthetic interruption');
+  const edited = await inventory.saveAircraft({ owner: 'guest', id: aircraft.id, expectedGeneration: aircraft.generation,
+    sport: 'hang_gliding', model: 'Edited wing', size: '170', registrationId: 'HG-CHANGED' });
+  await inventory.setArchived('guest', aircraft.id, true, edited.aircraft[0]!.generation);
+  await inventory.saveAircraft({ owner: 'guest', sport: 'speedflying', model: 'Next wing', makeCurrent: true });
+
+  await attempt({ sessionId: 'resumed-session', kind: 'manual' });
+  await batch('resume-proof', 11_000, [fix(10_000)]);
+  await database.confirmSessionRecoveryAttempt('attempt', 12_000);
+  expect(await database.getSession('resumed-session')).toMatchObject({ status: 'recording' });
+  expect((await database.getSessionExportData('resumed-session')).equipmentSnapshot).toEqual(snapshot);
+  expect(await db.getFirstAsync('SELECT count(*) AS count FROM sessions')).toEqual({ count: 2 });
+
+  await database.markSessionInterrupted('resumed-session', 13_000, 'synthetic second interruption');
+  await database.completeSession('resumed-session', 14_000, 'interrupted_finalized', power);
+  expect(await finalizeFlightForSession('resumed-session')).toMatchObject({ status: 'partial', equipmentSnapshot: snapshot });
+  expect((await database.getSessionExportData('resumed-session')).equipmentSnapshot).toEqual(snapshot);
+});
+
+it('claims only guest equipment and retains the last inventory on unlink without moving it on rebind', async () => {
+  const inventory = equipment();
+  await inventory.saveAircraft({ owner: 'guest', sport: 'paragliding', model: 'Rush', makeCurrent: true });
+  await database.bindCloudLink('owner-a');
+  expect((await inventory.getInventory()).aircraft).toHaveLength(1);
+  await database.resetCloudLink(null);
+  expect(await inventory.getActiveOwner()).toBe('owner-a');
+  expect((await inventory.getInventory()).aircraft).toHaveLength(1);
+  await database.bindCloudLink('owner-b');
+  expect((await inventory.getInventory()).aircraft).toEqual([]);
+  expect(await db.getAllAsync("SELECT * FROM equipment_entities WHERE owner_key='owner-a' AND kind='aircraft'")).toHaveLength(1);
+  await database.resetCloudLink('owner-a');
+  expect((await inventory.getInventory()).aircraft).toHaveLength(1);
+});
+
+it('rolls back guest ownership and account linking when authorization changes inside the transaction', async () => {
+  const inventory = equipment();
+  await inventory.saveAircraft({ owner: 'guest', sport: 'paragliding', model: 'Rush' });
+  let checks = 0;
+  await expect(database.bindCloudLink('owner-a', 3000, () => {
+    if (++checks === 4) throw new Error('stale authorization');
+  })).rejects.toThrow('stale authorization');
+  expect((await database.getCloudLink()).userId).toBeNull();
+  expect(await inventory.getActiveOwner()).toBe('guest');
+  expect((await inventory.getInventory()).aircraft).toHaveLength(1);
+});
 
 it('enforces one unfinished recording and singleton device settings in the applied schema', async () => {
   await expect(seedSession(db, 'second', 'recording')).rejects.toThrow(/UNIQUE/);

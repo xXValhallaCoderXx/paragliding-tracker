@@ -10,7 +10,7 @@ type OnboardingState = AppSettings['onboardingState'];
  * Nothing here blocks anything: every item is a link, never a gate.
  */
 
-export type ChecklistKey = 'location' | 'pilotName' | 'glider';
+export type ChecklistKey = 'location' | 'pilotName' | 'aircraft';
 
 export interface ChecklistItem {
   key: ChecklistKey;
@@ -45,6 +45,7 @@ function locationDone(capabilities: RecorderCapabilities): boolean {
 export function setupChecklist(args: {
   profile: PilotProfile;
   capabilities: RecorderCapabilities;
+  hasAircraft: boolean;
   /** What the pilot did with first-run setup. Null while the settings read is still in flight. */
   onboardingState: OnboardingState | null;
 }): SetupChecklist | null {
@@ -71,10 +72,10 @@ export function setupChecklist(args: {
       done: Boolean(profile.pilotName),
     },
     {
-      key: 'glider',
-      label: profile.gliderType ? 'Glider named' : 'Add equipment — optional',
-      detail: profile.gliderType ? '' : 'Pilot → Edit pilot details; used in new IGC exports',
-      done: Boolean(profile.gliderType),
+      key: 'aircraft',
+      label: args.hasAircraft ? 'Aircraft added' : 'Add aircraft — optional',
+      detail: args.hasAircraft ? '' : 'Pilot → Add aircraft; choose equipment before recording',
+      done: args.hasAircraft,
     },
   ];
 

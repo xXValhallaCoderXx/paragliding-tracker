@@ -15,6 +15,7 @@ export function flightRow(flight: FlightSyncCandidate, userId: string, platform:
     site: flight.site,
     site_source: flight.site ? flight.siteSource : null,
     notes: flight.notes,
+    ...(flight.equipmentSnapshot ? { equipment_snapshot: { ...flight.equipmentSnapshot } } : {}),
     client_created_at: flight.createdAt,
     client_updated_at: flight.updatedAt,
     device_platform: platform,

@@ -8,6 +8,7 @@ import { OpenFlightCard } from '../components/open-flight-card';
 import { RecordFab } from '../components/record-fab';
 import { SeasonCard } from '../components/season-card';
 import { useGetFlightsQuery } from '@/store/endpoints';
+import type { EquipmentInventory } from '@/equipment/types';
 import type { FlightSummary } from '@/recorder/types';
 import { flight } from '../../../../tests/support/fixtures';
 import { act, create } from '../../../../tests/support/renderer';
@@ -20,6 +21,7 @@ const mockSync = { requestSync: jest.fn() };
 let mockFocused = true;
 let mockRecovering = false;
 let mockFlights: FlightSummary[] = [];
+let mockEquipment: EquipmentInventory | undefined;
 
 jest.mock('expo-router', () => ({
   useRouter: () => mockRouter,
@@ -35,6 +37,7 @@ jest.mock('@/recorder/recorder-service', () => ({ recorderService: { getCapabili
 jest.mock('@/store/endpoints', () => ({
   useGetFlightsQuery: jest.fn(() => ({ data: mockFlights, isLoading: false, isFetching: false, refetch: mockRefetch })),
   useGetFlightTracksQuery: () => ({ refetch: mockRefetchTracks }),
+  useGetEquipmentInventoryQuery: () => ({ data: mockEquipment }),
   useGetProfileQuery: () => ({}),
   useGetAppSettingsQuery: () => ({}),
 }));
@@ -63,6 +66,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockFocused = true;
   mockRecovering = false;
+  mockEquipment = undefined;
   mockFlights = [flight({ id: 'august' }), flight({ id: 'july', startedAt: Date.UTC(2026, 6, 10) })];
 });
 afterEach(async () => { if (rendered) await act(async () => rendered.unmount()); });
@@ -109,6 +113,7 @@ it('keeps pinned content, month headings, empty content and refresh controls beh
   expect(mockRefetch).not.toHaveBeenCalled();
   expect(mockSync.requestSync).toHaveBeenLastCalledWith('manual');
   mockRecovering = false;
+  mockEquipment = undefined;
   mockFlights = [];
   await update();
   expect(rendered.root.findAllByType(EmptyLogbook)).toHaveLength(1);
@@ -116,4 +121,18 @@ it('keeps pinned content, month headings, empty content and refresh controls beh
   mockRefetch.mockClear();
   list().refreshControl.props.onRefresh();
   expect(mockRefetch).toHaveBeenCalledTimes(1);
+});
+
+it('shows the current aircraft on an empty Home and removes it when archived', async () => {
+  mockFlights = [];
+  mockEquipment = { owner: 'guest', identities: [], aircraft: [{ kind: 'aircraft', id: 'wing', value: {
+    id: 'wing', sport: 'hang_gliding', model: 'Synthetic aircraft', size: '155', registrationId: null, archived: false,
+  }, generation: 1, serverRevision: 0, pending: true, conflict: null }], selection: {
+    kind: 'selection', id: 'current', value: { aircraftId: 'wing' }, generation: 1, serverRevision: 0, pending: true, conflict: null,
+  } };
+  await act(async () => { rendered = create(React.createElement(LogbookScreen)); });
+  expect(rendered.root.findByType(EmptyLogbook).props.gliderType).toBe('Synthetic aircraft 155');
+  mockEquipment.aircraft[0]!.value.archived = true;
+  await update();
+  expect(rendered.root.findByType(EmptyLogbook).props.gliderType).toBeNull();
 });

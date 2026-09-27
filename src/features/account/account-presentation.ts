@@ -13,6 +13,12 @@ export interface SyncStatusView {
 }
 
 function pendingDetail(snapshot: SyncSnapshot): string {
+  const equipment = snapshot.pendingEquipment ?? 0;
+  if ((snapshot.equipmentConflicts ?? 0) > 0) return 'Aircraft changes need review in Pilot. Your saved drafts remain on this phone.';
+  if (equipment > 0) {
+    const rest = snapshot.pendingFlights + snapshot.pendingDeletions;
+    return `${equipment} aircraft or sport ${equipment === 1 ? 'change' : 'changes'}${rest ? ` and ${rest} flight or deletion ${rest === 1 ? 'change' : 'changes'}` : ''} still to send.`;
+  }
   const total = snapshot.pendingFlights + snapshot.pendingDeletions;
   if (total === 0) return snapshot.lastSyncAt === null
     ? 'Backup has not completed a sync yet.'
@@ -80,8 +86,8 @@ export function describeSync(snapshot: SyncSnapshot, now: number): SyncStatusVie
         };
       case 'throttled':
         return {
-          label: snapshot.lastSyncAt === null ? 'Never' : relativeSyncTime(snapshot.lastSyncAt, now),
-          tone: snapshot.lastSyncAt !== null && snapshot.pendingFlights + snapshot.pendingDeletions === 0 ? 'good' : 'neutral',
+          label: (snapshot.equipmentConflicts ?? 0) > 0 ? 'Needs review' : snapshot.lastSyncAt === null ? 'Never' : relativeSyncTime(snapshot.lastSyncAt, now),
+          tone: (snapshot.equipmentConflicts ?? 0) > 0 ? 'warning' : snapshot.lastSyncAt !== null && snapshot.pendingFlights + snapshot.pendingDeletions + (snapshot.pendingEquipment ?? 0) === 0 ? 'good' : 'neutral',
           detail: pendingDetail(snapshot),
           canSyncNow: true,
         };
@@ -104,11 +110,15 @@ export function describeSync(snapshot: SyncSnapshot, now: number): SyncStatusVie
     };
   }
 
+  if ((snapshot.equipmentConflicts ?? 0) > 0) {
+    return { label: 'Needs review', tone: 'warning', detail: pendingDetail(snapshot), canSyncNow: true };
+  }
+
   if (snapshot.lastSyncAt === null) {
     return { label: 'Never', tone: 'neutral', detail: pendingDetail(snapshot), canSyncNow: true };
   }
 
-  const pending = snapshot.pendingFlights + snapshot.pendingDeletions;
+  const pending = snapshot.pendingFlights + snapshot.pendingDeletions + (snapshot.pendingEquipment ?? 0);
   return {
     label: relativeSyncTime(snapshot.lastSyncAt, now),
     tone: pending === 0 ? 'good' : 'neutral',

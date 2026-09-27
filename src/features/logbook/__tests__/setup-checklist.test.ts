@@ -29,9 +29,10 @@ const GRANTED = { foregroundPermission: 'granted', backgroundPermission: 'grante
 function build(args: {
   profile: PilotProfile;
   capabilities: RecorderCapabilities;
+  hasAircraft?: boolean;
   onboardingState?: AppSettings['onboardingState'] | null;
 }) {
-  return setupChecklist({ onboardingState: 'skipped', ...args });
+  return setupChecklist({ onboardingState: 'skipped', hasAircraft: false, ...args });
 }
 
 describe('setupChecklist', () => {
@@ -56,7 +57,8 @@ describe('setupChecklist', () => {
   it('disappears entirely once everything is done', () => {
     expect(
       build({
-        profile: profile({ pilotName: 'Renate', gliderType: 'Ozone Rush 6' }),
+        profile: profile({ pilotName: 'Renate' }),
+        hasAircraft: true,
         capabilities: capabilities(GRANTED),
       }),
     ).toBeNull();
@@ -79,7 +81,7 @@ describe('setupChecklist', () => {
   it('explains why each outstanding item matters, and stops once it is done', () => {
     const outstanding = build({ profile: profile(), capabilities: capabilities() })!;
     expect(outstanding.items[1]!.detail).toBe('Edit in Pilot; new IGC files use UNSPECIFIED without a name');
-    expect(outstanding.items[2]!.detail).toBe('Pilot → Edit pilot details; used in new IGC exports');
+    expect(outstanding.items[2]!.detail).toBe('Pilot → Add aircraft; choose equipment before recording');
 
     const partly = build({
       profile: profile({ pilotName: 'Renate' }),
@@ -113,4 +115,9 @@ describe('who is offered the checklist at all', () => {
     // arrives late.
     expect(build({ ...bare, onboardingState: null })).toBeNull();
   });
+});
+
+it('does not treat a legacy glider field as saved aircraft', () => {
+  const result = build({ profile: profile({ gliderType: 'Legacy glider' }), capabilities: capabilities(GRANTED) })!;
+  expect(result.items[2]).toMatchObject({ key: 'aircraft', label: 'Add aircraft — optional', done: false });
 });

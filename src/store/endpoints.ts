@@ -1,4 +1,6 @@
 import { journalRepository as flightRepository } from '@/journal/repository';
+import { equipmentRepository } from '@/equipment/repository';
+import type { EquipmentInventory } from '@/equipment/types';
 import type { FlightReplay } from '@/lib/replay/model';
 import type { LiveMapData } from '@/lib/live/types';
 import {
@@ -46,6 +48,17 @@ import { activeLiveMapCaches, emptyLiveMap, startLiveMapPolling } from './live-m
 
 export const dataApi = api.injectEndpoints({
   endpoints: (build) => ({
+    getEquipmentInventory: build.query<EquipmentInventory, void>({
+      queryFn: () => read(() => equipmentRepository.getInventory()),
+      providesTags: ['Equipment'],
+      async onCacheEntryAdded(_arg, { cacheEntryRemoved, dispatch }) {
+        const unsubscribe = equipmentRepository.subscribe(() => {
+          dispatch(api.util.invalidateTags(['Equipment']));
+        });
+        await cacheEntryRemoved;
+        unsubscribe();
+      },
+    }),
     getLiveMap: build.query<LiveMapData, string>({
       queryFn: (sessionId) => ({ data: emptyLiveMap(sessionId) }),
       serializeQueryArgs: ({ queryArgs }) => `live-map:${queryArgs}`,
@@ -222,6 +235,7 @@ async function siteLookup(
 }
 
 export const {
+  useGetEquipmentInventoryQuery,
   useGetLiveMapQuery,
   useGetFlightsQuery,
   useGetFlightQuery,

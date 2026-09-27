@@ -85,6 +85,9 @@ export interface SyncSnapshot {
   lastSyncAt: number | null;
   pendingFlights: number;
   pendingDeletions: number;
+  /** Private inventory edits are independent of flight upload/download progress. */
+  pendingEquipment?: number;
+  equipmentConflicts?: number;
   /** Flights the account holds that this device does not. Counted, not downloaded. */
   cloudOnlyFlights: number;
   /**

@@ -1,6 +1,7 @@
 import { flight, metrics, profile } from '../../../tests/support/fixtures';
 import type { FlightSyncCandidate } from '@/recorder/types';
 import { flightRow, profileRow } from '../payloads';
+import { RECORDER_CONFIG } from '@/recorder/config';
 
 const candidate = (overrides: Partial<FlightSyncCandidate> = {}): FlightSyncCandidate => ({
   ...flight({ id: 'flight', recordingSessionId: 'session', startedAt: 1000, endedAt: 5000,
@@ -14,7 +15,7 @@ it('maps populated flight facts exactly and preserves site provenance and exclud
   expect(flightRow(input, 'pilot', 'android')).toEqual({
     id: 'flight', user_id: 'pilot', recording_session_id: 'session', status: 'completed',
     started_at: 1000, ended_at: 5000, timezone_offset_minutes: -420, title: 'Ridge', site: 'Launch', site_source: 'osm', notes: 'Pilot note',
-    client_created_at: 1000, client_updated_at: 2000, device_platform: 'android', recorder_schema_version: 9,
+    client_created_at: 1000, client_updated_at: 2000, device_platform: 'android', recorder_schema_version: RECORDER_CONFIG.schemaVersion,
     metrics_algorithm_version: 3, duration_ms: 4000, track_distance_metres: 52_400,
     min_gps_altitude: 400, max_gps_altitude: 2410, max_ground_speed: 14, fix_count: 11_486,
     median_source_gap_ms: 1000, p95_source_gap_ms: 1000, max_source_gap_ms: 1000, quality: 'healthy', metrics_computed_at: 6000,
@@ -24,11 +25,17 @@ it('preserves nullable fields and missing metrics without inventing zeros', () =
   expect(flightRow(candidate({ title: null, site: null, notes: null, endedAt: null, timezoneOffsetMinutes: null, metrics: null }), 'pilot', 'ios')).toEqual({
     id: 'flight', user_id: 'pilot', recording_session_id: 'session', status: 'completed',
     started_at: 1000, ended_at: null, timezone_offset_minutes: null, title: null, site: null, site_source: null, notes: null,
-    client_created_at: 1000, client_updated_at: 2000, device_platform: 'ios', recorder_schema_version: 9,
+    client_created_at: 1000, client_updated_at: 2000, device_platform: 'ios', recorder_schema_version: RECORDER_CONFIG.schemaVersion,
     metrics_algorithm_version: null, duration_ms: null, track_distance_metres: null, min_gps_altitude: null,
     max_gps_altitude: null, max_ground_speed: null, fix_count: null, median_source_gap_ms: null,
     p95_source_gap_ms: null, max_source_gap_ms: null, quality: null, metrics_computed_at: null,
   });
+});
+it('backs up captured aircraft facts while omitting the field for legacy flights', () => {
+  const equipmentSnapshot = { version: 1 as const, capturedAt: 1000, aircraftId: 'aircraft', sport: 'hang_gliding' as const,
+    model: 'Falcon', size: null, registrationId: 'HG-1' };
+  expect(flightRow(candidate({ equipmentSnapshot }), 'pilot', 'android')).toHaveProperty('equipment_snapshot', equipmentSnapshot);
+  expect(flightRow(candidate({ equipmentSnapshot: null }), 'pilot', 'android')).not.toHaveProperty('equipment_snapshot');
 });
 it('maps all profile fields including registration, omitting server clocks and the local watermark', () => {
   expect(profileRow(profile({ pilotName: 'Renate', gliderType: 'Rush 6', gliderId: 'D-123', registrationId: 'APPI-123', updatedAt: 5000, pushedUpdatedAt: 1000 }), 'pilot')).toEqual({

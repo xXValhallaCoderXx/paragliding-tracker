@@ -1,6 +1,7 @@
 import type { FlightReplay } from '../lib/replay/model';
 import type { LiveMapPage, LiveMapRead } from '../lib/live/types';
 import type { TrackSegments } from '../lib/track/types';
+import type { EquipmentCaptureIntent, EquipmentSnapshot } from '../equipment/types';
 
 export type RecorderState =
   | 'idle'
@@ -126,7 +127,7 @@ export interface CaptureService {
    * capabilities as they stand afterwards.
    */
   requestLocationPermissions(): Promise<RecorderCapabilities>;
-  arm(): Promise<{ flightId: string; sessionId: string }>;
+  arm(equipment?: EquipmentCaptureIntent): Promise<{ flightId: string; sessionId: string }>;
   stop(): Promise<void>;
   recover(): Promise<RecorderSnapshot>;
   resume(sessionId: string): Promise<void>;
@@ -216,6 +217,8 @@ export type SiteSource = 'paraglidingearth' | 'osm' | 'manual';
 
 export interface FlightRecord {
   id: string;
+  /** null/absent is legacy unknown; a versioned empty snapshot explicitly records no aircraft. */
+  equipmentSnapshot?: EquipmentSnapshot | null;
   /** Once a captured flight is associated with an account it cannot be rebound. */
   cloudOwnerUserId?: string | null;
   recordingSessionId: string;
@@ -343,7 +346,7 @@ export interface PilotProfile {
   gliderType: string | null;
   /** The glider's own registration. Rides in HFGIDGLIDERID. */
   gliderId: string | null;
-  /** The pilot's licence or federation number. Rides in HFCIDCOMPETITIONID. */
+  /** Legacy private pilot reference. Never emitted as an IGC competition identifier. */
   registrationId: string | null;
   updatedAt: number;
   pushedUpdatedAt: number | null;
@@ -448,6 +451,7 @@ export interface RecorderEventRecord {
 
 export interface SessionExportData {
   session: SessionRecord;
+  equipmentSnapshot?: EquipmentSnapshot | null;
   locations: LocationFixRecord[];
   pressureSamples: PressureSampleRecord[];
   events: RecorderEventRecord[];

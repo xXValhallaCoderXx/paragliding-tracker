@@ -17,6 +17,7 @@ export type Database = {
           device_platform: string | null
           duration_ms: number | null
           ended_at: number | null
+          equipment_snapshot: Json | null
           fix_count: number | null
           id: string
           igc_artifact_version: number | null
@@ -52,6 +53,7 @@ export type Database = {
           device_platform?: string | null
           duration_ms?: number | null
           ended_at?: number | null
+          equipment_snapshot?: Json | null
           fix_count?: number | null
           id: string
           igc_artifact_version?: number | null
@@ -87,6 +89,7 @@ export type Database = {
           device_platform?: string | null
           duration_ms?: number | null
           ended_at?: number | null
+          equipment_snapshot?: Json | null
           fix_count?: number | null
           id?: string
           igc_artifact_version?: number | null
@@ -114,6 +117,33 @@ export type Database = {
           track_distance_metres?: number | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      private_equipment: {
+        Row: {
+          entity_key: string
+          kind: string
+          owner_id: string
+          payload: Json
+          revision: number
+          updated_at: string
+        }
+        Insert: {
+          entity_key: string
+          kind: string
+          owner_id: string
+          payload: Json
+          revision: number
+          updated_at?: string
+        }
+        Update: {
+          entity_key?: string
+          kind?: string
+          owner_id?: string
+          payload?: Json
+          revision?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -258,6 +288,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      read_private_equipment: { Args: never; Returns: Json }
       social_ack_artifact_cleanup: {
         Args: { p_object_path: string; p_removed: boolean }
         Returns: undefined
@@ -358,6 +389,16 @@ export type Database = {
         Args: { p_activity_id: string; p_given: boolean }
         Returns: Json
       }
+      write_private_equipment: {
+        Args: {
+          p_expected_revision: number
+          p_key: string
+          p_kind: string
+          p_operation_id: string
+          p_payload: Json
+        }
+        Returns: Json
+      }
       write_private_flight: {
         Args: { p_flight: Json; p_metadata_only?: boolean }
         Returns: {
@@ -367,6 +408,7 @@ export type Database = {
           device_platform: string | null
           duration_ms: number | null
           ended_at: number | null
+          equipment_snapshot: Json | null
           fix_count: number | null
           id: string
           igc_artifact_version: number | null
