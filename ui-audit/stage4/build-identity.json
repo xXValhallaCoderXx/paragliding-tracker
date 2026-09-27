@@ -1,0 +1,111 @@
+{
+  "recordedAt": "2026-09-27T17:59:44.209544+00:00",
+  "branch": "feature/ui-revamp-beta",
+  "baseCommit": "5126bef5b59dd4d3f4d1de2cb2a71fd29ad614c5",
+  "implementationCommit": "82ed2495c465defe698aa6dc9b62ed0f6cf29f5b",
+  "sourceCommits": [
+    "c1325168ded24f75dcce442a090a92ac7aa3d9bc",
+    "8707d500631ba9e5712dff82043d594fa0d0fea1",
+    "82ed2495c465defe698aa6dc9b62ed0f6cf29f5b"
+  ],
+  "build": {
+    "name": "Flight Log Stage 4 QA",
+    "package": "com.xxvalhallacoderxx.xcmvp.stage4qa",
+    "scheme": "xcmvp-stage4qa",
+    "version": "1.0.0-stage4-qa",
+    "target": "Android release arm64-v8a",
+    "internetPermission": true,
+    "allowBackup": false,
+    "apk": {
+      "path": ".artifacts/stage4/build-c/flight-log-stage4-20260928.apk",
+      "bytes": 80189422,
+      "sha256": "a11210c1fb496e1cc410cde72e8387c6c335d426a0496142d619733cdc744d30"
+    },
+    "bundle": {
+      "path": ".artifacts/stage4/build-c/index.android.bundle",
+      "bytes": 5859256,
+      "sha256": "e388fa20676577399fcf508e538aeb9b5071af586ca332efcec04efdf78d5884"
+    },
+    "apkMatchesGeneratedOutput": true,
+    "apkBundleMatchesGeneratedOutput": true,
+    "sourceMaps": [
+      {
+        "path": ".artifacts/stage4/build-c/index.android.bundle.map",
+        "bytes": 15650810,
+        "sha256": "4b4e400616897b4db60594874707fc9b6d33a3cab12f249b083b17f19ee23d02",
+        "mappedRuntimeSourcesMatchingCommit": 267,
+        "changedRuntimeSourcesMatchingCommit": 12,
+        "changedFilesNotInRuntimeMap": [],
+        "changedRuntimeSources": {
+          "src/app/(tabs)/index.tsx": "f2f6b5c028d58f05ac95a83a5054aab1cd7e13026e1ffb9d9b783e6adee673d2",
+          "src/features/account/cloud-sync-provider.tsx": "df6d5b15c0c66ea1987cfa7c4c151231c2df22ddf4f5b042f683f926ebbd2080",
+          "src/features/flights/components/flight-map-preview.tsx": "74485f0865a1f90eef4dddd576c5c7245fdcf167c9617f5686e7758d5652482b",
+          "src/features/logbook/components/empty-logbook.tsx": "4461acd9213a0366f3d52de42d9f4a035f169b9d1504fb4ea9f60d57870e5b4e",
+          "src/features/logbook/components/flight-card.tsx": "1cd78fd852efe3096ba247f7e35c2f5da7a83246e5318c1fad00d7da14cd2aa3",
+          "src/features/logbook/components/journal-filter-sheet.tsx": "0a01e802ae6c2a6e6f95115c74066d6552f6e2296afa09c0f13d0c5277e31e8b",
+          "src/features/logbook/components/journal-summary-card.tsx": "26c58142c461b8510a4014285f9f5e72240edb63af1cba559f2da0127af31824",
+          "src/features/logbook/journal-query.ts": "83e94569fd458ba2cbef496ae84e0f3f24ae8bfdf8678d83a0e73e7c49abd482",
+          "src/journal/criteria.ts": "dbddc9fd6b95460e45abaa494f9dde0a214eb9c8b1fba35c2fef6ae191135c3f",
+          "src/store/hooks.ts": "942db6482ebc8237b9a6170eba71c8a2478802ae82f60175b94fba44a3af18cc",
+          "src/store/index.ts": "fe20a43a255b7208ff5bd4ccb375c3ac5083a5d931ddc808cb4db6d560c30be5",
+          "src/store/journal-view.ts": "26b25440a47ec9630dedba3d249f8b13d05aae9e3639e3dc076c49d6a9256ad2"
+        }
+      },
+      {
+        "path": ".artifacts/stage4/build-c/index.android.bundle.packager.map",
+        "bytes": 20581635,
+        "sha256": "18fb38d077b8617d451ae085e49332d59b5d9a8da1e256ca1f84807e9e4db6f7",
+        "mappedRuntimeSourcesMatchingCommit": 267,
+        "changedRuntimeSourcesMatchingCommit": 12,
+        "changedFilesNotInRuntimeMap": [],
+        "changedRuntimeSources": {
+          "src/app/(tabs)/index.tsx": "f2f6b5c028d58f05ac95a83a5054aab1cd7e13026e1ffb9d9b783e6adee673d2",
+          "src/features/account/cloud-sync-provider.tsx": "df6d5b15c0c66ea1987cfa7c4c151231c2df22ddf4f5b042f683f926ebbd2080",
+          "src/features/flights/components/flight-map-preview.tsx": "74485f0865a1f90eef4dddd576c5c7245fdcf167c9617f5686e7758d5652482b",
+          "src/features/logbook/components/empty-logbook.tsx": "4461acd9213a0366f3d52de42d9f4a035f169b9d1504fb4ea9f60d57870e5b4e",
+          "src/features/logbook/components/flight-card.tsx": "1cd78fd852efe3096ba247f7e35c2f5da7a83246e5318c1fad00d7da14cd2aa3",
+          "src/features/logbook/components/journal-filter-sheet.tsx": "0a01e802ae6c2a6e6f95115c74066d6552f6e2296afa09c0f13d0c5277e31e8b",
+          "src/features/logbook/components/journal-summary-card.tsx": "26c58142c461b8510a4014285f9f5e72240edb63af1cba559f2da0127af31824",
+          "src/features/logbook/journal-query.ts": "83e94569fd458ba2cbef496ae84e0f3f24ae8bfdf8678d83a0e73e7c49abd482",
+          "src/journal/criteria.ts": "dbddc9fd6b95460e45abaa494f9dde0a214eb9c8b1fba35c2fef6ae191135c3f",
+          "src/store/hooks.ts": "942db6482ebc8237b9a6170eba71c8a2478802ae82f60175b94fba44a3af18cc",
+          "src/store/index.ts": "fe20a43a255b7208ff5bd4ccb375c3ac5083a5d931ddc808cb4db6d560c30be5",
+          "src/store/journal-view.ts": "26b25440a47ec9630dedba3d249f8b13d05aae9e3639e3dc076c49d6a9256ad2"
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "path": "app.config.ts",
+        "bytes": 996,
+        "sha256": "3155d8c37e9c00b60a3a96c2539396a11bf7fe5a0bf877970de82016079567b3"
+      },
+      {
+        "path": "app.json",
+        "bytes": 2015,
+        "sha256": "703df1cc76a8770626ed8346b1956059489167503e2d90472556caf42f5f1804"
+      },
+      {
+        "path": "package.json",
+        "bytes": 3709,
+        "sha256": "287e8d425e86e6d58f165bebaef13ca4299a78fd59e28990ff66c5ca5dcb963a"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "bytes": 469669,
+        "sha256": "4fc15aae44da8dd5ecf27ab2bce9e1b0bb4102ad804186196fa8ce878dd11cd0"
+      },
+      {
+        "path": "metro.config.js",
+        "bytes": 883,
+        "sha256": "899b27a316df197f68dddc3c34f5a1688aa2e9bed245499e65a23b7e9c3354d4"
+      }
+    ]
+  },
+  "deviceAcceptance": {
+    "status": "partial",
+    "receipt": "ui-audit/stage4/logs/device-results.json",
+    "device": "Samsung SM-S938B / Android 16",
+    "reason": "Implemented and tested at original display settings; offline, real account/error transitions, broader accessibility and final screen acceptance remain pending."
+  }
+}

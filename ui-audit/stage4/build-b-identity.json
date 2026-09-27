@@ -1,0 +1,107 @@
+{
+  "recordedAt": "2026-09-27T17:54:02.840603+00:00",
+  "branch": "feature/ui-revamp-beta",
+  "baseCommit": "5126bef5b59dd4d3f4d1de2cb2a71fd29ad614c5",
+  "implementationCommit": "8707d500631ba9e5712dff82043d594fa0d0fea1",
+  "sourceCommits": [
+    "8707d500631ba9e5712dff82043d594fa0d0fea1"
+  ],
+  "build": {
+    "name": "Flight Log Stage 4 QA",
+    "package": "com.xxvalhallacoderxx.xcmvp.stage4qa",
+    "scheme": "xcmvp-stage4qa",
+    "version": "1.0.0-stage4-qa",
+    "target": "Android release arm64-v8a",
+    "internetPermission": true,
+    "allowBackup": false,
+    "apk": {
+      "path": ".artifacts/stage4/build-b/flight-log-stage4-20260928.apk",
+      "bytes": 80189418,
+      "sha256": "2d7c4506ed8d49277c6b6187418f646a875d71ee298e902e9c5e2cd4e5cc5db1"
+    },
+    "bundle": {
+      "path": ".artifacts/stage4/build-b/index.android.bundle",
+      "bytes": 5859252,
+      "sha256": "ec7b9d0b8324f293c9c821e688b1d0b8a24405ba16585f56fd059e0112fcc104"
+    },
+    "apkMatchesGeneratedOutput": true,
+    "apkBundleMatchesGeneratedOutput": true,
+    "sourceMaps": [
+      {
+        "path": ".artifacts/stage4/build-b/index.android.bundle.map",
+        "bytes": 15650811,
+        "sha256": "b4a2b64a395af9a1b2bd87dfbc3fa368575c52eeadc021add37ded56a41fbb53",
+        "mappedRuntimeSourcesMatchingCommit": 267,
+        "changedRuntimeSourcesMatchingCommit": 12,
+        "changedFilesNotInRuntimeMap": [],
+        "changedRuntimeSources": {
+          "src/app/(tabs)/index.tsx": "f2f6b5c028d58f05ac95a83a5054aab1cd7e13026e1ffb9d9b783e6adee673d2",
+          "src/features/account/cloud-sync-provider.tsx": "df6d5b15c0c66ea1987cfa7c4c151231c2df22ddf4f5b042f683f926ebbd2080",
+          "src/features/flights/components/flight-map-preview.tsx": "74485f0865a1f90eef4dddd576c5c7245fdcf167c9617f5686e7758d5652482b",
+          "src/features/logbook/components/empty-logbook.tsx": "4461acd9213a0366f3d52de42d9f4a035f169b9d1504fb4ea9f60d57870e5b4e",
+          "src/features/logbook/components/flight-card.tsx": "1cd78fd852efe3096ba247f7e35c2f5da7a83246e5318c1fad00d7da14cd2aa3",
+          "src/features/logbook/components/journal-filter-sheet.tsx": "b46b528742581a9db08ad5b25d90c1dc42bf70c8baa6a5a865c0066b8622c9bc",
+          "src/features/logbook/components/journal-summary-card.tsx": "26c58142c461b8510a4014285f9f5e72240edb63af1cba559f2da0127af31824",
+          "src/features/logbook/journal-query.ts": "83e94569fd458ba2cbef496ae84e0f3f24ae8bfdf8678d83a0e73e7c49abd482",
+          "src/journal/criteria.ts": "dbddc9fd6b95460e45abaa494f9dde0a214eb9c8b1fba35c2fef6ae191135c3f",
+          "src/store/hooks.ts": "942db6482ebc8237b9a6170eba71c8a2478802ae82f60175b94fba44a3af18cc",
+          "src/store/index.ts": "fe20a43a255b7208ff5bd4ccb375c3ac5083a5d931ddc808cb4db6d560c30be5",
+          "src/store/journal-view.ts": "26b25440a47ec9630dedba3d249f8b13d05aae9e3639e3dc076c49d6a9256ad2"
+        }
+      },
+      {
+        "path": ".artifacts/stage4/build-b/index.android.bundle.packager.map",
+        "bytes": 20581639,
+        "sha256": "e26c8e70c6e87e944b11458d1f1c663ee4ceda4bf26b5584ddce35c2b5c9807e",
+        "mappedRuntimeSourcesMatchingCommit": 267,
+        "changedRuntimeSourcesMatchingCommit": 12,
+        "changedFilesNotInRuntimeMap": [],
+        "changedRuntimeSources": {
+          "src/app/(tabs)/index.tsx": "f2f6b5c028d58f05ac95a83a5054aab1cd7e13026e1ffb9d9b783e6adee673d2",
+          "src/features/account/cloud-sync-provider.tsx": "df6d5b15c0c66ea1987cfa7c4c151231c2df22ddf4f5b042f683f926ebbd2080",
+          "src/features/flights/components/flight-map-preview.tsx": "74485f0865a1f90eef4dddd576c5c7245fdcf167c9617f5686e7758d5652482b",
+          "src/features/logbook/components/empty-logbook.tsx": "4461acd9213a0366f3d52de42d9f4a035f169b9d1504fb4ea9f60d57870e5b4e",
+          "src/features/logbook/components/flight-card.tsx": "1cd78fd852efe3096ba247f7e35c2f5da7a83246e5318c1fad00d7da14cd2aa3",
+          "src/features/logbook/components/journal-filter-sheet.tsx": "b46b528742581a9db08ad5b25d90c1dc42bf70c8baa6a5a865c0066b8622c9bc",
+          "src/features/logbook/components/journal-summary-card.tsx": "26c58142c461b8510a4014285f9f5e72240edb63af1cba559f2da0127af31824",
+          "src/features/logbook/journal-query.ts": "83e94569fd458ba2cbef496ae84e0f3f24ae8bfdf8678d83a0e73e7c49abd482",
+          "src/journal/criteria.ts": "dbddc9fd6b95460e45abaa494f9dde0a214eb9c8b1fba35c2fef6ae191135c3f",
+          "src/store/hooks.ts": "942db6482ebc8237b9a6170eba71c8a2478802ae82f60175b94fba44a3af18cc",
+          "src/store/index.ts": "fe20a43a255b7208ff5bd4ccb375c3ac5083a5d931ddc808cb4db6d560c30be5",
+          "src/store/journal-view.ts": "26b25440a47ec9630dedba3d249f8b13d05aae9e3639e3dc076c49d6a9256ad2"
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "path": "app.config.ts",
+        "bytes": 996,
+        "sha256": "3155d8c37e9c00b60a3a96c2539396a11bf7fe5a0bf877970de82016079567b3"
+      },
+      {
+        "path": "app.json",
+        "bytes": 2015,
+        "sha256": "703df1cc76a8770626ed8346b1956059489167503e2d90472556caf42f5f1804"
+      },
+      {
+        "path": "package.json",
+        "bytes": 3709,
+        "sha256": "287e8d425e86e6d58f165bebaef13ca4299a78fd59e28990ff66c5ca5dcb963a"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "bytes": 469669,
+        "sha256": "4fc15aae44da8dd5ecf27ab2bce9e1b0bb4102ad804186196fa8ce878dd11cd0"
+      },
+      {
+        "path": "metro.config.js",
+        "bytes": 883,
+        "sha256": "899b27a316df197f68dddc3c34f5a1688aa2e9bed245499e65a23b7e9c3354d4"
+      }
+    ]
+  },
+  "deviceAcceptance": {
+    "status": "pending",
+    "reason": "Awaiting Stage 4 physical checks; automated and build checks recorded separately. No hosted changes in this stage."
+  }
+}

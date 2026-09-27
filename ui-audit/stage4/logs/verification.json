@@ -1,0 +1,50 @@
+{
+  "recordedAt": "2026-09-27T18:00:42+00:00",
+  "build": "C",
+  "commit": "82ed2495c465defe698aa6dc9b62ed0f6cf29f5b",
+  "node": "v24.16.0",
+  "command": "pnpm test",
+  "status": "passed",
+  "typecheck": {
+    "status": "passed",
+    "durationSeconds": 10.2
+  },
+  "lint": {
+    "status": "passed",
+    "architectureChecks": 3,
+    "durationSeconds": 31.5
+  },
+  "jest": {
+    "suites": 145,
+    "tests": 1436
+  },
+  "denoTests": 71,
+  "sqlSuites": 15,
+  "sqlAssertions": 522,
+  "generatedDatabaseTypesMatch": true,
+  "durationSeconds": 108.3,
+  "log": {
+    "path": ".artifacts/stage4/full-test-build-c.log",
+    "sha256": "5610dadde60d261091b9853398a4f61969b70161856cc32e41a06dde5e1f73c9"
+  },
+  "androidRelease": {
+    "status": "passed",
+    "durationSeconds": 67,
+    "actionableTasks": 871,
+    "executedTasks": 24,
+    "upToDateTasks": 847,
+    "apkSha256": "a11210c1fb496e1cc410cde72e8387c6c335d426a0496142d619733cdc744d30",
+    "log": {
+      "path": ".artifacts/stage4/android-release-build-c.log",
+      "sha256": "0d679322a0697e42f16a5ecbb55ba2751694b2fe716f6b42c07ff897e241943e"
+    }
+  },
+  "dependencyValidation": {
+    "command": "pnpm validate:deps",
+    "exitCode": 1,
+    "recommendedPatchUpdates": 27,
+    "log": ".artifacts/stage4/dependencies.log",
+    "note": "Existing Expo/RN patch updates reported; package.json and lockfile unchanged. Separate from the passing pnpm test and release build."
+  },
+  "deviceAcceptance": "Recorded separately; automated and release results do not establish device acceptance."
+}

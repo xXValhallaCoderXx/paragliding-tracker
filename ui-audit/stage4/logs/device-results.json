@@ -1,0 +1,400 @@
+{
+  "recordedAt": "2026-09-27T18:07:46.105626+00:00",
+  "status": "partial-device-acceptance",
+  "sourceCommit": "82ed2495c465defe698aa6dc9b62ed0f6cf29f5b",
+  "build": "C",
+  "apkSha256": "a11210c1fb496e1cc410cde72e8387c6c335d426a0496142d619733cdc744d30",
+  "installedHashVerifiedByIsolatedInstrumentation": true,
+  "device": {
+    "model": "SM-S938B",
+    "android": "16",
+    "resolution": "1440x3120",
+    "physicalDensity": 600,
+    "densityOverride": 560,
+    "fontScale": 0.8,
+    "endSettingsMatchOriginalBaseline": true,
+    "settingsCompared": [
+      "fontScale",
+      "displaySize",
+      "displayDensity",
+      "accessibilityEnabled",
+      "accessibilityServices",
+      "wifiEnabled",
+      "airplaneMode",
+      "model",
+      "android"
+    ],
+    "restriction": "Do not change this phone display settings during testing. Enlarged text checks deferred."
+  },
+  "fixtures": {
+    "kind": "Synthetic data only in isolated Stage 4 QA package",
+    "localFlights": 8,
+    "restoredSummaries": 2,
+    "unfinishedSessionsAfterCleanup": 0,
+    "aircraft": 3,
+    "cloudBound": false,
+    "onDeviceForUserReview": true,
+    "companionUninstalled": true,
+    "companionApk": {
+      "path": ".artifacts/stage4/qa-harness/stage4-fixtures.apk",
+      "sha256": "b5a9c58a1621f82c294f87836d003f276c570b44fdbb4cdf54c8b3ae7b284125",
+      "bytes": 20949
+    },
+    "limitations": [
+      "Processing row is presentation-only, not a real finalization/recovery test.",
+      "Restored rows have no hosted IGC object; not proof of actual download or restoration.",
+      "Interrupted fixture was inspected without Resume or Save; it was removed afterward."
+    ]
+  },
+  "manualInteractionResults": [
+    "Keyboard-visible site search keeps Show flights above IME; selecting Alpine and tapping Show 2 applies directly.",
+    "First Android Back dismisses keyboard and retains the sheet; second Back dismisses draft and preserves applied criteria.",
+    "Sport Hang gliding AND Alpine site produces zero of ten; compact explanation and Edit/Clear actions remain visible. Clear all restores ten.",
+    "Cards visibly distinguish good track, gaps, partial, no usable track, processing, restored waiting for IGC, restored unavailable metrics.",
+    "Newest first places QA 01 first; oldest places QA 09 first; duration and distance place QA 08 first. Summary remains ten and 5h10m.",
+    "Unknown quality matches two saved rows with em-dash totals and 0/2 measurement coverage. Pilot/Home retains criteria; restart resets to all history/newest.",
+    "Reset draft then Cancel retains applied Alpine filter. Flight detail and Android Back retain it. Removing the chip restores ten.",
+    "Synthetic interrupted entry remains outside ten saved flights and 5h10m totals; still visible with zero matches. Look at recorder opens existing interrupted recorder and Back preserves filters.",
+    "Temporary interrupted fixture removed; companion uninstalled; final Home restored to ten synthetic flights and newest first."
+  ],
+  "scenarioReceipts": {
+    "sorts": [
+      {
+        "check": "Oldest first",
+        "labels": [
+          "Filters",
+          "Oldest first",
+          "Clear all",
+          "All time · On this phone. 10 flights. Recorded time 5:10. Longest recording 1:33. Longest track 22.1 km. Recorded time available for 8 of 10 flights; track distance for 7 of 10.. Recorded time runs from recording start to stop; it includes time on the ground.",
+          "Open QA 09 · Historical aircraft with a deliberately long journal headline for wrapping. Sun 7 Apr · 12:00. QA Historical Mountain Launch With A Long Name. Good track. Recorded time 0:17, track distance 4.6 km, maximum GPS altitude 1 810 m",
+          "Record",
+          "Home",
+          "Friends",
+          "Pilot"
+        ]
+      },
+      {
+        "check": "Longest recorded time",
+        "labels": [
+          "Filters",
+          "Longest recorded time",
+          "Clear all",
+          "All time · On this phone. 10 flights. Recorded time 5:10. Longest recording 1:33. Longest track 22.1 km. Recorded time available for 8 of 10 flights; track distance for 7 of 10.. Recorded time runs from recording start to stop; it includes time on the ground.",
+          "Open QA 08 · Previous year. Mon 10 Nov · 12:00. QA Coastal Ridge. Good track. Recorded time 1:33, track distance 22.1 km, maximum GPS altitude 1 810 m",
+          "Record",
+          "Home",
+          "Friends",
+          "Pilot"
+        ]
+      },
+      {
+        "check": "Longest track distance",
+        "labels": [
+          "Filters",
+          "Longest track distance",
+          "Clear all",
+          "All time · On this phone. 10 flights. Recorded time 5:10. Longest recording 1:33. Longest track 22.1 km. Recorded time available for 8 of 10 flights; track distance for 7 of 10.. Recorded time runs from recording start to stop; it includes time on the ground.",
+          "Open QA 08 · Previous year. Mon 10 Nov · 12:00. QA Coastal Ridge. Good track. Recorded time 1:33, track distance 22.1 km, maximum GPS altitude 1 810 m",
+          "Record",
+          "Home",
+          "Friends",
+          "Pilot"
+        ]
+      }
+    ],
+    "unknown": [
+      {
+        "check": "Unknown quality",
+        "labels": [
+          "Filters (1)",
+          "Newest first",
+          "Remove Stats pending/unavailable filter",
+          "Clear all",
+          "Filtered flights · On this phone. 2 flights. Recorded time —. Longest recording —. Longest track —. Recorded time available for 0 of 2 flights; track distance for 0 of 2.. Recorded time runs from recording start to stop; it includes time on the ground.",
+          "Record",
+          "Home",
+          "Friends",
+          "Pilot"
+        ]
+      },
+      {
+        "check": "Unknown cards",
+        "labels": [
+          "Open QA 05 · Finishing stats. Thu 18 Jun · 12:00. QA High Pass. Finishing stats. Saved statistics are unavailable for this flight.",
+          "Open QA 07 · Restored, metrics unavailable. Mon 15 Dec · 12:00. Restored. Metrics unavailable. Recorded time —, track distance —, maximum GPS altitude —. Saved statistics are unavailable for this flight.. Flight summary restored; no archived route was backed up.",
+          "Record",
+          "Home",
+          "Friends",
+          "Pilot"
+        ]
+      },
+      {
+        "check": "Navigation retained",
+        "labels": [
+          "Open QA 05 · Finishing stats. Thu 18 Jun · 12:00. QA High Pass. Finishing stats. Saved statistics are unavailable for this flight.",
+          "Open QA 07 · Restored, metrics unavailable. Mon 15 Dec · 12:00. Restored. Metrics unavailable. Recorded time —, track distance —, maximum GPS altitude —. Saved statistics are unavailable for this flight.. Flight summary restored; no archived route was backed up.",
+          "Record",
+          "Home",
+          "Friends",
+          "Pilot"
+        ]
+      },
+      {
+        "check": "Restart reset",
+        "labels": [
+          "Filters",
+          "Newest first",
+          "All time · On this phone. 10 flights. Recorded time 5:10. Longest recording 1:33. Longest track 22.1 km. Recorded time available for 8 of 10 flights; track distance for 7 of 10.. Recorded time runs from recording start to stop; it includes time on the ground.",
+          "Open QA 01 · Good track. Sun 27 Sep · 12:00. QA Alpine Launch. Good track. Recorded time 1:08, track distance 13.8 km, maximum GPS altitude 1 810 m",
+          "Record",
+          "Home",
+          "Friends",
+          "Pilot"
+        ]
+      }
+    ],
+    "detail": [
+      {
+        "check": "Reset draft cancelled",
+        "labels": [
+          "Filters (1)",
+          "Newest first",
+          "Remove QA Alpine Launch filter",
+          "Clear all",
+          "Filtered flights · On this phone. 2 flights. Recorded time 1:54. Longest recording 1:08. Longest track 13.8 km. Recorded time runs from recording start to stop; it includes time on the ground.",
+          "Open QA 01 · Good track. Sun 27 Sep · 12:00. QA Alpine Launch. Good track. Recorded time 1:08, track distance 13.8 km, maximum GPS altitude 1 810 m",
+          "Record",
+          "Home",
+          "Friends",
+          "Pilot"
+        ]
+      },
+      {
+        "check": "Flight detail opened",
+        "labels": [
+          "Back to Home",
+          "Map of this flight's track, 13.8 km flown. Start is an outlined circle; stop is a filled square.",
+          "Replay flight",
+          "Share postcard"
+        ]
+      },
+      {
+        "check": "Detail back retained",
+        "labels": [
+          "Filters (1)",
+          "Newest first",
+          "Remove QA Alpine Launch filter",
+          "Clear all",
+          "Filtered flights · On this phone. 2 flights. Recorded time 1:54. Longest recording 1:08. Longest track 13.8 km. Recorded time runs from recording start to stop; it includes time on the ground.",
+          "Open QA 01 · Good track. Sun 27 Sep · 12:00. QA Alpine Launch. Good track. Recorded time 1:08, track distance 13.8 km, maximum GPS altitude 1 810 m",
+          "Record",
+          "Home",
+          "Friends",
+          "Pilot"
+        ]
+      },
+      {
+        "check": "Clear one returns all flights",
+        "labels": [
+          "Filters",
+          "Newest first",
+          "All time · On this phone. 10 flights. Recorded time 5:10. Longest recording 1:33. Longest track 22.1 km. Recorded time available for 8 of 10 flights; track distance for 7 of 10.. Recorded time runs from recording start to stop; it includes time on the ground.",
+          "Open QA 01 · Good track. Sun 27 Sep · 12:00. QA Alpine Launch. Good track. Recorded time 1:08, track distance 13.8 km, maximum GPS altitude 1 810 m",
+          "Record",
+          "Home",
+          "Friends",
+          "Pilot"
+        ]
+      }
+    ]
+  },
+  "fixtureReceipts": {
+    "seedInterrupted": "PASS seedInterrupted\nschema=11, localFlights=9, restoredFlights=2, unfinishedSessions=1, aircraft=3, cloudBound=0, fixtureMarker=true\ninstalledApkSha256=a11210c1fb496e1cc410cde72e8387c6c335d426a0496142d619733cdc744d30",
+    "clearInterrupted": "PASS clearInterrupted\nschema=11, localFlights=8, restoredFlights=2, unfinishedSessions=0, aircraft=3, cloudBound=0, fixtureMarker=true\ninstalledApkSha256=a11210c1fb496e1cc410cde72e8387c6c335d426a0496142d619733cdc744d30"
+  },
+  "pending": [
+    "Physical network-offline saved journal/filter test and offline notice.",
+    "Real authentication/archive-owner transition and device error/retry; automated regression coverage passed.",
+    "Further physical expanded aircraft search, long option labels and option paging/combinations; automated tests passed.",
+    "Live active recorder lifecycle and field recovery remain on existing owner tickets.",
+    "Final enlarged text/small-width checks deferred under no-display-change restriction; TalkBack spoken/focus acceptance pending.",
+    "User screen acceptance; PAR-50/51 remain In Progress."
+  ],
+  "screenshots": [
+    {
+      "path": "ui-audit/stage4/screens/01-empty-home.png",
+      "sha256": "1d289cac0615aed3dbd95d340e07a1ed2698539906f49b9b52e74447358efe66",
+      "bytes": 1638400,
+      "build": "A",
+      "finalAcceptanceEvidence": false
+    },
+    {
+      "path": "ui-audit/stage4/screens/02-empty-filter-sheet.png",
+      "sha256": "cb90ac766407b62fc473e556b18afd57c36ea4b2b10e2902f45d6f911e40d752",
+      "bytes": 250471,
+      "build": "A",
+      "finalAcceptanceEvidence": false
+    },
+    {
+      "path": "ui-audit/stage4/screens/03-no-matches.png",
+      "sha256": "ef5b6e67f56c961ad05b0aa0bc925640ca1c37accd9a06a5408b5200d3520ae4",
+      "bytes": 1139459,
+      "build": "A",
+      "finalAcceptanceEvidence": false
+    },
+    {
+      "path": "ui-audit/stage4/screens/04-large-text-filter-sheet.png",
+      "sha256": "0208b9092c67ee71df2f710ab4a5178f993e0ecbbb07cbc94a6160419862ed1c",
+      "bytes": 293358,
+      "build": "A",
+      "finalAcceptanceEvidence": false
+    },
+    {
+      "path": "ui-audit/stage4/screens/05-build-b-no-matches.png",
+      "sha256": "54af1126112928a8ad1368d9479120bc9e4c9fd6c9548b057233a12e690eb420",
+      "bytes": 211708,
+      "build": "B",
+      "finalAcceptanceEvidence": false
+    },
+    {
+      "path": "ui-audit/stage4/screens/06-populated-home.png",
+      "sha256": "128a653de0b40eaec3e0fafe7e20cadd410a44578dd9fb9e56d1a338f5a90b2c",
+      "bytes": 1188761,
+      "build": "B",
+      "finalAcceptanceEvidence": false
+    },
+    {
+      "path": "ui-audit/stage4/screens/07-applied-or-and-filters.png",
+      "sha256": "ccb2e8f5375b1f3f15744a5e2d47493f9704377a7f041b785b54e76326668874",
+      "bytes": 1151770,
+      "build": "B",
+      "finalAcceptanceEvidence": false
+    },
+    {
+      "path": "ui-audit/stage4/screens/08-site-search-keyboard.png",
+      "sha256": "800b3aeaa1a9595858744f0118c5bbb8b9b3ce4adb091481e2c1a32d5acddb3c",
+      "bytes": 261189,
+      "build": "B",
+      "finalAcceptanceEvidence": false
+    },
+    {
+      "path": "ui-audit/stage4/screens/09-good-track-card.png",
+      "sha256": "1eacdaed5046aed25f236b5dedc6ff445546d7db801f1ecbae06f8fdb8357368",
+      "bytes": 1573004,
+      "build": "B",
+      "finalAcceptanceEvidence": false
+    },
+    {
+      "path": "ui-audit/stage4/screens/10-build-c-search-keyboard.png",
+      "sha256": "9a1b6053df4748ad193aa29bcc717968902f6a604f0e0dabe086fd840a85fd98",
+      "bytes": 268225,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/11-build-c-keyboard-apply.png",
+      "sha256": "3937027d155ca34fc2f5f321e238c75d64da366c1c17004a75e556173af0b80b",
+      "bytes": 238443,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/12-build-c-no-matches.png",
+      "sha256": "39b98175fda406b1c77ab410b3b2cef68e1dec11af0b8636207ff5363f3abf5d",
+      "bytes": 226334,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/13-build-c-good-track.png",
+      "sha256": "e002dacbc51f92706efc6730c1fb8c60c6d60490a6d6f1680d0b6eef21292e98",
+      "bytes": 1571195,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/14-build-c-gaps.png",
+      "sha256": "685a211e7119176f06998d9f0de90ee7a47b4ebe8bd8a4129cfe3ee0e5399409",
+      "bytes": 1750580,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/15-build-c-partial.png",
+      "sha256": "c249abce37ed046047eed33eb432699016cc231873bb63d2b507883b53bfc3e8",
+      "bytes": 1877368,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/16-build-c-no-track-processing.png",
+      "sha256": "31a6107514c7cfa45694fca3fec85b1c01ee2a64b468db07066c419a358d08f2",
+      "bytes": 485943,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/17-build-c-processing-restored.png",
+      "sha256": "13ee9474593f8a5300071f8c4824ab48ced6f0a1a1cdfafae1d0cb0c673ed2e9",
+      "bytes": 222970,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/18-build-c-restored-pending.png",
+      "sha256": "7cb6be8a128b05cdf8cad6add132b39668aa365982dea64fcd738bbdb96a084e",
+      "bytes": 672640,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/19-build-c-oldest.png",
+      "sha256": "2c4a5ff2a118e3847e4adaafa353e3b98ad275a6a983c58cd89faf1ded9f4e81",
+      "bytes": 1294118,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/20-build-c-duration.png",
+      "sha256": "9fa4ad74637a905a744e6880e1c5842c3caf6a56d49200b2b2ba3ded390f0a9f",
+      "bytes": 2012809,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/21-build-c-distance.png",
+      "sha256": "b1d9ef28fe02a736e01adfb318d94ca4dcb245275c1fdc009521f428f9098e50",
+      "bytes": 1902509,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/22-build-c-unknown-metrics.png",
+      "sha256": "dbeabcb1a92b75dc208d8d99c739f99c1228105c340c62e4461c04de4d5c29f4",
+      "bytes": 245458,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/23-build-c-interrupted.png",
+      "sha256": "a2b812e745e1b5664db26fe0fb5216eb83b9cba61f588e162dcadb19f3234df4",
+      "bytes": 1173679,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/24-build-c-interrupted-filtered.png",
+      "sha256": "0b797da7a3080daede4229048ae8ab3377508c031b4206873ac46c500659db6c",
+      "bytes": 291926,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    },
+    {
+      "path": "ui-audit/stage4/screens/25-build-c-final-home.png",
+      "sha256": "2d93637e21828ddc71e419fe014500a13bb8eb32cde0119bc105471388a261c5",
+      "bytes": 1188750,
+      "build": "C",
+      "finalAcceptanceEvidence": true
+    }
+  ]
+}
